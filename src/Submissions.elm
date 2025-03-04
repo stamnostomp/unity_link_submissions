@@ -1,4 +1,4 @@
-port module Main exposing (..)
+port module Submissions exposing (..)
 
 import Browser
 import Html exposing (..)
@@ -166,7 +166,7 @@ update msg model =
             else
                 ( { model
                   | page = ConfirmationPage
-                  , saveStatus = Just "Successfully saved to Database"
+                  , saveStatus = Just "Successfully saved to Firebase"
                   }
                 , Cmd.none
                 )
@@ -347,7 +347,7 @@ viewConfirmationPage model =
             [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Submission Successful!" ]
             , p [ class "text-gray-600 mt-2" ] [ text ("Thank you, " ++ model.studentName ++ "! Your Unity game project has been submitted.") ]
             , div [ class "mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800" ]
-                [ text "✓ Saved to Database" ]
+                [ text "✓ Saved to Firebase" ]
             ]
 
         , div [ class "mt-6 border rounded-md p-4 bg-gray-50" ]
@@ -382,7 +382,7 @@ viewConfirmationPage model =
             , pre [ class "p-4 bg-gray-800 text-green-400 overflow-x-auto text-sm" ]
                 [ text model.jsonOutput ]
             , p [ class "px-4 py-2 text-xs text-gray-500 bg-gray-100 border-t" ]
-                [ text "This data has been saved to your Database." ]
+                [ text "This data has been saved to your Firebase database." ]
             ]
 
         , button
@@ -410,5 +410,3 @@ viewError maybeError =
 
         Nothing ->
             text ""
-
-
