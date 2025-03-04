@@ -102,7 +102,7 @@ update msg model =
         CheckPassword ->
             -- Directly comparing the password in plaintext
             if model.password == "admin123" then
-                ( { model | showAdminPage = True }, Cmd.none )
+                ( { model | showAdminPage = True }, fetchSubmissions )
             else
                 ( model, Cmd.none )
 

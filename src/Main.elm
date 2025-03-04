@@ -5,6 +5,15 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Encode as Encode
+import Dict exposing (Dict)
+import Task
+import Process
+
+
+-- PORTS for JavaScript interop
+
+port saveToFirebase : Encode.Value -> Cmd msg
+port firebaseSaveResult : (String -> msg) -> Sub msg
 
 
 -- MAIN
@@ -15,8 +24,15 @@ main =
         { init = init
         , update = update
         , view = view
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
+
+
+-- SUBSCRIPTIONS
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    firebaseSaveResult FirebaseResult
 
 
 -- MODEL
@@ -25,6 +41,7 @@ type Page
     = NamePage
     | SubmissionPage
     | ConfirmationPage
+    | SavingPage
 
 type alias Model =
     { page : Page
@@ -35,6 +52,7 @@ type alias Model =
     , notes : String
     , errorMessage : Maybe String
     , jsonOutput : String
+    , saveStatus : Maybe String
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -47,9 +65,26 @@ init _ =
       , notes = ""
       , errorMessage = Nothing
       , jsonOutput = ""
+      , saveStatus = Nothing
       }
     , Cmd.none
     )
+
+
+-- GAME OPTIONS BY LEVEL
+
+gameOptionsByLevel : Dict String (List String)
+gameOptionsByLevel =
+    Dict.fromList
+        [ ( "Beginner", [ "Game 1", "Game 2", "Game 3" ] )
+        , ( "Intermediate", [ "Game A", "Game B", "Game C" ] )
+        , ( "Advanced", [ "Game 4", "Game 5", "Game 6" ] )
+        ]
+
+getGameOptions : String -> List String
+getGameOptions level =
+    Dict.get level gameOptionsByLevel
+        |> Maybe.withDefault []
 
 
 -- UPDATE
@@ -62,6 +97,8 @@ type Msg
     | UpdateNotes String
     | SubmitName
     | SubmitForm
+    | SaveToFirebase
+    | FirebaseResult String
     | BackToName
     | Reset
 
@@ -72,7 +109,12 @@ update msg model =
             ( { model | studentName = name }, Cmd.none )
 
         UpdateGameLevel level ->
-            ( { model | gameLevel = level }, Cmd.none )
+            let
+                -- Reset game name when level changes
+                gameOptions = getGameOptions level
+                defaultGame = List.head gameOptions |> Maybe.withDefault ""
+            in
+            ( { model | gameLevel = level, gameName = defaultGame }, Cmd.none )
 
         UpdateGameName game ->
             ( { model | gameName = game }, Cmd.none )
@@ -97,7 +139,37 @@ update msg model =
                     jsonOutput =
                         encodeSubmission model |> Encode.encode 2
                 in
-                ( { model | page = ConfirmationPage, jsonOutput = jsonOutput, errorMessage = Nothing }, Cmd.none )
+                ( { model
+                  | page = SavingPage
+                  , jsonOutput = jsonOutput
+                  , errorMessage = Nothing
+                  , saveStatus = Just "Saving your submission..."
+                  }
+                , Process.sleep 500
+                    |> Task.perform (\_ -> SaveToFirebase)
+                )
+
+        SaveToFirebase ->
+            ( model
+            , saveToFirebase (encodeSubmission model)
+            )
+
+        FirebaseResult result ->
+            if String.startsWith "Error:" result then
+                ( { model
+                  | page = SubmissionPage
+                  , errorMessage = Just result
+                  , saveStatus = Just "Failed to save"
+                  }
+                , Cmd.none
+                )
+            else
+                ( { model
+                  | page = ConfirmationPage
+                  , saveStatus = Just "Successfully saved to Firebase"
+                  }
+                , Cmd.none
+                )
 
         BackToName ->
             ( { model | page = NamePage }, Cmd.none )
@@ -117,6 +189,7 @@ encodeSubmission model =
         , ( "githubLink", Encode.string model.githubLink )
         , ( "notes", Encode.string model.notes )
         , ( "submissionDate", Encode.string "2025-03-03" )  -- Current date hardcoded for example
+        , ( "submissionId", Encode.string (model.studentName ++ "-" ++ String.fromInt (String.length model.studentName + String.length model.gameName)) )
         ]
 
 
@@ -145,6 +218,9 @@ viewPage model =
 
         SubmissionPage ->
             viewSubmissionPage model
+
+        SavingPage ->
+            viewSavingPage model
 
         ConfirmationPage ->
             viewConfirmationPage model
@@ -176,6 +252,9 @@ viewNamePage model =
 
 viewSubmissionPage : Model -> Html Msg
 viewSubmissionPage model =
+    let
+        gameOptions = getGameOptions model.gameLevel
+    in
     div [ class "space-y-6" ]
         [ h2 [ class "text-xl font-medium text-gray-700" ] [ text ("Hello, " ++ model.studentName ++ "!") ]
         , p [ class "text-gray-600" ] [ text "Please provide details about your Unity game submission." ]
@@ -197,15 +276,18 @@ viewSubmissionPage model =
 
         , div [ class "space-y-2" ]
             [ label [ for "gameName", class "block text-sm font-medium text-gray-700" ] [ text "Game Name:" ]
-            , input
-                [ type_ "text"
-                , id "gameName"
-                , value model.gameName
-                , onInput UpdateGameName
-                , placeholder "Enter your game's name"
-                , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                ]
-                []
+            , if model.gameLevel == "" then
+                div [ class "mt-1 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-500" ]
+                    [ text "Please select a game level first" ]
+              else
+                select
+                    [ id "gameName"
+                    , onInput UpdateGameName
+                    , value model.gameName
+                    , class "mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    ]
+                    ([ option [ value "" ] [ text "-- Select Game --" ] ] ++
+                        List.map (\game -> option [ value game ] [ text game ]) gameOptions)
             ]
 
         , div [ class "space-y-2" ]
@@ -248,12 +330,24 @@ viewSubmissionPage model =
             ]
         ]
 
+viewSavingPage : Model -> Html Msg
+viewSavingPage model =
+    div [ class "space-y-6 text-center" ]
+        [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Saving Your Submission" ]
+        , div [ class "flex justify-center my-6" ]
+            [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+        , p [ class "text-gray-600" ]
+            [ text (model.saveStatus |> Maybe.withDefault "Processing your submission...") ]
+        ]
+
 viewConfirmationPage : Model -> Html Msg
 viewConfirmationPage model =
     div [ class "space-y-6" ]
         [ div [ class "text-center" ]
             [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Submission Successful!" ]
             , p [ class "text-gray-600 mt-2" ] [ text ("Thank you, " ++ model.studentName ++ "! Your Unity game project has been submitted.") ]
+            , div [ class "mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800" ]
+                [ text "✓ Saved to Firebase" ]
             ]
 
         , div [ class "mt-6 border rounded-md p-4 bg-gray-50" ]
@@ -288,7 +382,7 @@ viewConfirmationPage model =
             , pre [ class "p-4 bg-gray-800 text-green-400 overflow-x-auto text-sm" ]
                 [ text model.jsonOutput ]
             , p [ class "px-4 py-2 text-xs text-gray-500 bg-gray-100 border-t" ]
-                [ text "Note: In a production environment, this data would be saved to a server or file." ]
+                [ text "This data has been saved to your Firebase database." ]
             ]
 
         , button

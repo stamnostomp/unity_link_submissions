@@ -5209,6 +5209,200 @@ var $author$project$Main$encodeSubmission = function (model) {
 				$elm$json$Json$Encode$string('2025-03-03'))
 			]));
 };
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$core$Dict$Black = {$: 'Black'};
+var $elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var $elm$core$Dict$Red = {$: 'Red'};
+var $elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _v1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _v3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					key,
+					value,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _v5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _v6 = left.d;
+				var _v7 = _v6.a;
+				var llK = _v6.b;
+				var llV = _v6.c;
+				var llLeft = _v6.d;
+				var llRight = _v6.e;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					lK,
+					lV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _v1 = A2($elm$core$Basics$compare, key, nKey);
+			switch (_v1.$) {
+				case 'LT':
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3($elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3($elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var $elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
+		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $author$project$Main$gameOptionsByLevel = $elm$core$Dict$fromList(
+	_List_fromArray(
+		[
+			_Utils_Tuple2(
+			'Beginner',
+			_List_fromArray(
+				['Game 1', 'Game 2', 'Game 3'])),
+			_Utils_Tuple2(
+			'Intermediate',
+			_List_fromArray(
+				['Game A', 'Game B', 'Game C'])),
+			_Utils_Tuple2(
+			'Advanced',
+			_List_fromArray(
+				['Game 4', 'Game 5', 'Game 6']))
+		]));
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$getGameOptions = function (level) {
+	return A2(
+		$elm$core$Maybe$withDefault,
+		_List_Nil,
+		A2($elm$core$Dict$get, level, $author$project$Main$gameOptionsByLevel));
+};
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
 var $elm$core$String$trim = _String_trim;
 var $author$project$Main$update = F2(
 	function (msg, model) {
@@ -5222,10 +5416,15 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateGameLevel':
 				var level = msg.a;
+				var gameOptions = $author$project$Main$getGameOptions(level);
+				var defaultGame = A2(
+					$elm$core$Maybe$withDefault,
+					'',
+					$elm$core$List$head(gameOptions));
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{gameLevel: level}),
+						{gameLevel: level, gameName: defaultGame}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateGameName':
 				var game = msg.a;
@@ -5825,6 +6024,7 @@ var $elm$html$Html$Attributes$rows = function (n) {
 var $elm$html$Html$select = _VirtualDom_node('select');
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $author$project$Main$viewSubmissionPage = function (model) {
+	var gameOptions = $author$project$Main$getGameOptions(model.gameLevel);
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -5944,18 +6144,53 @@ var $author$project$Main$viewSubmissionPage = function (model) {
 							[
 								$elm$html$Html$text('Game Name:')
 							])),
-						A2(
-						$elm$html$Html$input,
+						(model.gameLevel === '') ? A2(
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$type_('text'),
-								$elm$html$Html$Attributes$id('gameName'),
-								$elm$html$Html$Attributes$value(model.gameName),
-								$elm$html$Html$Events$onInput($author$project$Main$UpdateGameName),
-								$elm$html$Html$Attributes$placeholder('Enter your game\'s name'),
-								$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+								$elm$html$Html$Attributes$class('mt-1 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-500')
 							]),
-						_List_Nil)
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Please select a game level first')
+							])) : A2(
+						$elm$html$Html$select,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('gameName'),
+								$elm$html$Html$Events$onInput($author$project$Main$UpdateGameName),
+								$elm$html$Html$Attributes$value(model.gameName),
+								$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+							]),
+						_Utils_ap(
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$option,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$value('')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('-- Select Game --')
+										]))
+								]),
+							A2(
+								$elm$core$List$map,
+								function (game) {
+									return A2(
+										$elm$html$Html$option,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$value(game)
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(game)
+											]));
+								},
+								gameOptions)))
 					])),
 				A2(
 				$elm$html$Html$div,

@@ -8,11 +8,56 @@
 </head>
 <body>
   <div id="elm-app"></div>
-  <script src="main.js"></script>
-  <script>
-    var app = Elm.Main.init({
+
+  <!-- Firebase scripts -->
+  <script type="module">
+    // Import Firebase modules
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // Initialize the Elm application after the script is loaded
+    const elmApp = Elm.Main.init({
       node: document.getElementById('elm-app')
     });
+
+    // Listen for saveToFirebase commands from Elm
+    elmApp.ports.saveToFirebase.subscribe(function(data) {
+      console.log("Received data from Elm:", data);
+      
+      // Generate a unique key for the submission or use the provided ID
+      const submissionId = data.submissionId || Date.now().toString();
+
+      // Save to Firebase
+      set(ref(database, 'submissions/' + submissionId), data)
+        .then(() => {
+          console.log("Data saved successfully");
+          // Send success message back to Elm
+          elmApp.ports.firebaseSaveResult.send("Success: Data saved successfully");
+        })
+        .catch((error) => {
+          console.error("Firebase save error:", error);
+          // Send error message back to Elm
+          elmApp.ports.firebaseSaveResult.send("Error: " + error.message);
+        });
+    });
   </script>
+
+  <!-- Compiled Elm application -->
+  <script src="elm.js"></script>
 </body>
 </html>
