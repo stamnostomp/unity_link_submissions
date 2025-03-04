@@ -5164,12 +5164,20 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		{errorMessage: $elm$core$Maybe$Nothing, gameLevel: '', gameName: '', githubLink: '', jsonOutput: '', notes: '', page: $author$project$Main$NamePage, studentName: ''},
+		{errorMessage: $elm$core$Maybe$Nothing, gameLevel: '', gameName: '', githubLink: '', jsonOutput: '', notes: '', page: $author$project$Main$NamePage, saveStatus: $elm$core$Maybe$Nothing, studentName: ''},
 		$elm$core$Platform$Cmd$none);
 };
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$FirebaseResult = function (a) {
+	return {$: 'FirebaseResult', a: a};
+};
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $author$project$Main$firebaseSaveResult = _Platform_incomingPort('firebaseSaveResult', $elm$json$Json$Decode$string);
+var $author$project$Main$subscriptions = function (_v0) {
+	return $author$project$Main$firebaseSaveResult($author$project$Main$FirebaseResult);
+};
 var $author$project$Main$ConfirmationPage = {$: 'ConfirmationPage'};
+var $author$project$Main$SaveToFirebase = {$: 'SaveToFirebase'};
+var $author$project$Main$SavingPage = {$: 'SavingPage'};
 var $author$project$Main$SubmissionPage = {$: 'SubmissionPage'};
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
@@ -5206,7 +5214,12 @@ var $author$project$Main$encodeSubmission = function (model) {
 				$elm$json$Json$Encode$string(model.notes)),
 				_Utils_Tuple2(
 				'submissionDate',
-				$elm$json$Json$Encode$string('2025-03-03'))
+				$elm$json$Json$Encode$string('2025-03-03')),
+				_Utils_Tuple2(
+				'submissionId',
+				$elm$json$Json$Encode$string(
+					model.studentName + ('-' + $elm$core$String$fromInt(
+						$elm$core$String$length(model.studentName) + $elm$core$String$length(model.gameName)))))
 			]));
 };
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
@@ -5403,6 +5416,8 @@ var $elm$core$List$head = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
+var $author$project$Main$saveToFirebase = _Platform_outgoingPort('saveToFirebase', $elm$core$Basics$identity);
+var $elm$core$Process$sleep = _Process_sleep;
 var $elm$core$String$trim = _String_trim;
 var $author$project$Main$update = F2(
 	function (msg, model) {
@@ -5476,9 +5491,42 @@ var $author$project$Main$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{errorMessage: $elm$core$Maybe$Nothing, jsonOutput: jsonOutput, page: $author$project$Main$ConfirmationPage}),
-						$elm$core$Platform$Cmd$none);
+							{
+								errorMessage: $elm$core$Maybe$Nothing,
+								jsonOutput: jsonOutput,
+								page: $author$project$Main$SavingPage,
+								saveStatus: $elm$core$Maybe$Just('Saving your submission...')
+							}),
+						A2(
+							$elm$core$Task$perform,
+							function (_v1) {
+								return $author$project$Main$SaveToFirebase;
+							},
+							$elm$core$Process$sleep(500)));
 				}
+			case 'SaveToFirebase':
+				return _Utils_Tuple2(
+					model,
+					$author$project$Main$saveToFirebase(
+						$author$project$Main$encodeSubmission(model)));
+			case 'FirebaseResult':
+				var result = msg.a;
+				return A2($elm$core$String$startsWith, 'Error:', result) ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							errorMessage: $elm$core$Maybe$Just(result),
+							page: $author$project$Main$SubmissionPage,
+							saveStatus: $elm$core$Maybe$Just('Failed to save')
+						}),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							page: $author$project$Main$ConfirmationPage,
+							saveStatus: $elm$core$Maybe$Just('Successfully saved to Database')
+						}),
+					$elm$core$Platform$Cmd$none);
 			case 'BackToName':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5634,6 +5682,16 @@ var $author$project$Main$viewConfirmationPage = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text('Thank you, ' + (model.studentName + '! Your Unity game project has been submitted.'))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('✓ Saved to Database')
 							]))
 					])),
 				A2(
@@ -5856,7 +5914,7 @@ var $author$project$Main$viewConfirmationPage = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Note: In a production environment, this data would be saved to a server or file.')
+								$elm$html$Html$text('This data has been saved to your Database.')
 							]))
 					])),
 				A2(
@@ -5907,7 +5965,6 @@ var $elm$json$Json$Decode$at = F2(
 	function (fields, decoder) {
 		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
 	});
-var $elm$json$Json$Decode$string = _Json_decodeString;
 var $elm$html$Html$Events$targetValue = A2(
 	$elm$json$Json$Decode$at,
 	_List_fromArray(
@@ -5997,6 +6054,54 @@ var $author$project$Main$viewNamePage = function (model) {
 				_List_fromArray(
 					[
 						$elm$html$Html$text('Continue')
+					]))
+			]));
+};
+var $author$project$Main$viewSavingPage = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('space-y-6 text-center')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h2,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Saving Your Submission')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('flex justify-center my-6')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500')
+							]),
+						_List_Nil)
+					])),
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-gray-600')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						A2($elm$core$Maybe$withDefault, 'Processing your submission...', model.saveStatus))
 					]))
 			]));
 };
@@ -6296,6 +6401,8 @@ var $author$project$Main$viewPage = function (model) {
 			return $author$project$Main$viewNamePage(model);
 		case 'SubmissionPage':
 			return $author$project$Main$viewSubmissionPage(model);
+		case 'SavingPage':
+			return $author$project$Main$viewSavingPage(model);
 		default:
 			return $author$project$Main$viewConfirmationPage(model);
 	}
@@ -6358,13 +6465,6 @@ var $author$project$Main$view = function (model) {
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
-	{
-		init: $author$project$Main$init,
-		subscriptions: function (_v0) {
-			return $elm$core$Platform$Sub$none;
-		},
-		update: $author$project$Main$update,
-		view: $author$project$Main$view
-	});
+	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
