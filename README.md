@@ -5,7 +5,7 @@ A web-based platform for students to submit Unity game projects and for instruct
 ## 🌟 Features
 
 ### For Students
-- **Personalized Student Experience**: Students can access their records using a firstname.lastname format
+- **Student Experience**: Students can access their records using a firstname.lastname format
 - **Belt-based Progression System**: Visual progression through different belt levels (White → Yellow → Green → Black)
 - **Streamlined Submission Process**: Easy game submission with GitHub repository integration
 - **Progress Tracking**: View submission history and grades
