@@ -233,10 +233,6 @@ This allows us to maintain the desired naming convention while complying with Fi
 
 The admin interface uses Firebase Authentication with email/password. The student interface is public but requires students to enter their name to access their records.
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
