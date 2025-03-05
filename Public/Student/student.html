@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Student Records</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="elm-app"></div>
+
+  <!-- Compiled Elm application -->
+  <script src="student.js"></script>
+
+  <!-- Import Firebase integration -->
+  <script type="module">
+    import { initializeFirebase } from './student-firebase.js';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize the Elm application
+      const elmApp = Elm.Student.init({
+        node: document.getElementById('elm-app')
+      });
+
+      // Initialize Firebase with the Elm app
+      initializeFirebase(elmApp);
+    });
+  </script>
+</body>
+</html>
