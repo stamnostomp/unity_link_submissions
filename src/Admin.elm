@@ -15,6 +15,10 @@ port receiveSubmissions : (Decode.Value -> msg) -> Sub msg
 port saveGrade : Encode.Value -> Cmd msg
 port gradeResult : (String -> msg) -> Sub msg
 
+-- Student record ports
+port requestStudentRecord : String -> Cmd msg
+port receiveStudentRecord : (Decode.Value -> msg) -> Sub msg
+
 -- Authentication ports
 port signIn : Encode.Value -> Cmd msg
 port signOut : () -> Cmd msg
@@ -36,8 +40,17 @@ main =
 
 -- MODEL
 
+type alias Student =
+    { id : String
+    , name : String
+    , email : Maybe String
+    , created : String
+    , lastActive : String
+    }
+
 type alias Submission =
     { id : String
+    , studentId : String
     , studentName : String
     , gameLevel : String
     , gameName : String
@@ -65,6 +78,10 @@ type AppState
     | AuthenticatingWith String String
     | Authenticated User
 
+type Page
+    = SubmissionsPage
+    | StudentRecordPage Student (List Submission)
+
 type SortBy
     = ByName
     | ByDate
@@ -77,11 +94,14 @@ type SortDirection
 
 type alias Model =
     { appState : AppState
+    , page : Page
     , loginEmail : String
     , loginPassword : String
     , authError : Maybe String
     , submissions : List Submission
     , currentSubmission : Maybe Submission
+    , currentStudent : Maybe Student
+    , studentSubmissions : List Submission
     , loading : Bool
     , error : Maybe String
     , success : Maybe String
@@ -97,11 +117,14 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { appState = NotAuthenticated
+      , page = SubmissionsPage
       , loginEmail = ""
       , loginPassword = ""
       , authError = Nothing
       , submissions = []
       , currentSubmission = Nothing
+      , currentStudent = Nothing
+      , studentSubmissions = []
       , loading = False
       , error = Nothing
       , success = Nothing
@@ -139,6 +162,9 @@ type Msg
     | SubmitGrade
     | GradeResult String
     | RefreshSubmissions
+    | ViewStudentRecord String
+    | ReceivedStudentRecord (Result Decode.Error { student : Student, submissions : List Submission })
+    | CloseStudentRecord
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -326,6 +352,40 @@ update msg model =
         RefreshSubmissions ->
             ( { model | loading = True }, requestSubmissions () )
 
+        ViewStudentRecord studentId ->
+            ( { model | loading = True, page = SubmissionsPage }
+            , requestStudentRecord studentId
+            )
+
+        ReceivedStudentRecord result ->
+            case result of
+                Ok { student, submissions } ->
+                    ( { model
+                      | loading = False
+                      , currentStudent = Just student
+                      , studentSubmissions = submissions
+                      , page = StudentRecordPage student submissions
+                      }
+                    , Cmd.none
+                    )
+
+                Err error ->
+                    ( { model
+                      | loading = False
+                      , error = Just ("Failed to load student record: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
+
+        CloseStudentRecord ->
+            ( { model
+              | page = SubmissionsPage
+              , currentStudent = Nothing
+              , studentSubmissions = []
+              }
+            , Cmd.none
+            )
+
 
 -- SUBSCRIPTIONS
 
@@ -335,6 +395,7 @@ subscriptions _ =
         [ receiveAuthState (decodeAuthState >> ReceivedAuthState)
         , receiveAuthResult (decodeAuthResult >> ReceivedAuthResult)
         , receiveSubmissions (decodeSubmissionsResponse >> ReceiveSubmissions)
+        , receiveStudentRecord (decodeStudentRecordResponse >> ReceivedStudentRecord)
         , gradeResult GradeResult
         ]
 
@@ -347,15 +408,49 @@ decodeSubmissionsResponse value =
 
 submissionDecoder : Decoder Submission
 submissionDecoder =
-    Decode.map8 Submission
+    Decode.map7
+        (\id gameLevel gameName githubLink notes studentName submissionDate ->
+            let
+                -- Generate a studentId from the studentName if missing
+                derivedStudentId =
+                    String.replace " " "-" (String.toLower studentName)
+            in
+            { id = id
+            , studentId = derivedStudentId
+            , studentName = studentName
+            , gameLevel = gameLevel
+            , gameName = gameName
+            , githubLink = githubLink
+            , notes = notes
+            , submissionDate = submissionDate
+            , grade = Nothing
+            }
+        )
         (Decode.field "id" Decode.string)
-        (Decode.field "studentName" Decode.string)
         (Decode.field "gameLevel" Decode.string)
         (Decode.field "gameName" Decode.string)
         (Decode.field "githubLink" Decode.string)
         (Decode.field "notes" Decode.string)
+        (Decode.field "studentName" Decode.string)
         (Decode.field "submissionDate" Decode.string)
-        (Decode.maybe (Decode.field "grade" gradeDecoder))
+        |> Decode.andThen
+            (\submission ->
+                -- Try to get the studentId if it exists
+                Decode.maybe (Decode.field "studentId" Decode.string)
+                    |> Decode.map
+                        (\maybeStudentId ->
+                            case maybeStudentId of
+                                Just studentId ->
+                                    { submission | studentId = studentId }
+                                Nothing ->
+                                    submission
+                        )
+            )
+        |> Decode.andThen
+            (\submission ->
+                Decode.maybe (Decode.field "grade" gradeDecoder)
+                    |> Decode.map (\grade -> { submission | grade = grade })
+            )
 
 gradeDecoder : Decoder Grade
 gradeDecoder =
@@ -364,6 +459,25 @@ gradeDecoder =
         (Decode.field "feedback" Decode.string)
         (Decode.field "gradedBy" Decode.string)
         (Decode.field "gradingDate" Decode.string)
+
+studentDecoder : Decoder Student
+studentDecoder =
+    Decode.map5 Student
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.maybe (Decode.field "email" Decode.string))
+        (Decode.field "created" Decode.string)
+        (Decode.field "lastActive" Decode.string)
+
+decodeStudentRecordResponse : Decode.Value -> Result Decode.Error { student : Student, submissions : List Submission }
+decodeStudentRecordResponse value =
+    let
+        decoder =
+            Decode.map2 (\student submissions -> { student = student, submissions = submissions })
+                (Decode.field "student" studentDecoder)
+                (Decode.field "submissions" (Decode.list submissionDecoder))
+    in
+    Decode.decodeValue decoder value
 
 userDecoder : Decoder User
 userDecoder =
@@ -528,8 +642,7 @@ viewContent model =
                   else
                     div []
                         [ viewMessages model
-                        , viewFilters model
-                        , viewSubmissionList model
+                        , viewCurrentPage model
                         ]
                 , case model.currentSubmission of
                     Just submission ->
@@ -538,6 +651,18 @@ viewContent model =
                     Nothing ->
                         text ""
                 ]
+
+viewCurrentPage : Model -> Html Msg
+viewCurrentPage model =
+    case model.page of
+        SubmissionsPage ->
+            div []
+                [ viewFilters model
+                , viewSubmissionList model
+                ]
+
+        StudentRecordPage student submissions ->
+            viewStudentRecordPage model student submissions
 
 viewAdminHeader : User -> Html Msg
 viewAdminHeader user =
@@ -760,7 +885,9 @@ viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
     tr [ class "hover:bg-gray-50" ]
         [ td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.studentName ] ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.studentName ]
+            , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ submission.studentId) ]
+            ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-900" ] [ text submission.gameName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
@@ -769,12 +896,17 @@ viewSubmissionRow submission =
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ viewGradeBadge submission.grade ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-right text-sm font-medium" ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3" ]
             [ button
                 [ onClick (SelectSubmission submission)
                 , class "text-blue-600 hover:text-blue-900"
                 ]
                 [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+            , button
+                [ onClick (ViewStudentRecord submission.studentId)
+                , class "text-green-600 hover:text-green-900"
+                ]
+                [ text "Student Record" ]
             ]
         ]
 
@@ -800,6 +932,94 @@ viewGradeBadge maybeGrade =
             span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
                 [ text "Ungraded" ]
 
+viewStudentRecordPage : Model -> Student -> List Submission -> Html Msg
+viewStudentRecordPage model student submissions =
+    div [ class "space-y-6" ]
+        [ div [ class "bg-white shadow rounded-lg p-6" ]
+            [ div [ class "flex justify-between items-center" ]
+                [ h2 [ class "text-xl font-medium text-gray-900" ]
+                    [ text ("Student Record: " ++ student.name) ]
+                , button
+                    [ onClick CloseStudentRecord
+                    , class "text-gray-500 hover:text-gray-700 flex items-center"
+                    ]
+                    [ span [ class "mr-1" ] [ text "←" ]
+                    , text "Back to Submissions"
+                    ]
+                ]
+            , div [ class "mt-4 grid grid-cols-1 md:grid-cols-3 gap-4" ]
+                [ div [ class "bg-gray-50 p-4 rounded-md" ]
+                    [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Student ID" ]
+                    , p [ class "mt-1 text-lg" ] [ text student.id ]
+                    ]
+                , div [ class "bg-gray-50 p-4 rounded-md" ]
+                    [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Joined" ]
+                    , p [ class "mt-1 text-lg" ] [ text student.created ]
+                    ]
+                , div [ class "bg-gray-50 p-4 rounded-md" ]
+                    [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Last Active" ]
+                    , p [ class "mt-1 text-lg" ] [ text student.lastActive ]
+                    ]
+                ]
+            , case student.email of
+                Just email ->
+                    div [ class "mt-4 bg-gray-50 p-4 rounded-md" ]
+                        [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Email Address" ]
+                        , p [ class "mt-1 text-lg" ] [ text email ]
+                        ]
+                Nothing ->
+                    div [ class "mt-4 bg-gray-50 p-4 rounded-md" ]
+                        [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Email Address" ]
+                        , p [ class "mt-1 text-gray-500 italic" ] [ text "No email provided" ]
+                        ]
+            ]
+        , div [ class "bg-white shadow rounded-lg overflow-hidden" ]
+            [ div [ class "px-6 py-4 border-b border-gray-200" ]
+                [ h3 [ class "text-lg font-medium text-gray-900" ]
+                    [ text ("All Submissions (" ++ String.fromInt (List.length submissions) ++ ")") ]
+                ]
+            , if List.isEmpty submissions then
+                div [ class "p-6 text-center" ]
+                    [ p [ class "text-gray-500" ] [ text "No submissions found for this student." ] ]
+              else
+                div [ class "overflow-x-auto" ]
+                    [ table [ class "min-w-full divide-y divide-gray-200" ]
+                        [ thead [ class "bg-gray-50" ]
+                            [ tr []
+                                [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Game" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Level" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Submitted" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Grade" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                                ]
+                            ]
+                        , tbody [ class "bg-white divide-y divide-gray-200" ]
+                            (List.map viewStudentSubmissionRow submissions)
+                        ]
+                    ]
+            ]
+        ]
+
+viewStudentSubmissionRow : Submission -> Html Msg
+viewStudentSubmissionRow submission =
+    tr [ class "hover:bg-gray-50" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.gameName ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-900" ] [ text submission.gameLevel ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ viewGradeBadge submission.grade ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-right text-sm font-medium" ]
+            [ button
+                [ onClick (SelectSubmission submission)
+                , class "text-blue-600 hover:text-blue-900"
+                ]
+                [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+            ]
+        ]
+
 viewSubmissionModal : Model -> Submission -> Html Msg
 viewSubmissionModal model submission =
     div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
@@ -813,6 +1033,13 @@ viewSubmissionModal model submission =
                     ]
                     [ text "×" ]
                 ]
+            , div [ class "px-6 py-2 bg-blue-50 border-b border-gray-200" ]
+                [ button
+                    [ onClick (ViewStudentRecord submission.studentId)
+                    , class "text-sm text-blue-600 hover:text-blue-800"
+                    ]
+                    [ text ("View all submissions for " ++ submission.studentName) ]
+                ]
             , div [ class "p-6 overflow-y-auto flex-grow" ]
                 [ div [ class "grid grid-cols-1 md:grid-cols-2 gap-6" ]
                     [ div [ class "space-y-6" ]
@@ -822,6 +1049,10 @@ viewSubmissionModal model submission =
                                 [ div []
                                     [ label [ class "block text-sm font-medium text-gray-700" ] [ text "Student Name:" ]
                                     , p [ class "mt-1 text-sm text-gray-900" ] [ text submission.studentName ]
+                                    ]
+                                , div []
+                                    [ label [ class "block text-sm font-medium text-gray-700" ] [ text "Student ID:" ]
+                                    , p [ class "mt-1 text-sm text-gray-900" ] [ text submission.studentId ]
                                     ]
                                 , div []
                                     [ label [ class "block text-sm font-medium text-gray-700" ] [ text "Game Level:" ]

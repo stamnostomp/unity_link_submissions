@@ -5159,26 +5159,124 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Main$NamePage = {$: 'NamePage'};
+var $author$project$Student$NamePage = {$: 'NamePage'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Main$init = function (_v0) {
+var $author$project$Student$init = function (_v0) {
 	return _Utils_Tuple2(
-		{errorMessage: $elm$core$Maybe$Nothing, gameLevel: '', gameName: '', githubLink: '', jsonOutput: '', notes: '', page: $author$project$Main$NamePage, saveStatus: $elm$core$Maybe$Nothing, studentName: ''},
+		{errorMessage: $elm$core$Maybe$Nothing, gameLevel: '', gameName: '', githubLink: '', notes: '', page: $author$project$Student$NamePage, searchName: '', studentEmail: '', successMessage: $elm$core$Maybe$Nothing},
 		$elm$core$Platform$Cmd$none);
 };
-var $author$project$Main$FirebaseResult = function (a) {
-	return {$: 'FirebaseResult', a: a};
+var $author$project$Student$StudentFoundResult = function (a) {
+	return {$: 'StudentFoundResult', a: a};
+};
+var $author$project$Student$SubmissionSaved = function (a) {
+	return {$: 'SubmissionSaved', a: a};
+};
+var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $elm$json$Json$Decode$decodeValue = _Json_run;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
+var $author$project$Student$Student = F6(
+	function (id, name, email, created, lastActive, submissions) {
+		return {created: created, email: email, id: id, lastActive: lastActive, name: name, submissions: submissions};
+	});
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map6 = _Json_map6;
+var $elm$json$Json$Decode$maybe = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
+			]));
 };
 var $elm$json$Json$Decode$string = _Json_decodeString;
-var $author$project$Main$firebaseSaveResult = _Platform_incomingPort('firebaseSaveResult', $elm$json$Json$Decode$string);
-var $author$project$Main$subscriptions = function (_v0) {
-	return $author$project$Main$firebaseSaveResult($author$project$Main$FirebaseResult);
+var $author$project$Student$Submission = F8(
+	function (id, studentId, gameLevel, gameName, githubLink, notes, submissionDate, grade) {
+		return {gameLevel: gameLevel, gameName: gameName, githubLink: githubLink, grade: grade, id: id, notes: notes, studentId: studentId, submissionDate: submissionDate};
+	});
+var $author$project$Student$Grade = F4(
+	function (score, feedback, gradedBy, gradingDate) {
+		return {feedback: feedback, gradedBy: gradedBy, gradingDate: gradingDate, score: score};
+	});
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$map4 = _Json_map4;
+var $author$project$Student$gradeDecoder = A5(
+	$elm$json$Json$Decode$map4,
+	$author$project$Student$Grade,
+	A2($elm$json$Json$Decode$field, 'score', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'feedback', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'gradedBy', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'gradingDate', $elm$json$Json$Decode$string));
+var $elm$json$Json$Decode$map8 = _Json_map8;
+var $author$project$Student$submissionDecoder = A9(
+	$elm$json$Json$Decode$map8,
+	$author$project$Student$Submission,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'studentId', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'gameLevel', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'gameName', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'githubLink', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'submissionDate', $elm$json$Json$Decode$string),
+	$elm$json$Json$Decode$maybe(
+		A2($elm$json$Json$Decode$field, 'grade', $author$project$Student$gradeDecoder)));
+var $author$project$Student$studentDecoder = A7(
+	$elm$json$Json$Decode$map6,
+	$author$project$Student$Student,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	$elm$json$Json$Decode$maybe(
+		A2($elm$json$Json$Decode$field, 'email', $elm$json$Json$Decode$string)),
+	A2($elm$json$Json$Decode$field, 'created', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'lastActive', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'submissions',
+		$elm$json$Json$Decode$list($author$project$Student$submissionDecoder)));
+var $author$project$Student$decodeStudentResponse = function (value) {
+	return A2(
+		$elm$json$Json$Decode$decodeValue,
+		$elm$json$Json$Decode$nullable($author$project$Student$studentDecoder),
+		value);
 };
-var $author$project$Main$ConfirmationPage = {$: 'ConfirmationPage'};
-var $author$project$Main$SaveToFirebase = {$: 'SaveToFirebase'};
-var $author$project$Main$SavingPage = {$: 'SavingPage'};
-var $author$project$Main$SubmissionPage = {$: 'SubmissionPage'};
+var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $author$project$Student$studentFound = _Platform_incomingPort('studentFound', $elm$json$Json$Decode$value);
+var $author$project$Student$submissionResult = _Platform_incomingPort('submissionResult', $elm$json$Json$Decode$string);
+var $author$project$Student$subscriptions = function (_v0) {
+	return $elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				$author$project$Student$studentFound(
+				A2($elm$core$Basics$composeR, $author$project$Student$decodeStudentResponse, $author$project$Student$StudentFoundResult)),
+				$author$project$Student$submissionResult($author$project$Student$SubmissionSaved)
+			]));
+};
+var $author$project$Student$LoadingPage = function (a) {
+	return {$: 'LoadingPage', a: a};
+};
+var $author$project$Student$StudentProfilePage = function (a) {
+	return {$: 'StudentProfilePage', a: a};
+};
+var $author$project$Student$SubmissionFormPage = function (a) {
+	return {$: 'SubmissionFormPage', a: a};
+};
+var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -5193,219 +5291,77 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			pairs));
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$encodeSubmission = function (model) {
+var $author$project$Student$encodeStudent = function (student) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
 				_Utils_Tuple2(
-				'studentName',
-				$elm$json$Json$Encode$string(model.studentName)),
+				'id',
+				$elm$json$Json$Encode$string(student.id)),
 				_Utils_Tuple2(
-				'gameLevel',
-				$elm$json$Json$Encode$string(model.gameLevel)),
+				'name',
+				$elm$json$Json$Encode$string(student.name)),
 				_Utils_Tuple2(
-				'gameName',
-				$elm$json$Json$Encode$string(model.gameName)),
+				'email',
+				function () {
+					var _v0 = student.email;
+					if (_v0.$ === 'Just') {
+						var email = _v0.a;
+						return $elm$json$Json$Encode$string(email);
+					} else {
+						return $elm$json$Json$Encode$null;
+					}
+				}()),
 				_Utils_Tuple2(
-				'githubLink',
-				$elm$json$Json$Encode$string(model.githubLink)),
+				'created',
+				$elm$json$Json$Encode$string(student.created)),
 				_Utils_Tuple2(
-				'notes',
-				$elm$json$Json$Encode$string(model.notes)),
-				_Utils_Tuple2(
-				'submissionDate',
-				$elm$json$Json$Encode$string('2025-03-03')),
-				_Utils_Tuple2(
-				'submissionId',
-				$elm$json$Json$Encode$string(
-					model.studentName + ('-' + $elm$core$String$fromInt(
-						$elm$core$String$length(model.studentName) + $elm$core$String$length(model.gameName)))))
+				'lastActive',
+				$elm$json$Json$Encode$string(student.lastActive))
 			]));
 };
-var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
-var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
-var $elm$core$Dict$Black = {$: 'Black'};
-var $elm$core$Dict$RBNode_elm_builtin = F5(
-	function (a, b, c, d, e) {
-		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
-	});
-var $elm$core$Dict$Red = {$: 'Red'};
-var $elm$core$Dict$balance = F5(
-	function (color, key, value, left, right) {
-		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
-			var _v1 = right.a;
-			var rK = right.b;
-			var rV = right.c;
-			var rLeft = right.d;
-			var rRight = right.e;
-			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
-				var _v3 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var lLeft = left.d;
-				var lRight = left.e;
-				return A5(
-					$elm$core$Dict$RBNode_elm_builtin,
-					$elm$core$Dict$Red,
-					key,
-					value,
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
-			} else {
-				return A5(
-					$elm$core$Dict$RBNode_elm_builtin,
-					color,
-					rK,
-					rV,
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
-					rRight);
-			}
-		} else {
-			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
-				var _v5 = left.a;
-				var lK = left.b;
-				var lV = left.c;
-				var _v6 = left.d;
-				var _v7 = _v6.a;
-				var llK = _v6.b;
-				var llV = _v6.c;
-				var llLeft = _v6.d;
-				var llRight = _v6.e;
-				var lRight = left.e;
-				return A5(
-					$elm$core$Dict$RBNode_elm_builtin,
-					$elm$core$Dict$Red,
-					lK,
-					lV,
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
-					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
-			} else {
-				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
-			}
-		}
-	});
-var $elm$core$Basics$compare = _Utils_compare;
-var $elm$core$Dict$insertHelp = F3(
-	function (key, value, dict) {
-		if (dict.$ === 'RBEmpty_elm_builtin') {
-			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
-		} else {
-			var nColor = dict.a;
-			var nKey = dict.b;
-			var nValue = dict.c;
-			var nLeft = dict.d;
-			var nRight = dict.e;
-			var _v1 = A2($elm$core$Basics$compare, key, nKey);
-			switch (_v1.$) {
-				case 'LT':
-					return A5(
-						$elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						A3($elm$core$Dict$insertHelp, key, value, nLeft),
-						nRight);
-				case 'EQ':
-					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
-				default:
-					return A5(
-						$elm$core$Dict$balance,
-						nColor,
-						nKey,
-						nValue,
-						nLeft,
-						A3($elm$core$Dict$insertHelp, key, value, nRight));
-			}
-		}
-	});
-var $elm$core$Dict$insert = F3(
-	function (key, value, dict) {
-		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
-		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
-			var _v1 = _v0.a;
-			var k = _v0.b;
-			var v = _v0.c;
-			var l = _v0.d;
-			var r = _v0.e;
-			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
-		} else {
-			var x = _v0;
-			return x;
-		}
-	});
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
+var $author$project$Student$encodeSubmission = function (submission) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$string(submission.id)),
+				_Utils_Tuple2(
+				'studentId',
+				$elm$json$Json$Encode$string(submission.studentId)),
+				_Utils_Tuple2(
+				'gameLevel',
+				$elm$json$Json$Encode$string(submission.gameLevel)),
+				_Utils_Tuple2(
+				'gameName',
+				$elm$json$Json$Encode$string(submission.gameName)),
+				_Utils_Tuple2(
+				'githubLink',
+				$elm$json$Json$Encode$string(submission.githubLink)),
+				_Utils_Tuple2(
+				'notes',
+				$elm$json$Json$Encode$string(submission.notes)),
+				_Utils_Tuple2(
+				'submissionDate',
+				$elm$json$Json$Encode$string(submission.submissionDate))
+			]));
 };
-var $author$project$Main$gameOptionsByLevel = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(
-			'Beginner',
-			_List_fromArray(
-				['Game 1', 'Game 2', 'Game 3'])),
-			_Utils_Tuple2(
-			'Intermediate',
-			_List_fromArray(
-				['Game A', 'Game B', 'Game C'])),
-			_Utils_Tuple2(
-			'Advanced',
-			_List_fromArray(
-				['Game 4', 'Game 5', 'Game 6']))
-		]));
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
-var $author$project$Main$getGameOptions = function (level) {
-	return A2(
-		$elm$core$Maybe$withDefault,
-		_List_Nil,
-		A2($elm$core$Dict$get, level, $author$project$Main$gameOptionsByLevel));
+var $author$project$Student$findStudent = _Platform_outgoingPort('findStudent', $elm$json$Json$Encode$string);
+var $author$project$Student$getGameOptions = function (level) {
+	switch (level) {
+		case 'Beginner':
+			return _List_fromArray(
+				['Game 1', 'Game 2', 'Game 3']);
+		case 'Intermediate':
+			return _List_fromArray(
+				['Game A', 'Game B', 'Game C']);
+		case 'Advanced':
+			return _List_fromArray(
+				['Game 4', 'Game 5', 'Game 6']);
+		default:
+			return _List_Nil;
+	}
 };
 var $elm$core$List$head = function (list) {
 	if (list.b) {
@@ -5416,22 +5372,139 @@ var $elm$core$List$head = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $author$project$Main$saveToFirebase = _Platform_outgoingPort('saveToFirebase', $elm$core$Basics$identity);
-var $elm$core$Process$sleep = _Process_sleep;
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$Student$saveStudent = _Platform_outgoingPort('saveStudent', $elm$core$Basics$identity);
+var $author$project$Student$saveSubmission = _Platform_outgoingPort('saveSubmission', $elm$core$Basics$identity);
+var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$trim = _String_trim;
-var $author$project$Main$update = F2(
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Student$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'UpdateName':
+			case 'UpdateSearchName':
 				var name = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{studentName: name}),
+						{searchName: name}),
+					$elm$core$Platform$Cmd$none);
+			case 'SearchStudent':
+				return ($elm$core$String$trim(model.searchName) === '') ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							errorMessage: $elm$core$Maybe$Just('Please enter your name to continue')
+						}),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							errorMessage: $elm$core$Maybe$Nothing,
+							page: $author$project$Student$LoadingPage('Searching for your record...')
+						}),
+					$author$project$Student$findStudent(model.searchName));
+			case 'CreateNewStudent':
+				if ($elm$core$String$trim(model.searchName) === '') {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMessage: $elm$core$Maybe$Just('Please enter your name to continue')
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var currentDate = '2025-03-04';
+					var newStudent = {
+						created: currentDate,
+						email: $elm$core$Maybe$Nothing,
+						id: A3(
+							$elm$core$String$replace,
+							' ',
+							'-',
+							$elm$core$String$toLower(model.searchName)) + ('-' + $elm$core$String$fromInt(
+							$elm$core$String$length(model.searchName))),
+						lastActive: currentDate,
+						name: model.searchName,
+						submissions: _List_Nil
+					};
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMessage: $elm$core$Maybe$Nothing,
+								page: $author$project$Student$StudentProfilePage(newStudent)
+							}),
+						$author$project$Student$saveStudent(
+							$author$project$Student$encodeStudent(newStudent)));
+				}
+			case 'StudentFoundResult':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var maybeStudent = result.a;
+					if (maybeStudent.$ === 'Just') {
+						var student = maybeStudent.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									errorMessage: $elm$core$Maybe$Nothing,
+									page: $author$project$Student$StudentProfilePage(student)
+								}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									errorMessage: $elm$core$Maybe$Just('No record found. Please check your name or create a new record.'),
+									page: $author$project$Student$NamePage
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMessage: $elm$core$Maybe$Just(
+									'Error loading record: ' + $elm$json$Json$Decode$errorToString(error)),
+								page: $author$project$Student$NamePage
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'StartNewSubmission':
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							errorMessage: $elm$core$Maybe$Nothing,
+							gameLevel: '',
+							gameName: '',
+							githubLink: '',
+							notes: '',
+							page: $author$project$Student$SubmissionFormPage(student)
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateGameLevel':
 				var level = msg.a;
-				var gameOptions = $author$project$Main$getGameOptions(level);
+				var gameOptions = $author$project$Student$getGameOptions(level);
 				var defaultGame = A2(
 					$elm$core$Maybe$withDefault,
 					'',
@@ -5462,19 +5535,15 @@ var $author$project$Main$update = F2(
 						model,
 						{notes: notes}),
 					$elm$core$Platform$Cmd$none);
-			case 'SubmitName':
-				return ($elm$core$String$trim(model.studentName) === '') ? _Utils_Tuple2(
+			case 'UpdateStudentEmail':
+				var email = msg.a;
+				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{
-							errorMessage: $elm$core$Maybe$Just('Please enter your name to continue')
-						}),
-					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{errorMessage: $elm$core$Maybe$Nothing, page: $author$project$Main$SubmissionPage}),
+						{studentEmail: email}),
 					$elm$core$Platform$Cmd$none);
 			case 'SubmitForm':
+				var student = msg.a;
 				if (($elm$core$String$trim(model.gameLevel) === '') || (($elm$core$String$trim(model.gameName) === '') || ($elm$core$String$trim(model.githubLink) === ''))) {
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -5484,57 +5553,78 @@ var $author$project$Main$update = F2(
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
-					var jsonOutput = A2(
-						$elm$json$Json$Encode$encode,
-						2,
-						$author$project$Main$encodeSubmission(model));
+					var updatedStudent = ($elm$core$String$trim(model.studentEmail) !== '') ? _Utils_update(
+						student,
+						{
+							email: $elm$core$Maybe$Just(model.studentEmail)
+						}) : student;
+					var currentDate = '2025-03-04';
+					var newSubmission = {
+						gameLevel: model.gameLevel,
+						gameName: model.gameName,
+						githubLink: model.githubLink,
+						grade: $elm$core$Maybe$Nothing,
+						id: student.id + ('-' + (model.gameLevel + ('-' + $elm$core$String$fromInt(
+							$elm$core$List$length(student.submissions) + 1)))),
+						notes: model.notes,
+						studentId: student.id,
+						submissionDate: currentDate
+					};
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
 								errorMessage: $elm$core$Maybe$Nothing,
-								jsonOutput: jsonOutput,
-								page: $author$project$Main$SavingPage,
-								saveStatus: $elm$core$Maybe$Just('Saving your submission...')
+								page: $author$project$Student$LoadingPage('Saving your submission...')
 							}),
-						A2(
-							$elm$core$Task$perform,
-							function (_v1) {
-								return $author$project$Main$SaveToFirebase;
-							},
-							$elm$core$Process$sleep(500)));
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									$author$project$Student$saveSubmission(
+									$author$project$Student$encodeSubmission(newSubmission)),
+									($elm$core$String$trim(model.studentEmail) !== '') ? $author$project$Student$saveStudent(
+									$author$project$Student$encodeStudent(updatedStudent)) : $elm$core$Platform$Cmd$none
+								])));
 				}
-			case 'SaveToFirebase':
-				return _Utils_Tuple2(
-					model,
-					$author$project$Main$saveToFirebase(
-						$author$project$Main$encodeSubmission(model)));
-			case 'FirebaseResult':
+			case 'SubmissionSaved':
 				var result = msg.a;
-				return A2($elm$core$String$startsWith, 'Error:', result) ? _Utils_Tuple2(
-					_Utils_update(
+				var _v3 = model.page;
+				if (_v3.$ === 'LoadingPage') {
+					return A2($elm$core$String$startsWith, 'Error:', result) ? _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMessage: $elm$core$Maybe$Just(result),
+								page: $author$project$Student$NamePage
+							}),
+						$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 						model,
-						{
-							errorMessage: $elm$core$Maybe$Just(result),
-							page: $author$project$Main$SubmissionPage,
-							saveStatus: $elm$core$Maybe$Just('Failed to save')
-						}),
-					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							page: $author$project$Main$ConfirmationPage,
-							saveStatus: $elm$core$Maybe$Just('Successfully saved to Database')
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'BackToName':
+						$author$project$Student$findStudent(model.searchName));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'BackToProfile':
+				var _v4 = model.page;
+				if (_v4.$ === 'SubmissionFormPage') {
+					var student = _v4.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								page: $author$project$Student$StudentProfilePage(student)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'BackToSearch':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{page: $author$project$Main$NamePage}),
+						{page: $author$project$Student$NamePage}),
 					$elm$core$Platform$Cmd$none);
 			default:
-				return $author$project$Main$init(_Utils_Tuple0);
+				return $author$project$Student$init(_Utils_Tuple0);
 		}
 	});
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -5551,7 +5641,7 @@ var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$span = _VirtualDom_node('span');
-var $author$project$Main$viewError = function (maybeError) {
+var $author$project$Student$viewError = function (maybeError) {
 	if (maybeError.$ === 'Just') {
 		var errorMsg = maybeError.a;
 		return A2(
@@ -5614,18 +5704,54 @@ var $author$project$Main$viewError = function (maybeError) {
 		return $elm$html$Html$text('');
 	}
 };
-var $author$project$Main$Reset = {$: 'Reset'};
-var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $elm$html$Html$Attributes$href = function (url) {
+var $author$project$Student$viewLoading = function (message) {
 	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'href',
-		_VirtualDom_noJavaScriptUri(url));
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('flex flex-col items-center justify-center py-12')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-gray-600')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(message)
+					]))
+			]));
 };
-var $elm$html$Html$li = _VirtualDom_node('li');
+var $author$project$Student$CreateNewStudent = {$: 'CreateNewStudent'};
+var $author$project$Student$SearchStudent = {$: 'SearchStudent'};
+var $author$project$Student$UpdateSearchName = function (a) {
+	return {$: 'UpdateSearchName', a: a};
+};
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$autofocus = $elm$html$Html$Attributes$boolProperty('autofocus');
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -5643,310 +5769,6 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$html$Html$pre = _VirtualDom_node('pre');
-var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
-var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $author$project$Main$viewConfirmationPage = function (model) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('space-y-6')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-center')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$h2,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Submission Successful!')
-							])),
-						A2(
-						$elm$html$Html$p,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-gray-600 mt-2')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Thank you, ' + (model.studentName + '! Your Unity game project has been submitted.'))
-							])),
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('✓ Saved to Database')
-							]))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('mt-6 border rounded-md p-4 bg-gray-50')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$h3,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-lg font-medium text-gray-700 mb-3')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Submission Details:')
-							])),
-						A2(
-						$elm$html$Html$ul,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('space-y-2')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$li,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('font-medium text-gray-700')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Name: ')
-											])),
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-gray-600')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(model.studentName)
-											]))
-									])),
-								A2(
-								$elm$html$Html$li,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('font-medium text-gray-700')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Game Level: ')
-											])),
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-gray-600')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(model.gameLevel)
-											]))
-									])),
-								A2(
-								$elm$html$Html$li,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('font-medium text-gray-700')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Game Name: ')
-											])),
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-gray-600')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(model.gameName)
-											]))
-									])),
-								A2(
-								$elm$html$Html$li,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('font-medium text-gray-700')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('GitHub Link: ')
-											])),
-										A2(
-										$elm$html$Html$a,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$href(model.githubLink),
-												$elm$html$Html$Attributes$target('_blank'),
-												$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-800')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(model.githubLink)
-											]))
-									])),
-								A2(
-								$elm$html$Html$li,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('pb-2')
-									]),
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('font-medium text-gray-700')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Notes: ')
-											])),
-										A2(
-										$elm$html$Html$span,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-gray-600')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(model.notes)
-											]))
-									]))
-							]))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('mt-6 border rounded-md overflow-hidden')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('bg-gray-100 px-4 py-2 border-b')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$h3,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('text-lg font-medium text-gray-700')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('JSON Output:')
-									]))
-							])),
-						A2(
-						$elm$html$Html$pre,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('p-4 bg-gray-800 text-green-400 overflow-x-auto text-sm')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(model.jsonOutput)
-							])),
-						A2(
-						$elm$html$Html$p,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('px-4 py-2 text-xs text-gray-500 bg-gray-100 border-t')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('This data has been saved to your Database.')
-							]))
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Main$Reset),
-						$elm$html$Html$Attributes$class('w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Submit Another Project')
-					]))
-			]));
-};
-var $author$project$Main$SubmitName = {$: 'SubmitName'};
-var $author$project$Main$UpdateName = function (a) {
-	return {$: 'UpdateName', a: a};
-};
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$bool(bool));
-	});
-var $elm$html$Html$Attributes$autofocus = $elm$html$Html$Attributes$boolProperty('autofocus');
-var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
-var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
-var $elm$html$Html$input = _VirtualDom_node('input');
-var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
@@ -5960,7 +5782,6 @@ var $elm$html$Html$Events$stopPropagationOn = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
 	});
-var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$at = F2(
 	function (fields, decoder) {
 		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
@@ -5982,7 +5803,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
-var $author$project$Main$viewNamePage = function (model) {
+var $author$project$Student$viewNamePage = function (model) {
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -5999,7 +5820,7 @@ var $author$project$Main$viewNamePage = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Welcome!')
+						$elm$html$Html$text('Student Record Lookup')
 					])),
 				A2(
 				$elm$html$Html$p,
@@ -6009,7 +5830,7 @@ var $author$project$Main$viewNamePage = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Please enter your name to begin the submission process.')
+						$elm$html$Html$text('Please enter your name to find your record or create a new one.')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -6036,327 +5857,10 @@ var $author$project$Main$viewNamePage = function (model) {
 							[
 								$elm$html$Html$Attributes$type_('text'),
 								$elm$html$Html$Attributes$id('studentName'),
-								$elm$html$Html$Attributes$value(model.studentName),
-								$elm$html$Html$Events$onInput($author$project$Main$UpdateName),
+								$elm$html$Html$Attributes$value(model.searchName),
+								$elm$html$Html$Events$onInput($author$project$Student$UpdateSearchName),
 								$elm$html$Html$Attributes$placeholder('Enter your full name'),
 								$elm$html$Html$Attributes$autofocus(true),
-								$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
-							]),
-						_List_Nil)
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick($author$project$Main$SubmitName),
-						$elm$html$Html$Attributes$class('w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Continue')
-					]))
-			]));
-};
-var $author$project$Main$viewSavingPage = function (model) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('space-y-6 text-center')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$h2,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Saving Your Submission')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('flex justify-center my-6')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500')
-							]),
-						_List_Nil)
-					])),
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-gray-600')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(
-						A2($elm$core$Maybe$withDefault, 'Processing your submission...', model.saveStatus))
-					]))
-			]));
-};
-var $author$project$Main$BackToName = {$: 'BackToName'};
-var $author$project$Main$SubmitForm = {$: 'SubmitForm'};
-var $author$project$Main$UpdateGameLevel = function (a) {
-	return {$: 'UpdateGameLevel', a: a};
-};
-var $author$project$Main$UpdateGameName = function (a) {
-	return {$: 'UpdateGameName', a: a};
-};
-var $author$project$Main$UpdateGithubLink = function (a) {
-	return {$: 'UpdateGithubLink', a: a};
-};
-var $author$project$Main$UpdateNotes = function (a) {
-	return {$: 'UpdateNotes', a: a};
-};
-var $elm$html$Html$option = _VirtualDom_node('option');
-var $elm$html$Html$Attributes$rows = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'rows',
-		$elm$core$String$fromInt(n));
-};
-var $elm$html$Html$select = _VirtualDom_node('select');
-var $elm$html$Html$textarea = _VirtualDom_node('textarea');
-var $author$project$Main$viewSubmissionPage = function (model) {
-	var gameOptions = $author$project$Main$getGameOptions(model.gameLevel);
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('space-y-6')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$h2,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Hello, ' + (model.studentName + '!'))
-					])),
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-gray-600')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Please provide details about your Unity game submission.')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('space-y-2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$label,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$for('gameLevel'),
-								$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Game Level:')
-							])),
-						A2(
-						$elm$html$Html$select,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('gameLevel'),
-								$elm$html$Html$Events$onInput($author$project$Main$UpdateGameLevel),
-								$elm$html$Html$Attributes$value(model.gameLevel),
-								$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$option,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$value('')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('-- Select Level --')
-									])),
-								A2(
-								$elm$html$Html$option,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$value('Beginner')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Beginner')
-									])),
-								A2(
-								$elm$html$Html$option,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$value('Intermediate')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Intermediate')
-									])),
-								A2(
-								$elm$html$Html$option,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$value('Advanced')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Advanced')
-									]))
-							]))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('space-y-2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$label,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$for('gameName'),
-								$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Game Name:')
-							])),
-						(model.gameLevel === '') ? A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('mt-1 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-500')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Please select a game level first')
-							])) : A2(
-						$elm$html$Html$select,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('gameName'),
-								$elm$html$Html$Events$onInput($author$project$Main$UpdateGameName),
-								$elm$html$Html$Attributes$value(model.gameName),
-								$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
-							]),
-						_Utils_ap(
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$option,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$value('')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('-- Select Game --')
-										]))
-								]),
-							A2(
-								$elm$core$List$map,
-								function (game) {
-									return A2(
-										$elm$html$Html$option,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$value(game)
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(game)
-											]));
-								},
-								gameOptions)))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('space-y-2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$label,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$for('githubLink'),
-								$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('GitHub Repository Link:')
-							])),
-						A2(
-						$elm$html$Html$input,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$type_('url'),
-								$elm$html$Html$Attributes$id('githubLink'),
-								$elm$html$Html$Attributes$value(model.githubLink),
-								$elm$html$Html$Events$onInput($author$project$Main$UpdateGithubLink),
-								$elm$html$Html$Attributes$placeholder('https://github.com/username/repository'),
-								$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
-							]),
-						_List_Nil)
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('space-y-2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$label,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$for('notes'),
-								$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Additional Notes:')
-							])),
-						A2(
-						$elm$html$Html$textarea,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('notes'),
-								$elm$html$Html$Attributes$value(model.notes),
-								$elm$html$Html$Events$onInput($author$project$Main$UpdateNotes),
-								$elm$html$Html$Attributes$placeholder('Provide any additional information about your game project'),
-								$elm$html$Html$Attributes$rows(5),
 								$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 							]),
 						_List_Nil)
@@ -6373,41 +5877,1079 @@ var $author$project$Main$viewSubmissionPage = function (model) {
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick($author$project$Main$BackToName),
-								$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								$elm$html$Html$Events$onClick($author$project$Student$SearchStudent),
+								$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Back')
+								$elm$html$Html$text('Find My Record')
 							])),
 						A2(
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick($author$project$Main$SubmitForm),
-								$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								$elm$html$Html$Events$onClick($author$project$Student$CreateNewStudent),
+								$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Submit')
+								$elm$html$Html$text('Create New Record')
 							]))
 					]))
 			]));
 };
-var $author$project$Main$viewPage = function (model) {
+var $author$project$Student$BackToSearch = {$: 'BackToSearch'};
+var $author$project$Student$StartNewSubmission = function (a) {
+	return {$: 'StartNewSubmission', a: a};
+};
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$html$Html$table = _VirtualDom_node('table');
+var $elm$html$Html$tbody = _VirtualDom_node('tbody');
+var $elm$html$Html$th = _VirtualDom_node('th');
+var $elm$html$Html$thead = _VirtualDom_node('thead');
+var $elm$html$Html$tr = _VirtualDom_node('tr');
+var $elm$html$Html$td = _VirtualDom_node('td');
+var $elm$core$Basics$ge = _Utils_ge;
+var $author$project$Student$viewGradeStatus = function (maybeGrade) {
+	if (maybeGrade.$ === 'Just') {
+		var grade = maybeGrade.a;
+		var _v1 = (grade.score >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.score >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.score >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
+		var bgColor = _v1.a;
+		var textColor = _v1.b;
+		return A2(
+			$elm$html$Html$span,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + (bgColor + (' ' + textColor)))
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(
+					$elm$core$String$fromInt(grade.score) + '/100')
+				]));
+	} else {
+		return A2(
+			$elm$html$Html$span,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Pending')
+				]));
+	}
+};
+var $author$project$Student$viewSubmissionRow = function (submission) {
+	return A2(
+		$elm$html$Html$tr,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(submission.gameName)
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('whitespace-nowrap px-3 py-4 text-sm text-gray-500')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(submission.gameLevel)
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('whitespace-nowrap px-3 py-4 text-sm text-gray-500')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(submission.submissionDate)
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('whitespace-nowrap px-3 py-4 text-sm text-gray-500')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Student$viewGradeStatus(submission.grade)
+					]))
+			]));
+};
+var $author$project$Student$viewStudentProfilePage = F2(
+	function (model, student) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('space-y-6')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('border-b border-gray-200 pb-5')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('flex justify-between items-center')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h2,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Welcome, ' + student.name)
+										])),
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick($author$project$Student$BackToSearch),
+											$elm$html$Html$Attributes$class('text-sm text-gray-600 hover:text-gray-900')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Not you? Switch accounts')
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-2 flex items-center text-sm text-gray-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Student ID: '),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('ml-1 font-medium')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(student.id)
+												]))
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-2 flex items-center text-sm text-gray-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Joined: '),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('ml-1')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(student.created)
+												]))
+										])),
+									function () {
+									var _v0 = student.email;
+									if (_v0.$ === 'Just') {
+										var email = _v0.a;
+										return A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-2 flex items-center text-sm text-gray-500')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Email: '),
+													A2(
+													$elm$html$Html$span,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('ml-1')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(email)
+														]))
+												]));
+									} else {
+										return $elm$html$Html$text('');
+									}
+								}()
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('space-y-4')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('flex justify-between items-center')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h3,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Your Game Submissions')
+										])),
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick(
+											$author$project$Student$StartNewSubmission(student)),
+											$elm$html$Html$Attributes$class('inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Submit New Game')
+										]))
+								])),
+							$elm$core$List$isEmpty(student.submissions) ? A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('bg-gray-50 rounded-md p-4 text-center')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-gray-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('No submissions yet. Start by submitting your first game!')
+										]))
+								])) : A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$table,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('min-w-full divide-y divide-gray-300')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$thead,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('bg-gray-50')
+												]),
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$tr,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Game')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-3 py-3.5 text-left text-sm font-semibold text-gray-900')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Level')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-3 py-3.5 text-left text-sm font-semibold text-gray-900')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Submitted')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-3 py-3.5 text-left text-sm font-semibold text-gray-900')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Grade')
+																]))
+														]))
+												])),
+											A2(
+											$elm$html$Html$tbody,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('divide-y divide-gray-200 bg-white')
+												]),
+											A2($elm$core$List$map, $author$project$Student$viewSubmissionRow, student.submissions))
+										]))
+								]))
+						]))
+				]));
+	});
+var $author$project$Student$BackToProfile = {$: 'BackToProfile'};
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
+var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
+var $elm$html$Html$ul = _VirtualDom_node('ul');
+var $author$project$Student$viewSubmissionCompletePage = F3(
+	function (model, student, submission) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('space-y-6')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('text-center')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h2,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Submission Successful!')
+								])),
+							A2(
+							$elm$html$Html$p,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-gray-600 mt-2')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Thank you, ' + (student.name + '! Your Unity game project has been submitted.'))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('mt-6 border rounded-md p-4 bg-gray-50')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$h3,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('text-lg font-medium text-gray-700 mb-3')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Submission Details:')
+								])),
+							A2(
+							$elm$html$Html$ul,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('space-y-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$li,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Name: ')
+												])),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-gray-600')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(student.name)
+												]))
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Game Level: ')
+												])),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-gray-600')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(submission.gameLevel)
+												]))
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Game Name: ')
+												])),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-gray-600')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(submission.gameName)
+												]))
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('border-b border-gray-200 pb-2')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('GitHub Link: ')
+												])),
+											A2(
+											$elm$html$Html$a,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$href(submission.githubLink),
+													$elm$html$Html$Attributes$target('_blank'),
+													$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-800')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(submission.githubLink)
+												]))
+										])),
+									A2(
+									$elm$html$Html$li,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('pb-2')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Notes: ')
+												])),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-gray-600')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(submission.notes)
+												]))
+										]))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex space-x-4 mt-6')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick($author$project$Student$BackToProfile),
+									$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Back to Profile')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick(
+									$author$project$Student$StartNewSubmission(student)),
+									$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Submit Another Game')
+								]))
+						]))
+				]));
+	});
+var $author$project$Student$SubmitForm = function (a) {
+	return {$: 'SubmitForm', a: a};
+};
+var $author$project$Student$UpdateGameLevel = function (a) {
+	return {$: 'UpdateGameLevel', a: a};
+};
+var $author$project$Student$UpdateGameName = function (a) {
+	return {$: 'UpdateGameName', a: a};
+};
+var $author$project$Student$UpdateGithubLink = function (a) {
+	return {$: 'UpdateGithubLink', a: a};
+};
+var $author$project$Student$UpdateNotes = function (a) {
+	return {$: 'UpdateNotes', a: a};
+};
+var $author$project$Student$UpdateStudentEmail = function (a) {
+	return {$: 'UpdateStudentEmail', a: a};
+};
+var $elm$html$Html$option = _VirtualDom_node('option');
+var $elm$html$Html$Attributes$rows = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'rows',
+		$elm$core$String$fromInt(n));
+};
+var $elm$html$Html$select = _VirtualDom_node('select');
+var $elm$html$Html$textarea = _VirtualDom_node('textarea');
+var $author$project$Student$viewSubmissionFormPage = F2(
+	function (model, student) {
+		var gameOptions = $author$project$Student$getGameOptions(model.gameLevel);
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('space-y-6')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$h2,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('text-xl font-medium text-gray-700')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('New Submission for ' + student.name)
+						])),
+					A2(
+					$elm$html$Html$p,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('text-gray-600')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Please provide details about your Unity game submission.')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('space-y-4')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('space-y-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$label,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$for('gameLevel'),
+											$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Game Level:')
+										])),
+									A2(
+									$elm$html$Html$select,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$id('gameLevel'),
+											$elm$html$Html$Events$onInput($author$project$Student$UpdateGameLevel),
+											$elm$html$Html$Attributes$value(model.gameLevel),
+											$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$option,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$value('')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('-- Select Level --')
+												])),
+											A2(
+											$elm$html$Html$option,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$value('Beginner')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Beginner')
+												])),
+											A2(
+											$elm$html$Html$option,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$value('Intermediate')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Intermediate')
+												])),
+											A2(
+											$elm$html$Html$option,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$value('Advanced')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Advanced')
+												]))
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('space-y-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$label,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$for('gameName'),
+											$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Game Name:')
+										])),
+									(model.gameLevel === '') ? A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-1 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Please select a game level first')
+										])) : A2(
+									$elm$html$Html$select,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$id('gameName'),
+											$elm$html$Html$Events$onInput($author$project$Student$UpdateGameName),
+											$elm$html$Html$Attributes$value(model.gameName),
+											$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+										]),
+									_Utils_ap(
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$option,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$value('')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('-- Select Game --')
+													]))
+											]),
+										A2(
+											$elm$core$List$map,
+											function (game) {
+												return A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value(game)
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(game)
+														]));
+											},
+											gameOptions)))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('space-y-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$label,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$for('githubLink'),
+											$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('GitHub Repository Link:')
+										])),
+									A2(
+									$elm$html$Html$input,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$type_('url'),
+											$elm$html$Html$Attributes$id('githubLink'),
+											$elm$html$Html$Attributes$value(model.githubLink),
+											$elm$html$Html$Events$onInput($author$project$Student$UpdateGithubLink),
+											$elm$html$Html$Attributes$placeholder('https://github.com/username/repository'),
+											$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+										]),
+									_List_Nil)
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('space-y-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$label,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$for('notes'),
+											$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Additional Notes:')
+										])),
+									A2(
+									$elm$html$Html$textarea,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$id('notes'),
+											$elm$html$Html$Attributes$value(model.notes),
+											$elm$html$Html$Events$onInput($author$project$Student$UpdateNotes),
+											$elm$html$Html$Attributes$placeholder('Provide any additional information about your game project'),
+											$elm$html$Html$Attributes$rows(5),
+											$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+										]),
+									_List_Nil)
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('space-y-2')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$label,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$for('studentEmail'),
+											$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Your Email (optional):')
+										])),
+									A2(
+									$elm$html$Html$input,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$type_('email'),
+											$elm$html$Html$Attributes$id('studentEmail'),
+											$elm$html$Html$Attributes$value(model.studentEmail),
+											$elm$html$Html$Events$onInput($author$project$Student$UpdateStudentEmail),
+											$elm$html$Html$Attributes$placeholder('your.email@example.com'),
+											$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+										]),
+									_List_Nil),
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-xs text-gray-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Providing your email helps instructors contact you about your submission')
+										]))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex space-x-4 mt-6')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick($author$project$Student$BackToProfile),
+									$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Back')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick(
+									$author$project$Student$SubmitForm(student)),
+									$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Submit Game')
+								]))
+						]))
+				]));
+	});
+var $author$project$Student$viewPage = function (model) {
 	var _v0 = model.page;
 	switch (_v0.$) {
 		case 'NamePage':
-			return $author$project$Main$viewNamePage(model);
-		case 'SubmissionPage':
-			return $author$project$Main$viewSubmissionPage(model);
-		case 'SavingPage':
-			return $author$project$Main$viewSavingPage(model);
+			return $author$project$Student$viewNamePage(model);
+		case 'StudentProfilePage':
+			var student = _v0.a;
+			return A2($author$project$Student$viewStudentProfilePage, model, student);
+		case 'SubmissionFormPage':
+			var student = _v0.a;
+			return A2($author$project$Student$viewSubmissionFormPage, model, student);
+		case 'SubmissionCompletePage':
+			var student = _v0.a;
+			var submission = _v0.b;
+			return A3($author$project$Student$viewSubmissionCompletePage, model, student, submission);
 		default:
-			return $author$project$Main$viewConfirmationPage(model);
+			var message = _v0.a;
+			return $author$project$Student$viewLoading(message);
 	}
 };
-var $author$project$Main$view = function (model) {
+var $author$project$Student$viewSuccess = function (maybeSuccess) {
+	if (maybeSuccess.$ === 'Just') {
+		var successMsg = maybeSuccess.a;
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('mt-4 bg-green-50 border-l-4 border-green-400 p-4')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('flex-shrink-0')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-green-400')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('✓')
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('ml-3')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-sm text-green-700')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(successMsg)
+										]))
+								]))
+						]))
+				]));
+	} else {
+		return $elm$html$Html$text('');
+	}
+};
+var $author$project$Student$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -6420,7 +6962,7 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('relative py-3 sm:max-w-xl sm:mx-auto')
+						$elm$html$Html$Attributes$class('relative py-3 sm:max-w-4xl sm:mx-auto')
 					]),
 				_List_fromArray(
 					[
@@ -6443,7 +6985,7 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$Attributes$class('max-w-md mx-auto')
+										$elm$html$Html$Attributes$class('max-w-4xl mx-auto')
 									]),
 								_List_fromArray(
 									[
@@ -6455,16 +6997,17 @@ var $author$project$Main$view = function (model) {
 											]),
 										_List_fromArray(
 											[
-												$elm$html$Html$text('Unity Game Submission')
+												$elm$html$Html$text('Unity Game Submissions')
 											])),
-										$author$project$Main$viewPage(model),
-										$author$project$Main$viewError(model.errorMessage)
+										$author$project$Student$viewPage(model),
+										$author$project$Student$viewError(model.errorMessage),
+										$author$project$Student$viewSuccess(model.successMessage)
 									]))
 							]))
 					]))
 			]));
 };
-var $author$project$Main$main = $elm$browser$Browser$element(
-	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
-_Platform_export({'Main':{'init':$author$project$Main$main(
+var $author$project$Student$main = $elm$browser$Browser$element(
+	{init: $author$project$Student$init, subscriptions: $author$project$Student$subscriptions, update: $author$project$Student$update, view: $author$project$Student$view});
+_Platform_export({'Student':{'init':$author$project$Student$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));

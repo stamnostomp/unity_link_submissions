@@ -5162,11 +5162,12 @@ var $elm$browser$Browser$element = _Browser_element;
 var $author$project$Admin$ByDate = {$: 'ByDate'};
 var $author$project$Admin$Descending = {$: 'Descending'};
 var $author$project$Admin$NotAuthenticated = {$: 'NotAuthenticated'};
+var $author$project$Admin$SubmissionsPage = {$: 'SubmissionsPage'};
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Admin$init = function (_v0) {
 	return _Utils_Tuple2(
-		{appState: $author$project$Admin$NotAuthenticated, authError: $elm$core$Maybe$Nothing, currentSubmission: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, filterGraded: $elm$core$Maybe$Nothing, filterLevel: $elm$core$Maybe$Nothing, filterText: '', loading: false, loginEmail: '', loginPassword: '', sortBy: $author$project$Admin$ByDate, sortDirection: $author$project$Admin$Descending, submissions: _List_Nil, success: $elm$core$Maybe$Nothing, tempFeedback: '', tempScore: ''},
+		{appState: $author$project$Admin$NotAuthenticated, authError: $elm$core$Maybe$Nothing, currentStudent: $elm$core$Maybe$Nothing, currentSubmission: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, filterGraded: $elm$core$Maybe$Nothing, filterLevel: $elm$core$Maybe$Nothing, filterText: '', loading: false, loginEmail: '', loginPassword: '', page: $author$project$Admin$SubmissionsPage, sortBy: $author$project$Admin$ByDate, sortDirection: $author$project$Admin$Descending, studentSubmissions: _List_Nil, submissions: _List_Nil, success: $elm$core$Maybe$Nothing, tempFeedback: '', tempScore: ''},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Admin$GradeResult = function (a) {
@@ -5180,6 +5181,9 @@ var $author$project$Admin$ReceivedAuthResult = function (a) {
 };
 var $author$project$Admin$ReceivedAuthState = function (a) {
 	return {$: 'ReceivedAuthState', a: a};
+};
+var $author$project$Admin$ReceivedStudentRecord = function (a) {
+	return {$: 'ReceivedStudentRecord', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Basics$composeR = F3(
@@ -5238,10 +5242,29 @@ var $author$project$Admin$decodeAuthState = function (value) {
 	return A2($elm$json$Json$Decode$decodeValue, decoder, value);
 };
 var $elm$json$Json$Decode$list = _Json_decodeList;
-var $author$project$Admin$Submission = F8(
-	function (id, studentName, gameLevel, gameName, githubLink, notes, submissionDate, grade) {
-		return {gameLevel: gameLevel, gameName: gameName, githubLink: githubLink, grade: grade, id: id, notes: notes, studentName: studentName, submissionDate: submissionDate};
+var $author$project$Admin$Student = F5(
+	function (id, name, email, created, lastActive) {
+		return {created: created, email: email, id: id, lastActive: lastActive, name: name};
 	});
+var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$json$Json$Decode$maybe = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
+			]));
+};
+var $author$project$Admin$studentDecoder = A6(
+	$elm$json$Json$Decode$map5,
+	$author$project$Admin$Student,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	$elm$json$Json$Decode$maybe(
+		A2($elm$json$Json$Decode$field, 'email', $elm$json$Json$Decode$string)),
+	A2($elm$json$Json$Decode$field, 'created', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'lastActive', $elm$json$Json$Decode$string));
+var $elm$json$Json$Decode$andThen = _Json_andThen;
 var $author$project$Admin$Grade = F4(
 	function (score, feedback, gradedBy, gradingDate) {
 		return {feedback: feedback, gradedBy: gradedBy, gradingDate: gradingDate, score: score};
@@ -5255,27 +5278,78 @@ var $author$project$Admin$gradeDecoder = A5(
 	A2($elm$json$Json$Decode$field, 'feedback', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'gradedBy', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'gradingDate', $elm$json$Json$Decode$string));
-var $elm$json$Json$Decode$map8 = _Json_map8;
-var $elm$json$Json$Decode$maybe = function (decoder) {
-	return $elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
-				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
-			]));
+var $elm$json$Json$Decode$map7 = _Json_map7;
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $elm$core$String$toLower = _String_toLower;
+var $author$project$Admin$submissionDecoder = A2(
+	$elm$json$Json$Decode$andThen,
+	function (submission) {
+		return A2(
+			$elm$json$Json$Decode$map,
+			function (grade) {
+				return _Utils_update(
+					submission,
+					{grade: grade});
+			},
+			$elm$json$Json$Decode$maybe(
+				A2($elm$json$Json$Decode$field, 'grade', $author$project$Admin$gradeDecoder)));
+	},
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (submission) {
+			return A2(
+				$elm$json$Json$Decode$map,
+				function (maybeStudentId) {
+					if (maybeStudentId.$ === 'Just') {
+						var studentId = maybeStudentId.a;
+						return _Utils_update(
+							submission,
+							{studentId: studentId});
+					} else {
+						return submission;
+					}
+				},
+				$elm$json$Json$Decode$maybe(
+					A2($elm$json$Json$Decode$field, 'studentId', $elm$json$Json$Decode$string)));
+		},
+		A8(
+			$elm$json$Json$Decode$map7,
+			F7(
+				function (id, gameLevel, gameName, githubLink, notes, studentName, submissionDate) {
+					var derivedStudentId = A3(
+						$elm$core$String$replace,
+						' ',
+						'-',
+						$elm$core$String$toLower(studentName));
+					return {gameLevel: gameLevel, gameName: gameName, githubLink: githubLink, grade: $elm$core$Maybe$Nothing, id: id, notes: notes, studentId: derivedStudentId, studentName: studentName, submissionDate: submissionDate};
+				}),
+			A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
+			A2($elm$json$Json$Decode$field, 'gameLevel', $elm$json$Json$Decode$string),
+			A2($elm$json$Json$Decode$field, 'gameName', $elm$json$Json$Decode$string),
+			A2($elm$json$Json$Decode$field, 'githubLink', $elm$json$Json$Decode$string),
+			A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string),
+			A2($elm$json$Json$Decode$field, 'studentName', $elm$json$Json$Decode$string),
+			A2($elm$json$Json$Decode$field, 'submissionDate', $elm$json$Json$Decode$string))));
+var $author$project$Admin$decodeStudentRecordResponse = function (value) {
+	var decoder = A3(
+		$elm$json$Json$Decode$map2,
+		F2(
+			function (student, submissions) {
+				return {student: student, submissions: submissions};
+			}),
+		A2($elm$json$Json$Decode$field, 'student', $author$project$Admin$studentDecoder),
+		A2(
+			$elm$json$Json$Decode$field,
+			'submissions',
+			$elm$json$Json$Decode$list($author$project$Admin$submissionDecoder)));
+	return A2($elm$json$Json$Decode$decodeValue, decoder, value);
 };
-var $author$project$Admin$submissionDecoder = A9(
-	$elm$json$Json$Decode$map8,
-	$author$project$Admin$Submission,
-	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'studentName', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'gameLevel', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'gameName', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'githubLink', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'submissionDate', $elm$json$Json$Decode$string),
-	$elm$json$Json$Decode$maybe(
-		A2($elm$json$Json$Decode$field, 'grade', $author$project$Admin$gradeDecoder)));
 var $author$project$Admin$decodeSubmissionsResponse = function (value) {
 	return A2(
 		$elm$json$Json$Decode$decodeValue,
@@ -5286,6 +5360,7 @@ var $author$project$Admin$gradeResult = _Platform_incomingPort('gradeResult', $e
 var $elm$json$Json$Decode$value = _Json_decodeValue;
 var $author$project$Admin$receiveAuthResult = _Platform_incomingPort('receiveAuthResult', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveAuthState = _Platform_incomingPort('receiveAuthState', $elm$json$Json$Decode$value);
+var $author$project$Admin$receiveStudentRecord = _Platform_incomingPort('receiveStudentRecord', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveSubmissions = _Platform_incomingPort('receiveSubmissions', $elm$json$Json$Decode$value);
 var $author$project$Admin$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
@@ -5297,6 +5372,8 @@ var $author$project$Admin$subscriptions = function (_v0) {
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeAuthResult, $author$project$Admin$ReceivedAuthResult)),
 				$author$project$Admin$receiveSubmissions(
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeSubmissionsResponse, $author$project$Admin$ReceiveSubmissions)),
+				$author$project$Admin$receiveStudentRecord(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentRecordResponse, $author$project$Admin$ReceivedStudentRecord)),
 				$author$project$Admin$gradeResult($author$project$Admin$GradeResult)
 			]));
 };
@@ -5307,6 +5384,10 @@ var $author$project$Admin$Authenticated = function (a) {
 var $author$project$Admin$AuthenticatingWith = F2(
 	function (a, b) {
 		return {$: 'AuthenticatingWith', a: a, b: b};
+	});
+var $author$project$Admin$StudentRecordPage = F2(
+	function (a, b) {
+		return {$: 'StudentRecordPage', a: a, b: b};
 	});
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
@@ -5373,6 +5454,7 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
+var $author$project$Admin$requestStudentRecord = _Platform_outgoingPort('requestStudentRecord', $elm$json$Json$Encode$string);
 var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $author$project$Admin$requestSubmissions = _Platform_outgoingPort(
 	'requestSubmissions',
@@ -5703,12 +5785,52 @@ var $author$project$Admin$update = F2(
 							success: $elm$core$Maybe$Just('Grade saved successfully')
 						}),
 					$author$project$Admin$requestSubmissions(_Utils_Tuple0));
-			default:
+			case 'RefreshSubmissions':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{loading: true}),
 					$author$project$Admin$requestSubmissions(_Utils_Tuple0));
+			case 'ViewStudentRecord':
+				var studentId = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{loading: true, page: $author$project$Admin$SubmissionsPage}),
+					$author$project$Admin$requestStudentRecord(studentId));
+			case 'ReceivedStudentRecord':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var student = result.a.student;
+					var submissions = result.a.submissions;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								currentStudent: $elm$core$Maybe$Just(student),
+								loading: false,
+								page: A2($author$project$Admin$StudentRecordPage, student, submissions),
+								studentSubmissions: submissions
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just(
+									'Failed to load student record: ' + $elm$json$Json$Decode$errorToString(error)),
+								loading: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{currentStudent: $elm$core$Maybe$Nothing, page: $author$project$Admin$SubmissionsPage, studentSubmissions: _List_Nil}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -5865,7 +5987,6 @@ var $author$project$Admin$filterByLevel = F2(
 			return true;
 		}
 	});
-var $elm$core$String$toLower = _String_toLower;
 var $author$project$Admin$filterByText = F2(
 	function (filterText, submission) {
 		if ($elm$core$String$isEmpty(filterText)) {
@@ -6315,6 +6436,798 @@ var $author$project$Admin$viewFilters = function (model) {
 					]))
 			]));
 };
+var $author$project$Admin$CloseStudentRecord = {$: 'CloseStudentRecord'};
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$html$Html$table = _VirtualDom_node('table');
+var $elm$html$Html$tbody = _VirtualDom_node('tbody');
+var $elm$html$Html$th = _VirtualDom_node('th');
+var $elm$html$Html$thead = _VirtualDom_node('thead');
+var $elm$html$Html$tr = _VirtualDom_node('tr');
+var $author$project$Admin$SelectSubmission = function (a) {
+	return {$: 'SelectSubmission', a: a};
+};
+var $elm$html$Html$td = _VirtualDom_node('td');
+var $elm$core$Basics$ge = _Utils_ge;
+var $author$project$Admin$viewGradeBadge = function (maybeGrade) {
+	if (maybeGrade.$ === 'Just') {
+		var grade = maybeGrade.a;
+		var _v1 = (grade.score >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.score >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.score >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
+		var bgColor = _v1.a;
+		var textColor = _v1.b;
+		return A2(
+			$elm$html$Html$span,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + (bgColor + (' ' + textColor)))
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(
+					$elm$core$String$fromInt(grade.score) + '/100')
+				]));
+	} else {
+		return A2(
+			$elm$html$Html$span,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('Ungraded')
+				]));
+	}
+};
+var $author$project$Admin$viewStudentSubmissionRow = function (submission) {
+	return A2(
+		$elm$html$Html$tr,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('hover:bg-gray-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm font-medium text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.gameName)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.gameLevel)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.submissionDate)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Admin$viewGradeBadge(submission.grade)
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-right text-sm font-medium')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$SelectSubmission(submission)),
+								$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								_Utils_eq(submission.grade, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
+							]))
+					]))
+			]));
+};
+var $author$project$Admin$viewStudentRecordPage = F3(
+	function (model, student, submissions) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('space-y-6')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('bg-white shadow rounded-lg p-6')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('flex justify-between items-center')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h2,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-xl font-medium text-gray-900')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Student Record: ' + student.name)
+										])),
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick($author$project$Admin$CloseStudentRecord),
+											$elm$html$Html$Attributes$class('text-gray-500 hover:text-gray-700 flex items-center')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mr-1')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('←')
+												])),
+											$elm$html$Html$text('Back to Submissions')
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('mt-4 grid grid-cols-1 md:grid-cols-3 gap-4')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('bg-gray-50 p-4 rounded-md')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-sm font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Student ID')
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-1 text-lg')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(student.id)
+												]))
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('bg-gray-50 p-4 rounded-md')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-sm font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Joined')
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-1 text-lg')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(student.created)
+												]))
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('bg-gray-50 p-4 rounded-md')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-sm font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Last Active')
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-1 text-lg')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(student.lastActive)
+												]))
+										]))
+								])),
+							function () {
+							var _v0 = student.email;
+							if (_v0.$ === 'Just') {
+								var email = _v0.a;
+								return A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-4 bg-gray-50 p-4 rounded-md')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-sm font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Email Address')
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-1 text-lg')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(email)
+												]))
+										]));
+							} else {
+								return A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('mt-4 bg-gray-50 p-4 rounded-md')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h3,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-sm font-medium text-gray-700')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Email Address')
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('mt-1 text-gray-500 italic')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text('No email provided')
+												]))
+										]));
+							}
+						}()
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('bg-white shadow rounded-lg overflow-hidden')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('px-6 py-4 border-b border-gray-200')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h3,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											'All Submissions (' + ($elm$core$String$fromInt(
+												$elm$core$List$length(submissions)) + ')'))
+										]))
+								])),
+							$elm$core$List$isEmpty(submissions) ? A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('p-6 text-center')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-gray-500')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('No submissions found for this student.')
+										]))
+								])) : A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('overflow-x-auto')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$table,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('min-w-full divide-y divide-gray-200')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$thead,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('bg-gray-50')
+												]),
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$tr,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Game')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Level')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Submitted')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Grade')
+																])),
+															A2(
+															$elm$html$Html$th,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Actions')
+																]))
+														]))
+												])),
+											A2(
+											$elm$html$Html$tbody,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('bg-white divide-y divide-gray-200')
+												]),
+											A2($elm$core$List$map, $author$project$Admin$viewStudentSubmissionRow, submissions))
+										]))
+								]))
+						]))
+				]));
+	});
+var $author$project$Admin$ViewStudentRecord = function (a) {
+	return {$: 'ViewStudentRecord', a: a};
+};
+var $author$project$Admin$viewSubmissionRow = function (submission) {
+	return A2(
+		$elm$html$Html$tr,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('hover:bg-gray-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm font-medium text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.studentName)
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-xs text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('ID: ' + submission.studentId)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.gameName)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.gameLevel)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(submission.submissionDate)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Admin$viewGradeBadge(submission.grade)
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$SelectSubmission(submission)),
+								$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								_Utils_eq(submission.grade, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$ViewStudentRecord(submission.studentId)),
+								$elm$html$Html$Attributes$class('text-green-600 hover:text-green-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Student Record')
+							]))
+					]))
+			]));
+};
+var $author$project$Admin$viewSubmissionList = function (model) {
+	var filteredSubmissions = $author$project$Admin$applyFilters(model);
+	return $elm$core$List$isEmpty(filteredSubmissions) ? A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('text-center py-12 bg-white rounded-lg shadow')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-gray-500')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('No submissions found matching your filters.')
+					]))
+			])) : A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('overflow-x-auto bg-white shadow rounded-lg')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$table,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('min-w-full divide-y divide-gray-200')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$thead,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('bg-gray-50')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$tr,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$th,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Student')
+											])),
+										A2(
+										$elm$html$Html$th,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Game')
+											])),
+										A2(
+										$elm$html$Html$th,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Level')
+											])),
+										A2(
+										$elm$html$Html$th,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Submitted')
+											])),
+										A2(
+										$elm$html$Html$th,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Grade')
+											])),
+										A2(
+										$elm$html$Html$th,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Actions')
+											]))
+									]))
+							])),
+						A2(
+						$elm$html$Html$tbody,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('bg-white divide-y divide-gray-200')
+							]),
+						A2($elm$core$List$map, $author$project$Admin$viewSubmissionRow, filteredSubmissions))
+					]))
+			]));
+};
+var $author$project$Admin$viewCurrentPage = function (model) {
+	var _v0 = model.page;
+	if (_v0.$ === 'SubmissionsPage') {
+		return A2(
+			$elm$html$Html$div,
+			_List_Nil,
+			_List_fromArray(
+				[
+					$author$project$Admin$viewFilters(model),
+					$author$project$Admin$viewSubmissionList(model)
+				]));
+	} else {
+		var student = _v0.a;
+		var submissions = _v0.b;
+		return A3($author$project$Admin$viewStudentRecordPage, model, student, submissions);
+	}
+};
 var $author$project$Admin$viewLoadingAuthentication = A2(
 	$elm$html$Html$div,
 	_List_fromArray(
@@ -6357,7 +7270,6 @@ var $author$project$Admin$UpdateLoginEmail = function (a) {
 var $author$project$Admin$UpdateLoginPassword = function (a) {
 	return {$: 'UpdateLoginPassword', a: a};
 };
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $author$project$Admin$viewLoginForm = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -6574,293 +7486,6 @@ var $author$project$Admin$viewMessages = function (model) {
 			}()
 			]));
 };
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm$html$Html$table = _VirtualDom_node('table');
-var $elm$html$Html$tbody = _VirtualDom_node('tbody');
-var $elm$html$Html$th = _VirtualDom_node('th');
-var $elm$html$Html$thead = _VirtualDom_node('thead');
-var $elm$html$Html$tr = _VirtualDom_node('tr');
-var $author$project$Admin$SelectSubmission = function (a) {
-	return {$: 'SelectSubmission', a: a};
-};
-var $elm$html$Html$td = _VirtualDom_node('td');
-var $elm$core$Basics$ge = _Utils_ge;
-var $author$project$Admin$viewGradeBadge = function (maybeGrade) {
-	if (maybeGrade.$ === 'Just') {
-		var grade = maybeGrade.a;
-		var _v1 = (grade.score >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.score >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.score >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
-		var bgColor = _v1.a;
-		var textColor = _v1.b;
-		return A2(
-			$elm$html$Html$span,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + (bgColor + (' ' + textColor)))
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text(
-					$elm$core$String$fromInt(grade.score) + '/100')
-				]));
-	} else {
-		return A2(
-			$elm$html$Html$span,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Ungraded')
-				]));
-	}
-};
-var $author$project$Admin$viewSubmissionRow = function (submission) {
-	return A2(
-		$elm$html$Html$tr,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('hover:bg-gray-50')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$td,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-sm font-medium text-gray-900')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(submission.studentName)
-							]))
-					])),
-				A2(
-				$elm$html$Html$td,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-sm text-gray-900')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(submission.gameName)
-							]))
-					])),
-				A2(
-				$elm$html$Html$td,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-sm text-gray-900')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(submission.gameLevel)
-							]))
-					])),
-				A2(
-				$elm$html$Html$td,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-sm text-gray-500')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(submission.submissionDate)
-							]))
-					])),
-				A2(
-				$elm$html$Html$td,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
-					]),
-				_List_fromArray(
-					[
-						$author$project$Admin$viewGradeBadge(submission.grade)
-					])),
-				A2(
-				$elm$html$Html$td,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-right text-sm font-medium')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Events$onClick(
-								$author$project$Admin$SelectSubmission(submission)),
-								$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-900')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								_Utils_eq(submission.grade, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
-							]))
-					]))
-			]));
-};
-var $author$project$Admin$viewSubmissionList = function (model) {
-	var filteredSubmissions = $author$project$Admin$applyFilters(model);
-	return $elm$core$List$isEmpty(filteredSubmissions) ? A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('text-center py-12 bg-white rounded-lg shadow')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$p,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-gray-500')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('No submissions found matching your filters.')
-					]))
-			])) : A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('overflow-x-auto bg-white shadow rounded-lg')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$table,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('min-w-full divide-y divide-gray-200')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$thead,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('bg-gray-50')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$tr,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$elm$html$Html$th,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Student')
-											])),
-										A2(
-										$elm$html$Html$th,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Game')
-											])),
-										A2(
-										$elm$html$Html$th,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Level')
-											])),
-										A2(
-										$elm$html$Html$th,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Submitted')
-											])),
-										A2(
-										$elm$html$Html$th,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Grade')
-											])),
-										A2(
-										$elm$html$Html$th,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Actions')
-											]))
-									]))
-							])),
-						A2(
-						$elm$html$Html$tbody,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('bg-white divide-y divide-gray-200')
-							]),
-						A2($elm$core$List$map, $author$project$Admin$viewSubmissionRow, filteredSubmissions))
-					]))
-			]));
-};
 var $author$project$Admin$CloseSubmission = {$: 'CloseSubmission'};
 var $author$project$Admin$SubmitGrade = {$: 'SubmitGrade'};
 var $author$project$Admin$UpdateTempFeedback = function (a) {
@@ -6870,7 +7495,6 @@ var $author$project$Admin$UpdateTempScore = function (a) {
 	return {$: 'UpdateTempScore', a: a};
 };
 var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
@@ -6933,6 +7557,27 @@ var $author$project$Admin$viewSubmissionModal = F2(
 									_List_fromArray(
 										[
 											$elm$html$Html$text('×')
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('px-6 py-2 bg-blue-50 border-b border-gray-200')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick(
+											$author$project$Admin$ViewStudentRecord(submission.studentId)),
+											$elm$html$Html$Attributes$class('text-sm text-blue-600 hover:text-blue-800')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('View all submissions for ' + submission.studentName)
 										]))
 								])),
 							A2(
@@ -7006,6 +7651,32 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																			_List_fromArray(
 																				[
 																					$elm$html$Html$text(submission.studentName)
+																				]))
+																		])),
+																	A2(
+																	$elm$html$Html$div,
+																	_List_Nil,
+																	_List_fromArray(
+																		[
+																			A2(
+																			$elm$html$Html$label,
+																			_List_fromArray(
+																				[
+																					$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+																				]),
+																			_List_fromArray(
+																				[
+																					$elm$html$Html$text('Student ID:')
+																				])),
+																			A2(
+																			$elm$html$Html$p,
+																			_List_fromArray(
+																				[
+																					$elm$html$Html$Attributes$class('mt-1 text-sm text-gray-900')
+																				]),
+																			_List_fromArray(
+																				[
+																					$elm$html$Html$text(submission.studentId)
 																				]))
 																		])),
 																	A2(
@@ -7475,8 +8146,7 @@ var $author$project$Admin$viewContent = function (model) {
 						_List_fromArray(
 							[
 								$author$project$Admin$viewMessages(model),
-								$author$project$Admin$viewFilters(model),
-								$author$project$Admin$viewSubmissionList(model)
+								$author$project$Admin$viewCurrentPage(model)
 							])),
 						function () {
 						var _v1 = model.currentSubmission;
