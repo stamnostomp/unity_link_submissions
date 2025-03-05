@@ -145,8 +145,8 @@ type alias Submission =
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/unity-game-submission.git
-   cd unity-game-submission
+   git clone https://github.com/stamnostomp/unity_link_submissions.git
+   cd unity_link_submission
    ```
 
 2. **Install dependencies**
