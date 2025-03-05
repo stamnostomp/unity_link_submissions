@@ -16,6 +16,8 @@ port findStudent : String -> Cmd msg
 port studentFound : (Decode.Value -> msg) -> Sub msg
 port saveSubmission : Encode.Value -> Cmd msg
 port submissionResult : (String -> msg) -> Sub msg
+port requestBelts : () -> Cmd msg
+port receiveBelts : (Decode.Value -> msg) -> Sub msg
 
 
 -- MAIN
@@ -43,7 +45,7 @@ type alias Student =
 type alias Submission =
     { id : String
     , studentId : String
-    , gameLevel : String
+    , beltLevel : String
     , gameName : String
     , githubLink : String
     , notes : String
@@ -58,6 +60,14 @@ type alias Grade =
     , gradingDate : String
     }
 
+type alias Belt =
+    { id : String
+    , name : String
+    , color : String
+    , order : Int
+    , gameOptions : List String
+    }
+
 type Page
     = NamePage
     | StudentProfilePage Student
@@ -68,51 +78,38 @@ type Page
 type alias Model =
     { page : Page
     , searchName : String
-    , gameLevel : String
+    , beltLevel : String
     , gameName : String
     , githubLink : String
     , notes : String
     , errorMessage : Maybe String
     , successMessage : Maybe String
+    , belts : List Belt
     }
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { page = NamePage
       , searchName = ""
-      , gameLevel = ""
+      , beltLevel = ""
       , gameName = ""
       , githubLink = ""
       , notes = ""
       , errorMessage = Nothing
       , successMessage = Nothing
+      , belts = []
       }
-    , Cmd.none
+    , requestBelts ()
     )
 
 
--- GAME OPTIONS BY LEVEL
+-- HELPERS
 
-gameOptionsByLevel : List String -> List String
-gameOptionsByLevel levels =
-    let
-        beginner = [ "Game 1", "Game 2", "Game 3" ]
-        intermediate = [ "Game A", "Game B", "Game C" ]
-        advanced = [ "Game 4", "Game 5", "Game 6" ]
-    in
-    List.concat
-        [ if List.member "Beginner" levels then beginner else []
-        , if List.member "Intermediate" levels then intermediate else []
-        , if List.member "Advanced" levels then advanced else []
-        ]
-
-getGameOptions : String -> List String
-getGameOptions level =
-    case level of
-        "Beginner" -> [ "Game 1", "Game 2", "Game 3" ]
-        "Intermediate" -> [ "Game A", "Game B", "Game C" ]
-        "Advanced" -> [ "Game 4", "Game 5", "Game 6" ]
-        _ -> []
+getGameOptions : String -> List Belt -> List String
+getGameOptions beltId belts =
+    case List.filter (\b -> b.id == beltId) belts of
+        [] -> []
+        belt :: _ -> belt.gameOptions
 
 
 -- UPDATE
@@ -122,7 +119,7 @@ type Msg
     | SearchStudent
     | StudentFoundResult (Result Decode.Error (Maybe Student))
     | StartNewSubmission Student
-    | UpdateGameLevel String
+    | UpdateBeltLevel String
     | UpdateGameName String
     | UpdateGithubLink String
     | UpdateNotes String
@@ -131,6 +128,7 @@ type Msg
     | BackToProfile
     | BackToSearch
     | Reset
+    | BeltsReceived (Result Decode.Error (List Belt))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -168,20 +166,20 @@ update msg model =
         StartNewSubmission student ->
             ( { model
               | page = SubmissionFormPage student
-              , gameLevel = ""
+              , beltLevel = ""
               , gameName = ""
               , githubLink = ""
               , notes = ""
               , errorMessage = Nothing
               }, Cmd.none )
 
-        UpdateGameLevel level ->
+        UpdateBeltLevel beltId ->
             let
-                -- Reset game name when level changes
-                gameOptions = getGameOptions level
+                -- Reset game name when belt changes
+                gameOptions = getGameOptions beltId model.belts
                 defaultGame = List.head gameOptions |> Maybe.withDefault ""
             in
-            ( { model | gameLevel = level, gameName = defaultGame }, Cmd.none )
+            ( { model | beltLevel = beltId, gameName = defaultGame }, Cmd.none )
 
         UpdateGameName game ->
             ( { model | gameName = game }, Cmd.none )
@@ -193,16 +191,16 @@ update msg model =
             ( { model | notes = notes }, Cmd.none )
 
         SubmitForm student ->
-            if String.trim model.gameLevel == "" || String.trim model.gameName == "" || String.trim model.githubLink == "" then
+            if String.trim model.beltLevel == "" || String.trim model.gameName == "" || String.trim model.githubLink == "" then
                 ( { model | errorMessage = Just "Please fill in all required fields" }, Cmd.none )
             else
                 let
                     -- For a real app, you'd want to generate a better ID and use actual date
                     currentDate = "2025-03-04"
                     newSubmission =
-                        { id = student.id ++ "-" ++ model.gameLevel ++ "-" ++ String.fromInt (List.length student.submissions + 1)
+                        { id = student.id ++ "-" ++ model.beltLevel ++ "-" ++ String.fromInt (List.length student.submissions + 1)
                         , studentId = student.id
-                        , gameLevel = model.gameLevel
+                        , beltLevel = model.beltLevel
                         , gameName = model.gameName
                         , githubLink = model.githubLink
                         , notes = model.notes
@@ -240,6 +238,19 @@ update msg model =
         Reset ->
             init ()
 
+        BeltsReceived result ->
+            case result of
+                Ok belts ->
+                    -- Sort belts by order
+                    let
+                        sortedBelts =
+                            List.sortBy .order belts
+                    in
+                    ( { model | belts = sortedBelts }, Cmd.none )
+
+                Err error ->
+                    ( { model | errorMessage = Just ("Error loading belts: " ++ Decode.errorToString error) }, Cmd.none )
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -247,6 +258,7 @@ subscriptions _ =
     Sub.batch
         [ studentFound (decodeStudentResponse >> StudentFoundResult)
         , submissionResult SubmissionSaved
+        , receiveBelts (decodeBeltsResponse >> BeltsReceived)
         ]
 
 
@@ -266,7 +278,7 @@ encodeSubmission submission =
     Encode.object
         [ ( "id", Encode.string submission.id )
         , ( "studentId", Encode.string submission.studentId )
-        , ( "gameLevel", Encode.string submission.gameLevel )
+        , ( "beltLevel", Encode.string submission.beltLevel )
         , ( "gameName", Encode.string submission.gameName )
         , ( "githubLink", Encode.string submission.githubLink )
         , ( "notes", Encode.string submission.notes )
@@ -291,7 +303,7 @@ submissionDecoder =
     Decode.map8 Submission
         (Decode.field "id" Decode.string)
         (Decode.field "studentId" Decode.string)
-        (Decode.field "gameLevel" Decode.string)
+        (Decode.field "beltLevel" Decode.string)
         (Decode.field "gameName" Decode.string)
         (Decode.field "githubLink" Decode.string)
         (Decode.field "notes" Decode.string)
@@ -305,6 +317,19 @@ gradeDecoder =
         (Decode.field "feedback" Decode.string)
         (Decode.field "gradedBy" Decode.string)
         (Decode.field "gradingDate" Decode.string)
+
+beltDecoder : Decoder Belt
+beltDecoder =
+    Decode.map5 Belt
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "color" Decode.string)
+        (Decode.field "order" Decode.int)
+        (Decode.field "gameOptions" (Decode.list Decode.string))
+
+decodeBeltsResponse : Decode.Value -> Result Decode.Error (List Belt)
+decodeBeltsResponse value =
+    Decode.decodeValue (Decode.list beltDecoder) value
 
 
 -- VIEW
@@ -418,25 +443,46 @@ viewStudentProfilePage model student =
                         [ thead [ class "bg-gray-50" ]
                             [ tr []
                                 [ th [ class "py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6" ] [ text "Game" ]
-                                , th [ class "px-3 py-3.5 text-left text-sm font-semibold text-gray-900" ] [ text "Level" ]
+                                , th [ class "px-3 py-3.5 text-left text-sm font-semibold text-gray-900" ] [ text "Belt" ]
                                 , th [ class "px-3 py-3.5 text-left text-sm font-semibold text-gray-900" ] [ text "Submitted" ]
                                 , th [ class "px-3 py-3.5 text-left text-sm font-semibold text-gray-900" ] [ text "Grade" ]
                                 ]
                             ]
                         , tbody [ class "divide-y divide-gray-200 bg-white" ]
-                            (List.map viewSubmissionRow student.submissions)
+                            (List.map (viewSubmissionRow model) student.submissions)
                         ]
                     ]
             ]
         ]
 
-viewSubmissionRow : Submission -> Html Msg
-viewSubmissionRow submission =
+viewSubmissionRow : Model -> Submission -> Html Msg
+viewSubmissionRow model submission =
+    let
+        beltName =
+            let
+                matchingBelts = List.filter (\b -> b.id == submission.beltLevel) model.belts
+            in
+            case matchingBelts of
+                [] -> submission.beltLevel
+                belt :: _ -> belt.name
+
+        beltColor =
+            let
+                matchingBelts = List.filter (\b -> b.id == submission.beltLevel) model.belts
+            in
+            case matchingBelts of
+                [] -> "#808080"  -- Default gray if not found
+                belt :: _ -> belt.color
+    in
     tr []
         [ td [ class "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6" ]
             [ text submission.gameName ]
         , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
-            [ text submission.gameLevel ]
+            [ div [ class "flex items-center" ]
+                [ div [ class "w-3 h-3 mr-2 rounded-full", style "background-color" beltColor ] []
+                , text beltName
+                ]
+            ]
         , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
             [ text submission.submissionDate ]
         , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
@@ -468,7 +514,11 @@ viewGradeStatus maybeGrade =
 viewSubmissionFormPage : Model -> Student -> Html Msg
 viewSubmissionFormPage model student =
     let
-        gameOptions = getGameOptions model.gameLevel
+        -- Get ordered belts
+        sortedBelts = List.sortBy .order model.belts
+
+        -- Get game options based on selected belt
+        gameOptions = getGameOptions model.beltLevel model.belts
     in
     div [ class "space-y-6" ]
         [ h2 [ class "text-xl font-medium text-gray-700" ] [ text ("New Submission for " ++ student.name) ]
@@ -476,25 +526,31 @@ viewSubmissionFormPage model student =
 
         , div [ class "space-y-4" ]
             [ div [ class "space-y-2" ]
-                [ label [ for "gameLevel", class "block text-sm font-medium text-gray-700" ] [ text "Game Level:" ]
+                [ label [ for "beltLevel", class "block text-sm font-medium text-gray-700" ] [ text "Belt Level:" ]
                 , select
-                    [ id "gameLevel"
-                    , onInput UpdateGameLevel
-                    , value model.gameLevel
+                    [ id "beltLevel"
+                    , onInput UpdateBeltLevel
+                    , value model.beltLevel
                     , class "mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     ]
-                    [ option [ value "" ] [ text "-- Select Level --" ]
-                    , option [ value "Beginner" ] [ text "Beginner" ]
-                    , option [ value "Intermediate" ] [ text "Intermediate" ]
-                    , option [ value "Advanced" ] [ text "Advanced" ]
-                    ]
+                    ([ option [ value "" ] [ text "-- Select Belt --" ] ] ++
+                        List.map (\belt ->
+                            option
+                                [ value belt.id
+                                , style "background-color" belt.color
+                                ]
+                                [ text belt.name ]
+                        ) sortedBelts)
                 ]
 
             , div [ class "space-y-2" ]
                 [ label [ for "gameName", class "block text-sm font-medium text-gray-700" ] [ text "Game Name:" ]
-                , if model.gameLevel == "" then
+                , if model.beltLevel == "" then
                     div [ class "mt-1 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-500" ]
-                        [ text "Please select a game level first" ]
+                        [ text "Please select a belt level first" ]
+                  else if List.isEmpty gameOptions then
+                    div [ class "mt-1 p-2 bg-yellow-50 border border-yellow-300 rounded-md text-sm text-yellow-700" ]
+                        [ text "No games available for this belt. Please contact your instructor." ]
                   else
                     select
                         [ id "gameName"
@@ -549,6 +605,15 @@ viewSubmissionFormPage model student =
 
 viewSubmissionCompletePage : Model -> Student -> Submission -> Html Msg
 viewSubmissionCompletePage model student submission =
+    let
+        beltName =
+            let
+                matchingBelts = List.filter (\b -> b.id == submission.beltLevel) model.belts
+            in
+            case matchingBelts of
+                [] -> submission.beltLevel
+                belt :: _ -> belt.name
+    in
     div [ class "space-y-6" ]
         [ div [ class "text-center" ]
             [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Submission Successful!" ]
@@ -563,8 +628,8 @@ viewSubmissionCompletePage model student submission =
                     , span [ class "text-gray-600" ] [ text student.name ]
                     ]
                 , li [ class "border-b border-gray-200 pb-2" ]
-                    [ span [ class "font-medium text-gray-700" ] [ text "Game Level: " ]
-                    , span [ class "text-gray-600" ] [ text submission.gameLevel ]
+                    [ span [ class "font-medium text-gray-700" ] [ text "Belt Level: " ]
+                    , span [ class "text-gray-600" ] [ text beltName ]
                     ]
                 , li [ class "border-b border-gray-200 pb-2" ]
                     [ span [ class "font-medium text-gray-700" ] [ text "Game Name: " ]

@@ -1,5 +1,4 @@
 // student-firebase.js
-// Import Firebase modules using CDN URLs
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, get, set, update, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
@@ -32,6 +31,11 @@ export function initializeFirebase(elmApp) {
   // Listen for submission save requests
   elmApp.ports.saveSubmission.subscribe(function(submissionData) {
     saveSubmissionRecord(submissionData, elmApp);
+  });
+
+  // Listen for belt requests
+  elmApp.ports.requestBelts.subscribe(function() {
+    fetchBelts(elmApp);
   });
 }
 
@@ -173,5 +177,80 @@ async function saveSubmissionRecord(submissionData, elmApp) {
   } catch (error) {
     console.error("Error saving submission:", error);
     elmApp.ports.submissionResult.send("Error: " + error.message);
+  }
+}
+
+/**
+ * Fetch all belts
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function fetchBelts(elmApp) {
+  try {
+    const beltsRef = ref(database, 'belts');
+    const snapshot = await get(beltsRef);
+
+    if (snapshot.exists()) {
+      const beltsData = snapshot.val();
+      const belts = [];
+
+      // Convert Firebase object to array of belts with IDs
+      for (const beltId in beltsData) {
+        const belt = beltsData[beltId];
+        belts.push({
+          id: beltId,
+          ...belt
+        });
+      }
+
+      // Sort belts by order
+      belts.sort((a, b) => a.order - b.order);
+
+      // Send belts to Elm
+      elmApp.ports.receiveBelts.send(belts);
+    } else {
+      // If no belts defined yet, create default belts
+      const defaultBelts = [
+        {
+          id: "white-belt",
+          name: "White Belt",
+          color: "#FFFFFF",
+          order: 1,
+          gameOptions: ["Beginner Game 1", "Beginner Game 2", "Beginner Game 3"]
+        },
+        {
+          id: "yellow-belt",
+          name: "Yellow Belt",
+          color: "#FFEB3B",
+          order: 2,
+          gameOptions: ["Intermediate Game A", "Intermediate Game B"]
+        },
+        {
+          id: "green-belt",
+          name: "Green Belt",
+          color: "#4CAF50",
+          order: 3,
+          gameOptions: ["Advanced Game 1", "Advanced Game 2", "Advanced Game 3"]
+        },
+        {
+          id: "black-belt",
+          name: "Black Belt",
+          color: "#212121",
+          order: 4,
+          gameOptions: ["Master Game X", "Master Game Y", "Master Game Z"]
+        }
+      ];
+
+      // Save default belts to Firebase
+      for (const belt of defaultBelts) {
+        const beltId = belt.id;
+        await set(ref(database, 'belts/' + beltId), belt);
+      }
+
+      // Send default belts to Elm
+      elmApp.ports.receiveBelts.send(defaultBelts);
+    }
+  } catch (error) {
+    console.error("Error fetching belts:", error);
+    elmApp.ports.receiveBelts.send([]);
   }
 }

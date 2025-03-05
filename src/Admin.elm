@@ -21,13 +21,20 @@ port signOut : () -> Cmd msg
 port receiveAuthState : (Decode.Value -> msg) -> Sub msg
 port receiveAuthResult : (Decode.Value -> msg) -> Sub msg
 
--- Student record ports (added these to fix the errors)
+-- Student record ports
 port requestStudentRecord : String -> Cmd msg
 port receiveStudentRecord : (Decode.Value -> msg) -> Sub msg
 
--- Add ports for student creation
+-- Student creation ports
 port createStudent : Encode.Value -> Cmd msg
 port studentCreated : (Decode.Value -> msg) -> Sub msg
+
+-- Belt management ports
+port requestBelts : () -> Cmd msg
+port receiveBelts : (Decode.Value -> msg) -> Sub msg
+port saveBelt : Encode.Value -> Cmd msg
+port deleteBelt : String -> Cmd msg
+port beltResult : (String -> msg) -> Sub msg
 
 
 -- MAIN
@@ -55,7 +62,7 @@ type alias Submission =
     { id : String
     , studentId : String
     , studentName : String
-    , gameLevel : String
+    , beltLevel : String
     , gameName : String
     , githubLink : String
     , notes : String
@@ -76,6 +83,14 @@ type alias User =
     , displayName : String
     }
 
+type alias Belt =
+    { id : String
+    , name : String
+    , color : String
+    , order : Int
+    , gameOptions : List String
+    }
+
 type AppState
     = NotAuthenticated
     | AuthenticatingWith String String
@@ -85,11 +100,12 @@ type Page
     = SubmissionsPage
     | StudentRecordPage Student (List Submission)
     | CreateStudentPage
+    | BeltManagementPage
 
 type SortBy
     = ByName
     | ByDate
-    | ByLevel
+    | ByBelt
     | ByGradeStatus
 
 type SortDirection
@@ -110,13 +126,19 @@ type alias Model =
     , error : Maybe String
     , success : Maybe String
     , filterText : String
-    , filterLevel : Maybe String
+    , filterBelt : Maybe String
     , filterGraded : Maybe Bool
     , sortBy : SortBy
     , sortDirection : SortDirection
     , tempScore : String
     , tempFeedback : String
     , newStudentName : String
+    , belts : List Belt
+    , newBeltName : String
+    , newBeltColor : String
+    , newBeltOrder : String
+    , newBeltGameOptions : String
+    , editingBelt : Maybe Belt
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -134,13 +156,19 @@ init _ =
       , error = Nothing
       , success = Nothing
       , filterText = ""
-      , filterLevel = Nothing
+      , filterBelt = Nothing
       , filterGraded = Nothing
       , sortBy = ByDate
       , sortDirection = Descending
       , tempScore = ""
       , tempFeedback = ""
       , newStudentName = ""
+      , belts = []
+      , newBeltName = ""
+      , newBeltColor = "#000000"
+      , newBeltOrder = ""
+      , newBeltGameOptions = ""
+      , editingBelt = Nothing
       }
     , Cmd.none
     )
@@ -159,7 +187,7 @@ type Msg
     | SelectSubmission Submission
     | CloseSubmission
     | UpdateFilterText String
-    | UpdateFilterLevel String
+    | UpdateFilterBelt String
     | UpdateFilterGraded String
     | UpdateSortBy SortBy
     | ToggleSortDirection
@@ -176,6 +204,20 @@ type Msg
     | UpdateNewStudentName String
     | CreateNewStudent
     | StudentCreated (Result Decode.Error Student)
+    | ShowBeltManagement
+    | CloseBeltManagement
+    | ReceiveBelts (Result Decode.Error (List Belt))
+    | UpdateNewBeltName String
+    | UpdateNewBeltColor String
+    | UpdateNewBeltOrder String
+    | UpdateNewBeltGameOptions String
+    | AddNewBelt
+    | EditBelt Belt
+    | CancelEditBelt
+    | UpdateBelt
+    | DeleteBelt String
+    | BeltResult String
+    | RefreshBelts
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -212,7 +254,7 @@ update msg model =
                                   , loading = True
                                   , authError = Nothing
                                   }
-                                , requestSubmissions ()
+                                , Cmd.batch [ requestSubmissions (), requestBelts () ]
                                 )
 
                             Nothing ->
@@ -276,15 +318,15 @@ update msg model =
         UpdateFilterText text ->
             ( { model | filterText = text }, Cmd.none )
 
-        UpdateFilterLevel level ->
+        UpdateFilterBelt belt ->
             let
-                filterLevel =
-                    if level == "all" then
+                filterBelt =
+                    if belt == "all" then
                         Nothing
                     else
-                        Just level
+                        Just belt
             in
-            ( { model | filterLevel = filterLevel }, Cmd.none )
+            ( { model | filterBelt = filterBelt }, Cmd.none )
 
         UpdateFilterGraded status ->
             let
@@ -431,6 +473,168 @@ update msg model =
                       , error = Just ("Error creating student: " ++ Decode.errorToString error)
                       }, Cmd.none )
 
+        ShowBeltManagement ->
+            ( { model
+              | page = BeltManagementPage
+              , newBeltName = ""
+              , newBeltColor = "#000000"
+              , newBeltOrder = ""
+              , newBeltGameOptions = ""
+              , editingBelt = Nothing
+              , error = Nothing
+              , success = Nothing
+              }
+            , requestBelts ()
+            )
+
+        CloseBeltManagement ->
+            ( { model | page = SubmissionsPage }, Cmd.none )
+
+        ReceiveBelts result ->
+            case result of
+                Ok belts ->
+                    ( { model | belts = belts, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+
+        UpdateNewBeltName name ->
+            ( { model | newBeltName = name }, Cmd.none )
+
+        UpdateNewBeltColor color ->
+            ( { model | newBeltColor = color }, Cmd.none )
+
+        UpdateNewBeltOrder order ->
+            ( { model | newBeltOrder = order }, Cmd.none )
+
+        UpdateNewBeltGameOptions options ->
+            ( { model | newBeltGameOptions = options }, Cmd.none )
+
+        AddNewBelt ->
+            if String.trim model.newBeltName == "" then
+                ( { model | error = Just "Please enter a belt name" }, Cmd.none )
+            else
+                let
+                    orderResult = String.toInt model.newBeltOrder
+                in
+                case orderResult of
+                    Just order ->
+                        let
+                            gameOptions =
+                                model.newBeltGameOptions
+                                |> String.split ","
+                                |> List.map String.trim
+                                |> List.filter (not << String.isEmpty)
+
+                            beltId =
+                                model.newBeltName
+                                |> String.toLower
+                                |> String.replace " " "-"
+
+                            newBelt =
+                                { id = beltId
+                                , name = model.newBeltName
+                                , color = model.newBeltColor
+                                , order = order
+                                , gameOptions = gameOptions
+                                }
+                        in
+                        ( { model | loading = True, error = Nothing }
+                        , saveBelt (encodeBelt newBelt)
+                        )
+
+                    Nothing ->
+                        ( { model | error = Just "Please enter a valid order number" }, Cmd.none )
+
+        EditBelt belt ->
+            ( { model
+              | editingBelt = Just belt
+              , newBeltName = belt.name
+              , newBeltColor = belt.color
+              , newBeltOrder = String.fromInt belt.order
+              , newBeltGameOptions = String.join ", " belt.gameOptions
+              }
+            , Cmd.none
+            )
+
+        CancelEditBelt ->
+            ( { model
+              | editingBelt = Nothing
+              , newBeltName = ""
+              , newBeltColor = "#000000"
+              , newBeltOrder = ""
+              , newBeltGameOptions = ""
+              }
+            , Cmd.none
+            )
+
+        UpdateBelt ->
+            case model.editingBelt of
+                Just belt ->
+                    if String.trim model.newBeltName == "" then
+                        ( { model | error = Just "Please enter a belt name" }, Cmd.none )
+                    else
+                        let
+                            orderResult = String.toInt model.newBeltOrder
+                        in
+                        case orderResult of
+                            Just order ->
+                                let
+                                    gameOptions =
+                                        model.newBeltGameOptions
+                                        |> String.split ","
+                                        |> List.map String.trim
+                                        |> List.filter (not << String.isEmpty)
+
+                                    updatedBelt =
+                                        { id = belt.id
+                                        , name = model.newBeltName
+                                        , color = model.newBeltColor
+                                        , order = order
+                                        , gameOptions = gameOptions
+                                        }
+                                in
+                                ( { model | loading = True, error = Nothing }
+                                , saveBelt (encodeBelt updatedBelt)
+                                )
+
+                            Nothing ->
+                                ( { model | error = Just "Please enter a valid order number" }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DeleteBelt beltId ->
+            ( { model | loading = True }
+            , deleteBelt beltId
+            )
+
+        BeltResult result ->
+            if String.startsWith "Error:" result then
+                ( { model
+                  | error = Just result
+                  , loading = False
+                  , success = Nothing
+                  }
+                , Cmd.none
+                )
+            else
+                ( { model
+                  | success = Just result
+                  , loading = False
+                  , error = Nothing
+                  , editingBelt = Nothing
+                  , newBeltName = ""
+                  , newBeltColor = "#000000"
+                  , newBeltOrder = ""
+                  , newBeltGameOptions = ""
+                  }
+                , requestBelts ()
+                )
+
+        RefreshBelts ->
+            ( { model | loading = True }, requestBelts () )
+
 
 -- SUBSCRIPTIONS
 
@@ -442,7 +646,9 @@ subscriptions _ =
         , receiveSubmissions (decodeSubmissionsResponse >> ReceiveSubmissions)
         , receiveStudentRecord (decodeStudentRecordResponse >> ReceivedStudentRecord)
         , studentCreated (decodeStudentResponse >> StudentCreated)
+        , receiveBelts (decodeBeltsResponse >> ReceiveBelts)
         , gradeResult GradeResult
+        , beltResult BeltResult
         ]
 
 
@@ -455,11 +661,11 @@ decodeSubmissionsResponse value =
 submissionDecoder : Decoder Submission
 submissionDecoder =
     Decode.map6
-        (\id gameLevel gameName githubLink notes submissionDate ->
+        (\id gameBelt gameName githubLink notes submissionDate ->
             { id = id
             , studentId = ""  -- Temporary value, will be filled in later
             , studentName = "Unknown"  -- Default value, will be overridden if available
-            , gameLevel = gameLevel
+            , beltLevel = gameBelt
             , gameName = gameName
             , githubLink = githubLink
             , notes = notes
@@ -468,7 +674,7 @@ submissionDecoder =
             }
         )
         (Decode.field "id" Decode.string)
-        (Decode.field "gameLevel" Decode.string)
+        (Decode.field "beltLevel" Decode.string)
         (Decode.field "gameName" Decode.string)
         (Decode.field "githubLink" Decode.string)
         (Decode.field "notes" Decode.string)
@@ -523,6 +729,19 @@ studentDecoder =
         (Decode.field "name" Decode.string)
         (Decode.field "created" Decode.string)
         (Decode.field "lastActive" Decode.string)
+
+beltDecoder : Decoder Belt
+beltDecoder =
+    Decode.map5 Belt
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "color" Decode.string)
+        (Decode.field "order" Decode.int)
+        (Decode.field "gameOptions" (Decode.list Decode.string))
+
+decodeBeltsResponse : Decode.Value -> Result Decode.Error (List Belt)
+decodeBeltsResponse value =
+    Decode.decodeValue (Decode.list beltDecoder) value
 
 decodeStudentRecordResponse : Decode.Value -> Result Decode.Error { student : Student, submissions : List Submission }
 decodeStudentRecordResponse value =
@@ -586,6 +805,16 @@ encodeNewStudent name =
     Encode.object
         [ ( "name", Encode.string name ) ]
 
+encodeBelt : Belt -> Encode.Value
+encodeBelt belt =
+    Encode.object
+        [ ( "id", Encode.string belt.id )
+        , ( "name", Encode.string belt.name )
+        , ( "color", Encode.string belt.color )
+        , ( "order", Encode.int belt.order )
+        , ( "gameOptions", Encode.list Encode.string belt.gameOptions )
+        ]
+
 
 -- HELPERS
 
@@ -615,7 +844,7 @@ applyFilters : Model -> List Submission
 applyFilters model =
     model.submissions
         |> List.filter (filterByText model.filterText)
-        |> List.filter (filterByLevel model.filterLevel)
+        |> List.filter (filterByBelt model.filterBelt)
         |> List.filter (filterByGraded model.filterGraded)
         |> sortSubmissions model.sortBy model.sortDirection
 
@@ -633,13 +862,13 @@ filterByText filterText submission =
         in
         containsFilter submission.studentName
             || containsFilter submission.gameName
-            || containsFilter submission.gameLevel
+            || containsFilter submission.beltLevel
 
-filterByLevel : Maybe String -> Submission -> Bool
-filterByLevel maybeLevel submission =
-    case maybeLevel of
-        Just level ->
-            submission.gameLevel == level
+filterByBelt : Maybe String -> Submission -> Bool
+filterByBelt maybeBelt submission =
+    case maybeBelt of
+        Just belt ->
+            submission.beltLevel == belt
 
         Nothing ->
             True
@@ -669,8 +898,8 @@ sortSubmissions sortBy direction submissions =
                 ByDate ->
                     \a b -> compare a.submissionDate b.submissionDate
 
-                ByLevel ->
-                    \a b -> compare a.gameLevel b.gameLevel
+                ByBelt ->
+                    \a b -> compare a.beltLevel b.beltLevel
 
                 ByGradeStatus ->
                     \a b ->
@@ -721,11 +950,18 @@ viewContent model =
                             , p [ class "text-xs text-gray-500" ] [ text user.email ]
                             ]
                         ]
-                    , button
-                        [ onClick PerformSignOut
-                        , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                    , div [ class "flex space-x-2" ]
+                        [ button
+                            [ onClick ShowBeltManagement
+                            , class "px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            ]
+                            [ text "Manage Belts" ]
+                        , button
+                            [ onClick PerformSignOut
+                            , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                            ]
+                            [ text "Sign Out" ]
                         ]
-                        [ text "Sign Out" ]
                     ]
                 , if model.loading then
                     div [ class "flex justify-center my-12" ]
@@ -757,6 +993,9 @@ viewCurrentPage model =
 
         CreateStudentPage ->
             viewCreateStudentPage model
+
+        BeltManagementPage ->
+            viewBeltManagementPage model
 
 viewLoginForm : Model -> Html Msg
 viewLoginForm model =
@@ -861,17 +1100,14 @@ viewFilters model =
                 ]
             , div [ class "w-full md:w-auto flex flex-col md:flex-row gap-4" ]
                 [ div [ class "flex-1 md:w-40" ]
-                    [ label [ for "filterLevel", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Level" ]
+                    [ label [ for "filterBelt", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Belt" ]
                     , select
-                        [ id "filterLevel"
-                        , onInput UpdateFilterLevel
+                        [ id "filterBelt"
+                        , onInput UpdateFilterBelt
                         , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         ]
-                        [ option [ value "all" ] [ text "All Levels" ]
-                        , option [ value "Beginner" ] [ text "Beginner" ]
-                        , option [ value "Intermediate" ] [ text "Intermediate" ]
-                        , option [ value "Advanced" ] [ text "Advanced" ]
-                        ]
+                        ([ option [ value "all" ] [ text "All Belts" ] ] ++
+                            List.map (\belt -> option [ value belt.name ] [ text belt.name ]) model.belts)
                     ]
                 , div [ class "flex-1 md:w-40" ]
                     [ label [ for "filterGraded", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Status" ]
@@ -901,10 +1137,10 @@ viewFilters model =
                     ]
                     [ text "Date" ]
                 , button
-                    [ onClick (UpdateSortBy ByLevel)
-                    , class (getSortButtonClass model ByLevel)
+                    [ onClick (UpdateSortBy ByBelt)
+                    , class (getSortButtonClass model ByBelt)
                     ]
-                    [ text "Level" ]
+                    [ text "Belt" ]
                 , button
                     [ onClick (UpdateSortBy ByGradeStatus)
                     , class (getSortButtonClass model ByGradeStatus)
@@ -954,7 +1190,7 @@ viewSubmissionList model =
                     [ tr []
                         [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Student" ]
                         , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Game" ]
-                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Level" ]
+                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Belt" ]
                         , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Submitted" ]
                         , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Grade" ]
                         , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
@@ -975,7 +1211,7 @@ viewSubmissionRow submission =
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-900" ] [ text submission.gameName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm text-gray-900" ] [ text submission.gameLevel ] ]
+            [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
@@ -1060,7 +1296,7 @@ viewStudentRecordPage model student submissions =
                         [ thead [ class "bg-gray-50" ]
                             [ tr []
                                 [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Game" ]
-                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Level" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Belt" ]
                                 , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Submitted" ]
                                 , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Grade" ]
                                 , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
@@ -1079,7 +1315,7 @@ viewStudentSubmissionRow submission =
         [ td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.gameName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm text-gray-900" ] [ text submission.gameLevel ] ]
+            [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
@@ -1132,6 +1368,170 @@ viewCreateStudentPage model =
             ]
         ]
 
+viewBeltManagementPage : Model -> Html Msg
+viewBeltManagementPage model =
+    div [ class "space-y-6" ]
+        [ div [ class "bg-white shadow rounded-lg p-6" ]
+            [ div [ class "flex justify-between items-center" ]
+                [ h2 [ class "text-xl font-medium text-gray-900" ]
+                    [ text "Belt Management" ]
+                , button
+                    [ onClick CloseBeltManagement
+                    , class "text-gray-500 hover:text-gray-700 flex items-center"
+                    ]
+                    [ span [ class "mr-1" ] [ text "←" ]
+                    , text "Back to Submissions"
+                    ]
+                ]
+            , div [ class "mt-6" ]
+                [ div [ class "bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200" ]
+                    [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
+                        [ h3 [ class "text-lg font-medium text-gray-900" ]
+                            [ text (case model.editingBelt of
+                                      Just belt -> "Edit Belt: " ++ belt.name
+                                      Nothing -> "Add New Belt"
+                            ) ]
+                        ]
+                    , div [ class "p-6" ]
+                        [ div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
+                            [ div [ class "space-y-2" ]
+                                [ label [ for "beltName", class "block text-sm font-medium text-gray-700" ] [ text "Belt Name:" ]
+                                , input
+                                    [ type_ "text"
+                                    , id "beltName"
+                                    , value model.newBeltName
+                                    , onInput UpdateNewBeltName
+                                    , placeholder "e.g. White Belt, Yellow Belt"
+                                    , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    ]
+                                    []
+                                ]
+                            , div [ class "space-y-2" ]
+                                [ label [ for "beltColor", class "block text-sm font-medium text-gray-700" ] [ text "Belt Color:" ]
+                                , div [ class "flex items-center space-x-2" ]
+                                    [ input
+                                        [ type_ "color"
+                                        , id "beltColor"
+                                        , value model.newBeltColor
+                                        , onInput UpdateNewBeltColor
+                                        , class "h-8 w-8 border border-gray-300 rounded"
+                                        ]
+                                        []
+                                    , input
+                                        [ type_ "text"
+                                        , value model.newBeltColor
+                                        , onInput UpdateNewBeltColor
+                                        , placeholder "#000000"
+                                        , class "flex-1 mt-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        ]
+                                        []
+                                    ]
+                                ]
+                            , div [ class "space-y-2" ]
+                                [ label [ for "beltOrder", class "block text-sm font-medium text-gray-700" ] [ text "Display Order:" ]
+                                , input
+                                    [ type_ "number"
+                                    , id "beltOrder"
+                                    , value model.newBeltOrder
+                                    , onInput UpdateNewBeltOrder
+                                    , placeholder "1, 2, 3, etc."
+                                    , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    ]
+                                    []
+                                ]
+                            , div [ class "space-y-2" ]
+                                [ label [ for "gameOptions", class "block text-sm font-medium text-gray-700" ] [ text "Game Options (comma separated):" ]
+                                , textarea
+                                    [ id "gameOptions"
+                                    , value model.newBeltGameOptions
+                                    , onInput UpdateNewBeltGameOptions
+                                    , placeholder "Game 1, Game 2, Game 3"
+                                    , rows 3
+                                    , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    ]
+                                    []
+                                ]
+                            ]
+                        , div [ class "mt-6 flex space-x-3" ]
+                            [ case model.editingBelt of
+                                Just belt ->
+                                    div [ class "flex space-x-3 w-full" ]
+                                        [ button
+                                            [ onClick UpdateBelt
+                                            , class "flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            ]
+                                            [ text "Update Belt" ]
+                                        , button
+                                            [ onClick CancelEditBelt
+                                            , class "py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            ]
+                                            [ text "Cancel" ]
+                                        ]
+
+                                Nothing ->
+                                    button
+                                        [ onClick AddNewBelt
+                                        , class "w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                        ]
+                                        [ text "Add Belt" ]
+                            ]
+                        ]
+                    ]
+                ]
+            , div [ class "mt-8" ]
+                [ div [ class "flex justify-between items-center mb-4" ]
+                    [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Current Belts" ]
+                    , button
+                        [ onClick RefreshBelts
+                        , class "py-1 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        ]
+                        [ text "Refresh" ]
+                    ]
+                , if List.isEmpty model.belts then
+                    div [ class "text-center py-12 bg-gray-50 rounded-lg border border-gray-200" ]
+                        [ p [ class "text-gray-500" ] [ text "No belts configured yet. Add your first belt above." ] ]
+                else
+                    div [ class "bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200" ]
+                        [ ul [ class "divide-y divide-gray-200" ]
+                            (List.map (viewBeltRow model) (List.sortBy .order model.belts))
+                        ]
+                ]
+            ]
+        ]
+
+viewBeltRow : Model -> Belt -> Html Msg
+viewBeltRow model belt =
+    li [ class "py-4 px-6 flex items-center justify-between hover:bg-gray-50" ]
+        [ div [ class "flex items-center space-x-4" ]
+            [ div
+                [ class "w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
+                , style "background-color" belt.color
+                ] []
+            , div [ class "flex-1 min-w-0" ]
+                [ div [ class "flex items-center" ]
+                    [ p [ class "text-sm font-medium text-gray-900 truncate" ]
+                        [ text belt.name ]
+                    , span [ class "ml-2 text-xs text-gray-500" ]
+                        [ text ("Order: " ++ String.fromInt belt.order) ]
+                    ]
+                , p [ class "text-xs text-gray-500 truncate" ]
+                    [ text ("Games: " ++ String.join ", " belt.gameOptions) ]
+                ]
+            ]
+        , div [ class "flex space-x-2" ]
+            [ button
+                [ onClick (EditBelt belt)
+                , class "text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                ]
+                [ text "Edit" ]
+            , button
+                [ onClick (DeleteBelt belt.id)
+                , class "text-red-600 hover:text-red-900 text-sm font-medium"
+                ]
+                [ text "Delete" ]
+            ]
+        ]
+
 viewSubmissionModal : Model -> Submission -> Html Msg
 viewSubmissionModal model submission =
     div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
@@ -1167,8 +1567,8 @@ viewSubmissionModal model submission =
                                     , p [ class "mt-1 text-sm text-gray-900" ] [ text submission.studentId ]
                                     ]
                                 , div []
-                                    [ label [ class "block text-sm font-medium text-gray-700" ] [ text "Game Level:" ]
-                                    , p [ class "mt-1 text-sm text-gray-900" ] [ text submission.gameLevel ]
+                                    [ label [ class "block text-sm font-medium text-gray-700" ] [ text "Belt Level:" ]
+                                    , p [ class "mt-1 text-sm text-gray-900" ] [ text submission.beltLevel ]
                                     ]
                                 , div []
                                     [ label [ class "block text-sm font-medium text-gray-700" ] [ text "Game Name:" ]

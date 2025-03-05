@@ -1,7 +1,7 @@
 // firebase-admin.js
 // Import Firebase modules using CDN URLs
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, get, update, onValue, set } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, get, update, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -125,6 +125,136 @@ export function initializeFirebase(elmApp) {
       console.warn("Cannot create student: User not authenticated");
     }
   });
+
+  // Belt management functionality
+  elmApp.ports.requestBelts.subscribe(function() {
+    if (auth.currentUser) {
+      fetchBelts(elmApp);
+    } else {
+      console.warn("Cannot fetch belts: User not authenticated");
+    }
+  });
+
+  elmApp.ports.saveBelt.subscribe(function(beltData) {
+    if (auth.currentUser) {
+      saveBelt(beltData, elmApp);
+    } else {
+      console.warn("Cannot save belt: User not authenticated");
+      elmApp.ports.beltResult.send("Error: Not authenticated");
+    }
+  });
+
+  elmApp.ports.deleteBelt.subscribe(function(beltId) {
+    if (auth.currentUser) {
+      deleteBelt(beltId, elmApp);
+    } else {
+      console.warn("Cannot delete belt: User not authenticated");
+      elmApp.ports.beltResult.send("Error: Not authenticated");
+    }
+  });
+}
+
+/**
+ * Fetch all belts from Firebase
+ * @param {Object} elmApp - The Elm application instance
+ */
+function fetchBelts(elmApp) {
+  const beltsRef = ref(database, 'belts');
+
+  get(beltsRef)
+    .then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        // Convert Firebase object to array of belts with IDs
+        const belts = Object.entries(data).map(([id, belt]) => {
+          return {
+            id,
+            ...belt
+          };
+        });
+
+        elmApp.ports.receiveBelts.send(belts);
+      } else {
+        // Return empty array if no belts
+        elmApp.ports.receiveBelts.send([]);
+      }
+    })
+    .catch((error) => {
+      console.error("Error fetching belts:", error);
+      elmApp.ports.receiveBelts.send([]);
+    });
+}
+
+/**
+ * Save a belt to Firebase
+ * @param {Object} beltData - The belt data to save
+ * @param {Object} elmApp - The Elm application instance
+ */
+function saveBelt(beltData, elmApp) {
+  const beltId = beltData.id;
+  const beltRef = ref(database, `belts/${beltId}`);
+
+  // Check if the belt already exists
+  get(beltRef)
+    .then((snapshot) => {
+      const isNewBelt = !snapshot.exists();
+
+      // Save the belt data
+      set(beltRef, beltData)
+        .then(() => {
+          elmApp.ports.beltResult.send(isNewBelt ?
+            "Success: Belt created successfully" :
+            "Success: Belt updated successfully");
+        })
+        .catch((error) => {
+          elmApp.ports.beltResult.send("Error: " + error.message);
+          console.error("Error saving belt:", error);
+        });
+    })
+    .catch((error) => {
+      elmApp.ports.beltResult.send("Error: " + error.message);
+      console.error("Error checking belt existence:", error);
+    });
+}
+
+/**
+ * Delete a belt from Firebase
+ * @param {string} beltId - The belt ID to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+function deleteBelt(beltId, elmApp) {
+  const beltRef = ref(database, `belts/${beltId}`);
+
+  // First check if the belt is being used in any submissions
+  const submissionsRef = ref(database, 'submissions');
+  get(submissionsRef)
+    .then((snapshot) => {
+      if (snapshot.exists()) {
+        const submissions = snapshot.val();
+        const isUsed = Object.values(submissions).some(
+          submission => submission.beltLevel === beltId
+        );
+
+        if (isUsed) {
+          elmApp.ports.beltResult.send("Error: Cannot delete. This belt is already in use by one or more submissions.");
+          return;
+        }
+      }
+
+      // If the belt is not in use, proceed with deletion
+      remove(beltRef)
+        .then(() => {
+          elmApp.ports.beltResult.send("Success: Belt deleted successfully");
+        })
+        .catch((error) => {
+          elmApp.ports.beltResult.send("Error: " + error.message);
+          console.error("Error deleting belt:", error);
+        });
+    })
+    .catch((error) => {
+      elmApp.ports.beltResult.send("Error: " + error.message);
+      console.error("Error checking belt usage:", error);
+    });
 }
 
 /**
@@ -350,113 +480,5 @@ async function createNewStudentRecord(studentData, elmApp) {
   } catch (error) {
     console.error("Error creating student record:", error);
     // In a real app, you'd want to send an error back to Elm
-  }
-}
-
-/**
- * Set up listeners for submissions data after authentication
- * @param {Object} elmApp - The Elm application instance
- */
-function setupSubmissionListeners(elmApp) {
-  // Initial fetch
-  fetchSubmissions(elmApp);
-
-  // Set up real-time updates
-  const submissionsRef = ref(database, 'submissions');
-  onValue(submissionsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      // Convert Firebase object to array of submissions with IDs
-      const submissions = Object.entries(data).map(([id, submission]) => {
-        return {
-          id,
-          ...submission
-        };
-      });
-
-      elmApp.ports.receiveSubmissions.send(submissions);
-    } else {
-      elmApp.ports.receiveSubmissions.send([]);
-    }
-  });
-}
-
-/**
- * Fetch all submissions from Firebase
- * @param {Object} elmApp - The Elm application instance
- */
-function fetchSubmissions(elmApp) {
-  const submissionsRef = ref(database, 'submissions');
-
-  get(submissionsRef)
-    .then((snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        // Convert Firebase object to array of submissions with IDs
-        const submissions = Object.entries(data).map(([id, submission]) => {
-          return {
-            id,
-            ...submission
-          };
-        });
-
-        elmApp.ports.receiveSubmissions.send(submissions);
-      } else {
-        // Return empty array if no submissions
-        elmApp.ports.receiveSubmissions.send([]);
-      }
-    })
-    .catch((error) => {
-      console.error("Error fetching submissions:", error);
-      elmApp.ports.receiveSubmissions.send([]);
-    });
-}
-
-/**
- * Save a grade to Firebase
- * @param {Object} data - The grade data to save
- * @param {Object} elmApp - The Elm application instance
- */
-function saveGrade(data, elmApp) {
-  const submissionId = data.submissionId;
-  const grade = data.grade;
-
-  // Add the current user's email to the grade
-  grade.gradedBy = auth.currentUser.email;
-
-  const submissionRef = ref(database, `submissions/${submissionId}`);
-
-  // Update the grade for the submission
-  update(submissionRef, { grade })
-    .then(() => {
-      elmApp.ports.gradeResult.send("Success: Grade saved successfully");
-    })
-    .catch((error) => {
-      elmApp.ports.gradeResult.send("Error: " + error.message);
-      console.error("Error saving grade:", error);
-    });
-}
-
-/**
- * Get a user-friendly error message for authentication errors
- * @param {string} errorCode - The Firebase error code
- * @return {string} A user-friendly error message
- */
-function getAuthErrorMessage(errorCode) {
-  switch (errorCode) {
-    case 'auth/invalid-email':
-      return 'The email address is not valid.';
-    case 'auth/user-disabled':
-      return 'This account has been disabled.';
-    case 'auth/user-not-found':
-      return 'No account found with this email.';
-    case 'auth/wrong-password':
-      return 'Incorrect password.';
-    case 'auth/too-many-requests':
-      return 'Too many failed login attempts. Please try again later.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection.';
-    default:
-      return 'An error occurred during authentication. Please try again.';
   }
 }

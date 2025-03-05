@@ -5167,11 +5167,17 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Admin$init = function (_v0) {
 	return _Utils_Tuple2(
-		{appState: $author$project$Admin$NotAuthenticated, authError: $elm$core$Maybe$Nothing, currentStudent: $elm$core$Maybe$Nothing, currentSubmission: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, filterGraded: $elm$core$Maybe$Nothing, filterLevel: $elm$core$Maybe$Nothing, filterText: '', loading: false, loginEmail: '', loginPassword: '', newStudentName: '', page: $author$project$Admin$SubmissionsPage, sortBy: $author$project$Admin$ByDate, sortDirection: $author$project$Admin$Descending, studentSubmissions: _List_Nil, submissions: _List_Nil, success: $elm$core$Maybe$Nothing, tempFeedback: '', tempScore: ''},
+		{appState: $author$project$Admin$NotAuthenticated, authError: $elm$core$Maybe$Nothing, belts: _List_Nil, currentStudent: $elm$core$Maybe$Nothing, currentSubmission: $elm$core$Maybe$Nothing, editingBelt: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, filterBelt: $elm$core$Maybe$Nothing, filterGraded: $elm$core$Maybe$Nothing, filterText: '', loading: false, loginEmail: '', loginPassword: '', newBeltColor: '#000000', newBeltGameOptions: '', newBeltName: '', newBeltOrder: '', newStudentName: '', page: $author$project$Admin$SubmissionsPage, sortBy: $author$project$Admin$ByDate, sortDirection: $author$project$Admin$Descending, studentSubmissions: _List_Nil, submissions: _List_Nil, success: $elm$core$Maybe$Nothing, tempFeedback: '', tempScore: ''},
 		$elm$core$Platform$Cmd$none);
+};
+var $author$project$Admin$BeltResult = function (a) {
+	return {$: 'BeltResult', a: a};
 };
 var $author$project$Admin$GradeResult = function (a) {
 	return {$: 'GradeResult', a: a};
+};
+var $author$project$Admin$ReceiveBelts = function (a) {
+	return {$: 'ReceiveBelts', a: a};
 };
 var $author$project$Admin$ReceiveSubmissions = function (a) {
 	return {$: 'ReceiveSubmissions', a: a};
@@ -5189,6 +5195,8 @@ var $author$project$Admin$StudentCreated = function (a) {
 	return {$: 'StudentCreated', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $author$project$Admin$beltResult = _Platform_incomingPort('beltResult', $elm$json$Json$Decode$string);
 var $elm$core$Basics$composeR = F3(
 	function (f, g, x) {
 		return g(
@@ -5197,7 +5205,6 @@ var $elm$core$Basics$composeR = F3(
 var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$decodeValue = _Json_run;
 var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Admin$decodeAuthResult = function (value) {
 	var decoder = A3(
 		$elm$json$Json$Decode$map2,
@@ -5244,7 +5251,30 @@ var $author$project$Admin$decodeAuthState = function (value) {
 		A2($elm$json$Json$Decode$field, 'isSignedIn', $elm$json$Json$Decode$bool));
 	return A2($elm$json$Json$Decode$decodeValue, decoder, value);
 };
+var $author$project$Admin$Belt = F5(
+	function (id, name, color, order, gameOptions) {
+		return {color: color, gameOptions: gameOptions, id: id, name: name, order: order};
+	});
+var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map5 = _Json_map5;
+var $author$project$Admin$beltDecoder = A6(
+	$elm$json$Json$Decode$map5,
+	$author$project$Admin$Belt,
+	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'color', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'order', $elm$json$Json$Decode$int),
+	A2(
+		$elm$json$Json$Decode$field,
+		'gameOptions',
+		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+var $author$project$Admin$decodeBeltsResponse = function (value) {
+	return A2(
+		$elm$json$Json$Decode$decodeValue,
+		$elm$json$Json$Decode$list($author$project$Admin$beltDecoder),
+		value);
+};
 var $author$project$Admin$Student = F4(
 	function (id, name, created, lastActive) {
 		return {created: created, id: id, lastActive: lastActive, name: name};
@@ -5287,7 +5317,6 @@ var $author$project$Admin$Grade = F4(
 	function (score, feedback, gradedBy, gradingDate) {
 		return {feedback: feedback, gradedBy: gradedBy, gradingDate: gradingDate, score: score};
 	});
-var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $author$project$Admin$gradeDecoder = A5(
 	$elm$json$Json$Decode$map4,
 	$author$project$Admin$Grade,
@@ -5370,11 +5399,11 @@ var $author$project$Admin$submissionDecoder = A2(
 			A7(
 				$elm$json$Json$Decode$map6,
 				F6(
-					function (id, gameLevel, gameName, githubLink, notes, submissionDate) {
-						return {gameLevel: gameLevel, gameName: gameName, githubLink: githubLink, grade: $elm$core$Maybe$Nothing, id: id, notes: notes, studentId: '', studentName: 'Unknown', submissionDate: submissionDate};
+					function (id, gameBelt, gameName, githubLink, notes, submissionDate) {
+						return {beltLevel: gameBelt, gameName: gameName, githubLink: githubLink, grade: $elm$core$Maybe$Nothing, id: id, notes: notes, studentId: '', studentName: 'Unknown', submissionDate: submissionDate};
 					}),
 				A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
-				A2($elm$json$Json$Decode$field, 'gameLevel', $elm$json$Json$Decode$string),
+				A2($elm$json$Json$Decode$field, 'beltLevel', $elm$json$Json$Decode$string),
 				A2($elm$json$Json$Decode$field, 'gameName', $elm$json$Json$Decode$string),
 				A2($elm$json$Json$Decode$field, 'githubLink', $elm$json$Json$Decode$string),
 				A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string),
@@ -5406,6 +5435,7 @@ var $author$project$Admin$gradeResult = _Platform_incomingPort('gradeResult', $e
 var $elm$json$Json$Decode$value = _Json_decodeValue;
 var $author$project$Admin$receiveAuthResult = _Platform_incomingPort('receiveAuthResult', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveAuthState = _Platform_incomingPort('receiveAuthState', $elm$json$Json$Decode$value);
+var $author$project$Admin$receiveBelts = _Platform_incomingPort('receiveBelts', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveStudentRecord = _Platform_incomingPort('receiveStudentRecord', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveSubmissions = _Platform_incomingPort('receiveSubmissions', $elm$json$Json$Decode$value);
 var $author$project$Admin$studentCreated = _Platform_incomingPort('studentCreated', $elm$json$Json$Decode$value);
@@ -5423,7 +5453,10 @@ var $author$project$Admin$subscriptions = function (_v0) {
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentRecordResponse, $author$project$Admin$ReceivedStudentRecord)),
 				$author$project$Admin$studentCreated(
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentResponse, $author$project$Admin$StudentCreated)),
-				$author$project$Admin$gradeResult($author$project$Admin$GradeResult)
+				$author$project$Admin$receiveBelts(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeBeltsResponse, $author$project$Admin$ReceiveBelts)),
+				$author$project$Admin$gradeResult($author$project$Admin$GradeResult),
+				$author$project$Admin$beltResult($author$project$Admin$BeltResult)
 			]));
 };
 var $author$project$Admin$Ascending = {$: 'Ascending'};
@@ -5434,12 +5467,30 @@ var $author$project$Admin$AuthenticatingWith = F2(
 	function (a, b) {
 		return {$: 'AuthenticatingWith', a: a, b: b};
 	});
+var $author$project$Admin$BeltManagementPage = {$: 'BeltManagementPage'};
 var $author$project$Admin$CreateStudentPage = {$: 'CreateStudentPage'};
 var $author$project$Admin$StudentRecordPage = F2(
 	function (a, b) {
 		return {$: 'StudentRecordPage', a: a, b: b};
 	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
 var $author$project$Admin$createStudent = _Platform_outgoingPort('createStudent', $elm$core$Basics$identity);
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Admin$deleteBelt = _Platform_outgoingPort('deleteBelt', $elm$json$Json$Encode$string);
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -5453,7 +5504,27 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Admin$encodeBelt = function (belt) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$string(belt.id)),
+				_Utils_Tuple2(
+				'name',
+				$elm$json$Json$Encode$string(belt.name)),
+				_Utils_Tuple2(
+				'color',
+				$elm$json$Json$Encode$string(belt.color)),
+				_Utils_Tuple2(
+				'order',
+				$elm$json$Json$Encode$int(belt.order)),
+				_Utils_Tuple2(
+				'gameOptions',
+				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, belt.gameOptions))
+			]));
+};
 var $author$project$Admin$encodeCredentials = F2(
 	function (email, password) {
 		return $elm$json$Json$Encode$object(
@@ -5467,7 +5538,6 @@ var $author$project$Admin$encodeCredentials = F2(
 					$elm$json$Json$Encode$string(password))
 				]));
 	});
-var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Admin$encodeGrade = function (grade) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
@@ -5495,6 +5565,17 @@ var $author$project$Admin$encodeNewStudent = function (name) {
 				$elm$json$Json$Encode$string(name))
 			]));
 };
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
 var $author$project$Admin$getUserEmail = function (model) {
 	var _v0 = model.appState;
 	if (_v0.$ === 'Authenticated') {
@@ -5514,13 +5595,20 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
-var $author$project$Admin$requestStudentRecord = _Platform_outgoingPort('requestStudentRecord', $elm$json$Json$Encode$string);
+var $elm$core$Basics$not = _Basics_not;
 var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Admin$requestBelts = _Platform_outgoingPort(
+	'requestBelts',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
+var $author$project$Admin$requestStudentRecord = _Platform_outgoingPort('requestStudentRecord', $elm$json$Json$Encode$string);
 var $author$project$Admin$requestSubmissions = _Platform_outgoingPort(
 	'requestSubmissions',
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $author$project$Admin$saveBelt = _Platform_outgoingPort('saveBelt', $elm$core$Basics$identity);
 var $author$project$Admin$saveGrade = _Platform_outgoingPort('saveGrade', $elm$core$Basics$identity);
 var $author$project$Admin$signIn = _Platform_outgoingPort('signIn', $elm$core$Basics$identity);
 var $author$project$Admin$signOut = _Platform_outgoingPort(
@@ -5528,6 +5616,7 @@ var $author$project$Admin$signOut = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$trim = _String_trim;
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
@@ -5594,7 +5683,12 @@ var $author$project$Admin$update = F2(
 										authError: $elm$core$Maybe$Nothing,
 										loading: true
 									}),
-								$author$project$Admin$requestSubmissions(_Utils_Tuple0));
+								$elm$core$Platform$Cmd$batch(
+									_List_fromArray(
+										[
+											$author$project$Admin$requestSubmissions(_Utils_Tuple0),
+											$author$project$Admin$requestBelts(_Utils_Tuple0)
+										])));
 						} else {
 							return _Utils_Tuple2(
 								_Utils_update(
@@ -5715,13 +5809,13 @@ var $author$project$Admin$update = F2(
 						model,
 						{filterText: text}),
 					$elm$core$Platform$Cmd$none);
-			case 'UpdateFilterLevel':
-				var level = msg.a;
-				var filterLevel = (level === 'all') ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(level);
+			case 'UpdateFilterBelt':
+				var belt = msg.a;
+				var filterBelt = (belt === 'all') ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just(belt);
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{filterLevel: filterLevel}),
+						{filterBelt: filterBelt}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateFilterGraded':
 				var status = msg.a;
@@ -5924,7 +6018,7 @@ var $author$project$Admin$update = F2(
 						{error: $elm$core$Maybe$Nothing, loading: true}),
 					$author$project$Admin$createStudent(
 						$author$project$Admin$encodeNewStudent(model.newStudentName)));
-			default:
+			case 'StudentCreated':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
 					var student = result.a;
@@ -5951,6 +6045,208 @@ var $author$project$Admin$update = F2(
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'ShowBeltManagement':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{editingBelt: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, newBeltColor: '#000000', newBeltGameOptions: '', newBeltName: '', newBeltOrder: '', page: $author$project$Admin$BeltManagementPage, success: $elm$core$Maybe$Nothing}),
+					$author$project$Admin$requestBelts(_Utils_Tuple0));
+			case 'CloseBeltManagement':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{page: $author$project$Admin$SubmissionsPage}),
+					$elm$core$Platform$Cmd$none);
+			case 'ReceiveBelts':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var belts = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{belts: belts, loading: false}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just(
+									$elm$json$Json$Decode$errorToString(error)),
+								loading: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'UpdateNewBeltName':
+				var name = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{newBeltName: name}),
+					$elm$core$Platform$Cmd$none);
+			case 'UpdateNewBeltColor':
+				var color = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{newBeltColor: color}),
+					$elm$core$Platform$Cmd$none);
+			case 'UpdateNewBeltOrder':
+				var order = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{newBeltOrder: order}),
+					$elm$core$Platform$Cmd$none);
+			case 'UpdateNewBeltGameOptions':
+				var options = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{newBeltGameOptions: options}),
+					$elm$core$Platform$Cmd$none);
+			case 'AddNewBelt':
+				if ($elm$core$String$trim(model.newBeltName) === '') {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just('Please enter a belt name')
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var orderResult = $elm$core$String$toInt(model.newBeltOrder);
+					if (orderResult.$ === 'Just') {
+						var order = orderResult.a;
+						var gameOptions = A2(
+							$elm$core$List$filter,
+							A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
+							A2(
+								$elm$core$List$map,
+								$elm$core$String$trim,
+								A2($elm$core$String$split, ',', model.newBeltGameOptions)));
+						var beltId = A3(
+							$elm$core$String$replace,
+							' ',
+							'-',
+							$elm$core$String$toLower(model.newBeltName));
+						var newBelt = {color: model.newBeltColor, gameOptions: gameOptions, id: beltId, name: model.newBeltName, order: order};
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{error: $elm$core$Maybe$Nothing, loading: true}),
+							$author$project$Admin$saveBelt(
+								$author$project$Admin$encodeBelt(newBelt)));
+					} else {
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									error: $elm$core$Maybe$Just('Please enter a valid order number')
+								}),
+							$elm$core$Platform$Cmd$none);
+					}
+				}
+			case 'EditBelt':
+				var belt = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							editingBelt: $elm$core$Maybe$Just(belt),
+							newBeltColor: belt.color,
+							newBeltGameOptions: A2($elm$core$String$join, ', ', belt.gameOptions),
+							newBeltName: belt.name,
+							newBeltOrder: $elm$core$String$fromInt(belt.order)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'CancelEditBelt':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{editingBelt: $elm$core$Maybe$Nothing, newBeltColor: '#000000', newBeltGameOptions: '', newBeltName: '', newBeltOrder: ''}),
+					$elm$core$Platform$Cmd$none);
+			case 'UpdateBelt':
+				var _v13 = model.editingBelt;
+				if (_v13.$ === 'Just') {
+					var belt = _v13.a;
+					if ($elm$core$String$trim(model.newBeltName) === '') {
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									error: $elm$core$Maybe$Just('Please enter a belt name')
+								}),
+							$elm$core$Platform$Cmd$none);
+					} else {
+						var orderResult = $elm$core$String$toInt(model.newBeltOrder);
+						if (orderResult.$ === 'Just') {
+							var order = orderResult.a;
+							var gameOptions = A2(
+								$elm$core$List$filter,
+								A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
+								A2(
+									$elm$core$List$map,
+									$elm$core$String$trim,
+									A2($elm$core$String$split, ',', model.newBeltGameOptions)));
+							var updatedBelt = {color: model.newBeltColor, gameOptions: gameOptions, id: belt.id, name: model.newBeltName, order: order};
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{error: $elm$core$Maybe$Nothing, loading: true}),
+								$author$project$Admin$saveBelt(
+									$author$project$Admin$encodeBelt(updatedBelt)));
+						} else {
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										error: $elm$core$Maybe$Just('Please enter a valid order number')
+									}),
+								$elm$core$Platform$Cmd$none);
+						}
+					}
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'DeleteBelt':
+				var beltId = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{loading: true}),
+					$author$project$Admin$deleteBelt(beltId));
+			case 'BeltResult':
+				var result = msg.a;
+				return A2($elm$core$String$startsWith, 'Error:', result) ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							error: $elm$core$Maybe$Just(result),
+							loading: false,
+							success: $elm$core$Maybe$Nothing
+						}),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							editingBelt: $elm$core$Maybe$Nothing,
+							error: $elm$core$Maybe$Nothing,
+							loading: false,
+							newBeltColor: '#000000',
+							newBeltGameOptions: '',
+							newBeltName: '',
+							newBeltOrder: '',
+							success: $elm$core$Maybe$Just(result)
+						}),
+					$author$project$Admin$requestBelts(_Utils_Tuple0));
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{loading: true}),
+					$author$project$Admin$requestBelts(_Utils_Tuple0));
 		}
 	});
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -5966,6 +6262,7 @@ var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Admin$PerformSignOut = {$: 'PerformSignOut'};
+var $author$project$Admin$ShowBeltManagement = {$: 'ShowBeltManagement'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
@@ -5986,15 +6283,35 @@ var $elm$html$Html$Events$onClick = function (msg) {
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$core$String$toUpper = _String_toUpper;
-var $author$project$Admin$CloseCreateStudentForm = {$: 'CloseCreateStudentForm'};
-var $author$project$Admin$CreateNewStudent = {$: 'CreateNewStudent'};
-var $author$project$Admin$UpdateNewStudentName = function (a) {
-	return {$: 'UpdateNewStudentName', a: a};
+var $author$project$Admin$AddNewBelt = {$: 'AddNewBelt'};
+var $author$project$Admin$CancelEditBelt = {$: 'CancelEditBelt'};
+var $author$project$Admin$CloseBeltManagement = {$: 'CloseBeltManagement'};
+var $author$project$Admin$RefreshBelts = {$: 'RefreshBelts'};
+var $author$project$Admin$UpdateBelt = {$: 'UpdateBelt'};
+var $author$project$Admin$UpdateNewBeltColor = function (a) {
+	return {$: 'UpdateNewBeltColor', a: a};
+};
+var $author$project$Admin$UpdateNewBeltGameOptions = function (a) {
+	return {$: 'UpdateNewBeltGameOptions', a: a};
+};
+var $author$project$Admin$UpdateNewBeltName = function (a) {
+	return {$: 'UpdateNewBeltName', a: a};
+};
+var $author$project$Admin$UpdateNewBeltOrder = function (a) {
+	return {$: 'UpdateNewBeltOrder', a: a};
 };
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
 var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
@@ -6028,9 +6345,554 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
+var $elm$html$Html$Attributes$rows = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'rows',
+		$elm$core$String$fromInt(n));
+};
+var $elm$core$List$sortBy = _List_sortBy;
 var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$Admin$DeleteBelt = function (a) {
+	return {$: 'DeleteBelt', a: a};
+};
+var $author$project$Admin$EditBelt = function (a) {
+	return {$: 'EditBelt', a: a};
+};
+var $elm$html$Html$li = _VirtualDom_node('li');
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$Admin$viewBeltRow = F2(
+	function (model, belt) {
+		return A2(
+			$elm$html$Html$li,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('py-4 px-6 flex items-center justify-between hover:bg-gray-50')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex items-center space-x-4')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('w-8 h-8 rounded-full border border-gray-300 flex-shrink-0'),
+									A2($elm$html$Html$Attributes$style, 'background-color', belt.color)
+								]),
+							_List_Nil),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('flex-1 min-w-0')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('flex items-center')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$p,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('text-sm font-medium text-gray-900 truncate')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(belt.name)
+												])),
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('ml-2 text-xs text-gray-500')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(
+													'Order: ' + $elm$core$String$fromInt(belt.order))
+												]))
+										])),
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-xs text-gray-500 truncate')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											'Games: ' + A2($elm$core$String$join, ', ', belt.gameOptions))
+										]))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex space-x-2')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick(
+									$author$project$Admin$EditBelt(belt)),
+									$elm$html$Html$Attributes$class('text-indigo-600 hover:text-indigo-900 text-sm font-medium')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Edit')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick(
+									$author$project$Admin$DeleteBelt(belt.id)),
+									$elm$html$Html$Attributes$class('text-red-600 hover:text-red-900 text-sm font-medium')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Delete')
+								]))
+						]))
+				]));
+	});
+var $author$project$Admin$viewBeltManagementPage = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('space-y-6')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('bg-white shadow rounded-lg p-6')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('flex justify-between items-center')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$h2,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-xl font-medium text-gray-900')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Belt Management')
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Admin$CloseBeltManagement),
+										$elm$html$Html$Attributes$class('text-gray-500 hover:text-gray-700 flex items-center')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('mr-1')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('←')
+											])),
+										$elm$html$Html$text('Back to Submissions')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('mt-6')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('px-6 py-4 bg-gray-50 border-b border-gray-200')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$h3,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(
+														function () {
+															var _v0 = model.editingBelt;
+															if (_v0.$ === 'Just') {
+																var belt = _v0.a;
+																return 'Edit Belt: ' + belt.name;
+															} else {
+																return 'Add New Belt';
+															}
+														}())
+													]))
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('p-6')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('grid grid-cols-1 md:grid-cols-2 gap-4')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('space-y-2')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$label,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$for('beltName'),
+																		$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Belt Name:')
+																	])),
+																A2(
+																$elm$html$Html$input,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$type_('text'),
+																		$elm$html$Html$Attributes$id('beltName'),
+																		$elm$html$Html$Attributes$value(model.newBeltName),
+																		$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltName),
+																		$elm$html$Html$Attributes$placeholder('e.g. White Belt, Yellow Belt'),
+																		$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+																	]),
+																_List_Nil)
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('space-y-2')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$label,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$for('beltColor'),
+																		$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Belt Color:')
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$class('flex items-center space-x-2')
+																	]),
+																_List_fromArray(
+																	[
+																		A2(
+																		$elm$html$Html$input,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$Attributes$type_('color'),
+																				$elm$html$Html$Attributes$id('beltColor'),
+																				$elm$html$Html$Attributes$value(model.newBeltColor),
+																				$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltColor),
+																				$elm$html$Html$Attributes$class('h-8 w-8 border border-gray-300 rounded')
+																			]),
+																		_List_Nil),
+																		A2(
+																		$elm$html$Html$input,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$Attributes$type_('text'),
+																				$elm$html$Html$Attributes$value(model.newBeltColor),
+																				$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltColor),
+																				$elm$html$Html$Attributes$placeholder('#000000'),
+																				$elm$html$Html$Attributes$class('flex-1 mt-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+																			]),
+																		_List_Nil)
+																	]))
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('space-y-2')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$label,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$for('beltOrder'),
+																		$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Display Order:')
+																	])),
+																A2(
+																$elm$html$Html$input,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$type_('number'),
+																		$elm$html$Html$Attributes$id('beltOrder'),
+																		$elm$html$Html$Attributes$value(model.newBeltOrder),
+																		$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltOrder),
+																		$elm$html$Html$Attributes$placeholder('1, 2, 3, etc.'),
+																		$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+																	]),
+																_List_Nil)
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('space-y-2')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$label,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$for('gameOptions'),
+																		$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Game Options (comma separated):')
+																	])),
+																A2(
+																$elm$html$Html$textarea,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$id('gameOptions'),
+																		$elm$html$Html$Attributes$value(model.newBeltGameOptions),
+																		$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltGameOptions),
+																		$elm$html$Html$Attributes$placeholder('Game 1, Game 2, Game 3'),
+																		$elm$html$Html$Attributes$rows(3),
+																		$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+																	]),
+																_List_Nil)
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('mt-6 flex space-x-3')
+													]),
+												_List_fromArray(
+													[
+														function () {
+														var _v1 = model.editingBelt;
+														if (_v1.$ === 'Just') {
+															var belt = _v1.a;
+															return A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$class('flex space-x-3 w-full')
+																	]),
+																_List_fromArray(
+																	[
+																		A2(
+																		$elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$Events$onClick($author$project$Admin$UpdateBelt),
+																				$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+																			]),
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$text('Update Belt')
+																			])),
+																		A2(
+																		$elm$html$Html$button,
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$Events$onClick($author$project$Admin$CancelEditBelt),
+																				$elm$html$Html$Attributes$class('py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+																			]),
+																		_List_fromArray(
+																			[
+																				$elm$html$Html$text('Cancel')
+																			]))
+																	]));
+														} else {
+															return A2(
+																$elm$html$Html$button,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Events$onClick($author$project$Admin$AddNewBelt),
+																		$elm$html$Html$Attributes$class('w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Add Belt')
+																	]));
+														}
+													}()
+													]))
+											]))
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('mt-8')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex justify-between items-center mb-4')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$h3,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Current Belts')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$RefreshBelts),
+												$elm$html$Html$Attributes$class('py-1 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Refresh')
+											]))
+									])),
+								$elm$core$List$isEmpty(model.belts) ? A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-center py-12 bg-gray-50 rounded-lg border border-gray-200')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$p,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-gray-500')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('No belts configured yet. Add your first belt above.')
+											]))
+									])) : A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$ul,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('divide-y divide-gray-200')
+											]),
+										A2(
+											$elm$core$List$map,
+											$author$project$Admin$viewBeltRow(model),
+											A2(
+												$elm$core$List$sortBy,
+												function ($) {
+													return $.order;
+												},
+												model.belts)))
+									]))
+							]))
+					]))
+			]));
+};
+var $author$project$Admin$CloseCreateStudentForm = {$: 'CloseCreateStudentForm'};
+var $author$project$Admin$CreateNewStudent = {$: 'CreateNewStudent'};
+var $author$project$Admin$UpdateNewStudentName = function (a) {
+	return {$: 'UpdateNewStudentName', a: a};
+};
 var $author$project$Admin$viewCreateStudentPage = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -6152,17 +7014,17 @@ var $author$project$Admin$viewCreateStudentPage = function (model) {
 					]))
 			]));
 };
+var $author$project$Admin$ByBelt = {$: 'ByBelt'};
 var $author$project$Admin$ByGradeStatus = {$: 'ByGradeStatus'};
-var $author$project$Admin$ByLevel = {$: 'ByLevel'};
 var $author$project$Admin$ByName = {$: 'ByName'};
 var $author$project$Admin$RefreshSubmissions = {$: 'RefreshSubmissions'};
 var $author$project$Admin$ShowCreateStudentForm = {$: 'ShowCreateStudentForm'};
 var $author$project$Admin$ToggleSortDirection = {$: 'ToggleSortDirection'};
+var $author$project$Admin$UpdateFilterBelt = function (a) {
+	return {$: 'UpdateFilterBelt', a: a};
+};
 var $author$project$Admin$UpdateFilterGraded = function (a) {
 	return {$: 'UpdateFilterGraded', a: a};
-};
-var $author$project$Admin$UpdateFilterLevel = function (a) {
-	return {$: 'UpdateFilterLevel', a: a};
 };
 var $author$project$Admin$UpdateFilterText = function (a) {
 	return {$: 'UpdateFilterText', a: a};
@@ -6170,18 +7032,15 @@ var $author$project$Admin$UpdateFilterText = function (a) {
 var $author$project$Admin$UpdateSortBy = function (a) {
 	return {$: 'UpdateSortBy', a: a};
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
+var $author$project$Admin$filterByBelt = F2(
+	function (maybeBelt, submission) {
+		if (maybeBelt.$ === 'Just') {
+			var belt = maybeBelt.a;
+			return _Utils_eq(submission.beltLevel, belt);
+		} else {
+			return true;
+		}
 	});
-var $elm$core$Basics$not = _Basics_not;
 var $author$project$Admin$filterByGraded = F2(
 	function (maybeGraded, submission) {
 		if (maybeGraded.$ === 'Just') {
@@ -6196,16 +7055,6 @@ var $author$project$Admin$filterByGraded = F2(
 			return true;
 		}
 	});
-var $author$project$Admin$filterByLevel = F2(
-	function (maybeLevel, submission) {
-		if (maybeLevel.$ === 'Just') {
-			var level = maybeLevel.a;
-			return _Utils_eq(submission.gameLevel, level);
-		} else {
-			return true;
-		}
-	});
-var $elm$core$String$toLower = _String_toLower;
 var $author$project$Admin$filterByText = F2(
 	function (filterText, submission) {
 		if ($elm$core$String$isEmpty(filterText)) {
@@ -6218,7 +7067,7 @@ var $author$project$Admin$filterByText = F2(
 					lowercaseFilter,
 					$elm$core$String$toLower(text));
 			};
-			return containsFilter(submission.studentName) || (containsFilter(submission.gameName) || containsFilter(submission.gameLevel));
+			return containsFilter(submission.studentName) || (containsFilter(submission.gameName) || containsFilter(submission.beltLevel));
 		}
 	});
 var $elm$core$Basics$compare = _Utils_compare;
@@ -6237,10 +7086,10 @@ var $author$project$Admin$sortSubmissions = F3(
 						function (a, b) {
 							return A2($elm$core$Basics$compare, a.submissionDate, b.submissionDate);
 						});
-				case 'ByLevel':
+				case 'ByBelt':
 					return F2(
 						function (a, b) {
-							return A2($elm$core$Basics$compare, a.gameLevel, b.gameLevel);
+							return A2($elm$core$Basics$compare, a.beltLevel, b.beltLevel);
 						});
 				default:
 					return F2(
@@ -6285,7 +7134,7 @@ var $author$project$Admin$applyFilters = function (model) {
 			$author$project$Admin$filterByGraded(model.filterGraded),
 			A2(
 				$elm$core$List$filter,
-				$author$project$Admin$filterByLevel(model.filterLevel),
+				$author$project$Admin$filterByBelt(model.filterBelt),
 				A2(
 					$elm$core$List$filter,
 					$author$project$Admin$filterByText(model.filterText),
@@ -6296,7 +7145,6 @@ var $author$project$Admin$getSortButtonClass = F2(
 		var baseClass = 'px-3 py-1 rounded text-sm';
 		return _Utils_eq(model.sortBy, sortType) ? (baseClass + ' bg-blue-100 text-blue-800 font-medium') : (baseClass + ' text-gray-600 hover:bg-gray-100');
 	});
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $elm$html$Html$option = _VirtualDom_node('option');
 var $elm$html$Html$select = _VirtualDom_node('select');
 var $author$project$Admin$viewFilters = function (model) {
@@ -6398,64 +7246,50 @@ var $author$project$Admin$viewFilters = function (model) {
 										$elm$html$Html$label,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$for('filterLevel'),
+												$elm$html$Html$Attributes$for('filterBelt'),
 												$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700 mb-1')
 											]),
 										_List_fromArray(
 											[
-												$elm$html$Html$text('Level')
+												$elm$html$Html$text('Belt')
 											])),
 										A2(
 										$elm$html$Html$select,
 										_List_fromArray(
 											[
-												$elm$html$Html$Attributes$id('filterLevel'),
-												$elm$html$Html$Events$onInput($author$project$Admin$UpdateFilterLevel),
+												$elm$html$Html$Attributes$id('filterBelt'),
+												$elm$html$Html$Events$onInput($author$project$Admin$UpdateFilterBelt),
 												$elm$html$Html$Attributes$class('w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$option,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$value('all')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('All Levels')
-													])),
-												A2(
-												$elm$html$Html$option,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$value('Beginner')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Beginner')
-													])),
-												A2(
-												$elm$html$Html$option,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$value('Intermediate')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Intermediate')
-													])),
-												A2(
-												$elm$html$Html$option,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$value('Advanced')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Advanced')
-													]))
-											]))
+										_Utils_ap(
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value('all')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('All Belts')
+														]))
+												]),
+											A2(
+												$elm$core$List$map,
+												function (belt) {
+													return A2(
+														$elm$html$Html$option,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$value(belt.name)
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(belt.name)
+															]));
+												},
+												model.belts)))
 									])),
 								A2(
 								$elm$html$Html$div,
@@ -6577,13 +7411,13 @@ var $author$project$Admin$viewFilters = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Events$onClick(
-										$author$project$Admin$UpdateSortBy($author$project$Admin$ByLevel)),
+										$author$project$Admin$UpdateSortBy($author$project$Admin$ByBelt)),
 										$elm$html$Html$Attributes$class(
-										A2($author$project$Admin$getSortButtonClass, model, $author$project$Admin$ByLevel))
+										A2($author$project$Admin$getSortButtonClass, model, $author$project$Admin$ByBelt))
 									]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Level')
+										$elm$html$Html$text('Belt')
 									])),
 								A2(
 								$elm$html$Html$button,
@@ -6648,13 +7482,6 @@ var $author$project$Admin$viewFilters = function (model) {
 			]));
 };
 var $author$project$Admin$CloseStudentRecord = {$: 'CloseStudentRecord'};
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
 var $elm$html$Html$table = _VirtualDom_node('table');
 var $elm$html$Html$tbody = _VirtualDom_node('tbody');
 var $elm$html$Html$th = _VirtualDom_node('th');
@@ -6739,7 +7566,7 @@ var $author$project$Admin$viewStudentSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(submission.gameLevel)
+								$elm$html$Html$text(submission.beltLevel)
 							]))
 					])),
 				A2(
@@ -7044,7 +7871,7 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 																]),
 															_List_fromArray(
 																[
-																	$elm$html$Html$text('Level')
+																	$elm$html$Html$text('Belt')
 																])),
 															A2(
 															$elm$html$Html$th,
@@ -7166,7 +7993,7 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(submission.gameLevel)
+								$elm$html$Html$text(submission.beltLevel)
 							]))
 					])),
 				A2(
@@ -7311,7 +8138,7 @@ var $author$project$Admin$viewSubmissionList = function (model) {
 											]),
 										_List_fromArray(
 											[
-												$elm$html$Html$text('Level')
+												$elm$html$Html$text('Belt')
 											])),
 										A2(
 										$elm$html$Html$th,
@@ -7371,8 +8198,10 @@ var $author$project$Admin$viewCurrentPage = function (model) {
 			var student = _v0.a;
 			var submissions = _v0.b;
 			return A3($author$project$Admin$viewStudentRecordPage, model, student, submissions);
-		default:
+		case 'CreateStudentPage':
 			return $author$project$Admin$viewCreateStudentPage(model);
+		default:
+			return $author$project$Admin$viewBeltManagementPage(model);
 	}
 };
 var $author$project$Admin$viewLoadingAuthentication = A2(
@@ -7650,14 +8479,7 @@ var $elm$html$Html$Attributes$href = function (url) {
 };
 var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
 var $elm$html$Html$Attributes$min = $elm$html$Html$Attributes$stringProperty('min');
-var $elm$html$Html$Attributes$rows = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'rows',
-		$elm$core$String$fromInt(n));
-};
 var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
-var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $author$project$Admin$viewSubmissionModal = F2(
 	function (model, submission) {
 		return A2(
@@ -7839,7 +8661,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text('Game Level:')
+																					$elm$html$Html$text('Belt Level:')
 																				])),
 																			A2(
 																			$elm$html$Html$p,
@@ -7849,7 +8671,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text(submission.gameLevel)
+																					$elm$html$Html$text(submission.beltLevel)
 																				]))
 																		])),
 																	A2(
@@ -8327,15 +9149,35 @@ var $author$project$Admin$viewContent = function (model) {
 											]))
 									])),
 								A2(
-								$elm$html$Html$button,
+								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$elm$html$Html$Events$onClick($author$project$Admin$PerformSignOut),
-										$elm$html$Html$Attributes$class('px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+										$elm$html$Html$Attributes$class('flex space-x-2')
 									]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Sign Out')
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$ShowBeltManagement),
+												$elm$html$Html$Attributes$class('px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Manage Belts')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$PerformSignOut),
+												$elm$html$Html$Attributes$class('px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Sign Out')
+											]))
 									]))
 							])),
 						model.loading ? A2(
