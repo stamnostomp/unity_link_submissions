@@ -14,7 +14,6 @@ import Task
 
 port findStudent : String -> Cmd msg
 port studentFound : (Decode.Value -> msg) -> Sub msg
-port saveStudent : Encode.Value -> Cmd msg
 port saveSubmission : Encode.Value -> Cmd msg
 port submissionResult : (String -> msg) -> Sub msg
 
@@ -36,7 +35,6 @@ main =
 type alias Student =
     { id : String
     , name : String
-    , email : Maybe String
     , created : String
     , lastActive : String
     , submissions : List Submission
@@ -74,7 +72,6 @@ type alias Model =
     , gameName : String
     , githubLink : String
     , notes : String
-    , studentEmail : String
     , errorMessage : Maybe String
     , successMessage : Maybe String
     }
@@ -87,7 +84,6 @@ init _ =
       , gameName = ""
       , githubLink = ""
       , notes = ""
-      , studentEmail = ""
       , errorMessage = Nothing
       , successMessage = Nothing
       }
@@ -124,14 +120,12 @@ getGameOptions level =
 type Msg
     = UpdateSearchName String
     | SearchStudent
-    | CreateNewStudent
     | StudentFoundResult (Result Decode.Error (Maybe Student))
     | StartNewSubmission Student
     | UpdateGameLevel String
     | UpdateGameName String
     | UpdateGithubLink String
     | UpdateNotes String
-    | UpdateStudentEmail String
     | SubmitForm Student
     | SubmissionSaved String
     | BackToProfile
@@ -152,26 +146,6 @@ update msg model =
                 , findStudent model.searchName
                 )
 
-        CreateNewStudent ->
-            if String.trim model.searchName == "" then
-                ( { model | errorMessage = Just "Please enter your name to continue" }, Cmd.none )
-            else
-                -- For a real app, you'd want to generate a better ID and proper timestamp
-                let
-                    currentDate = "2025-03-04" -- Use actual date in real app
-                    newStudent =
-                        { id = String.replace " " "-" (String.toLower model.searchName) ++ "-" ++ String.fromInt (String.length model.searchName)
-                        , name = model.searchName
-                        , email = Nothing
-                        , created = currentDate
-                        , lastActive = currentDate
-                        , submissions = []
-                        }
-                in
-                ( { model | page = StudentProfilePage newStudent, errorMessage = Nothing }
-                , saveStudent (encodeStudent newStudent)
-                )
-
         StudentFoundResult result ->
             case result of
                 Ok maybeStudent ->
@@ -182,7 +156,7 @@ update msg model =
                         Nothing ->
                             ( { model
                               | page = NamePage
-                              , errorMessage = Just "No record found. Please check your name or create a new record."
+                              , errorMessage = Just "No record found. Please check your name or ask your teacher to create a record for you."
                               }, Cmd.none )
 
                 Err error ->
@@ -218,9 +192,6 @@ update msg model =
         UpdateNotes notes ->
             ( { model | notes = notes }, Cmd.none )
 
-        UpdateStudentEmail email ->
-            ( { model | studentEmail = email }, Cmd.none )
-
         SubmitForm student ->
             if String.trim model.gameLevel == "" || String.trim model.gameName == "" || String.trim model.githubLink == "" then
                 ( { model | errorMessage = Just "Please fill in all required fields" }, Cmd.none )
@@ -238,22 +209,9 @@ update msg model =
                         , submissionDate = currentDate
                         , grade = Nothing
                         }
-
-                    -- If email was provided, update the student record too
-                    updatedStudent =
-                        if String.trim model.studentEmail /= "" then
-                            { student | email = Just model.studentEmail }
-                        else
-                            student
                 in
                 ( { model | page = LoadingPage "Saving your submission...", errorMessage = Nothing }
-                , Cmd.batch
-                    [ saveSubmission (encodeSubmission newSubmission)
-                    , if String.trim model.studentEmail /= "" then
-                        saveStudent (encodeStudent updatedStudent)
-                      else
-                        Cmd.none
-                    ]
+                , saveSubmission (encodeSubmission newSubmission)
                 )
 
         SubmissionSaved result ->
@@ -299,11 +257,6 @@ encodeStudent student =
     Encode.object
         [ ( "id", Encode.string student.id )
         , ( "name", Encode.string student.name )
-        , ( "email",
-            case student.email of
-                Just email -> Encode.string email
-                Nothing -> Encode.null
-          )
         , ( "created", Encode.string student.created )
         , ( "lastActive", Encode.string student.lastActive )
         ]
@@ -326,10 +279,9 @@ decodeStudentResponse value =
 
 studentDecoder : Decoder Student
 studentDecoder =
-    Decode.map6 Student
+    Decode.map5 Student
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
-        (Decode.maybe (Decode.field "email" Decode.string))
         (Decode.field "created" Decode.string)
         (Decode.field "lastActive" Decode.string)
         (Decode.field "submissions" (Decode.list submissionDecoder))
@@ -395,7 +347,7 @@ viewNamePage : Model -> Html Msg
 viewNamePage model =
     div [ class "space-y-6" ]
         [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Student Record Lookup" ]
-        , p [ class "text-gray-600" ] [ text "Please enter your name to find your record or create a new one." ]
+        , p [ class "text-gray-600" ] [ text "Please enter your name to find your record." ]
         , div [ class "space-y-2" ]
             [ label [ for "studentName", class "block text-sm font-medium text-gray-700" ] [ text "Full Name:" ]
             , input
@@ -409,17 +361,16 @@ viewNamePage model =
                 ]
                 []
             ]
-        , div [ class "flex space-x-4" ]
+        , div [ class "mt-4" ]
             [ button
                 [ onClick SearchStudent
-                , class "flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                , class "w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 ]
                 [ text "Find My Record" ]
-            , button
-                [ onClick CreateNewStudent
-                , class "flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                ]
-                [ text "Create New Record" ]
+            ]
+        , div [ class "mt-4 bg-amber-50 border border-amber-200 rounded-md p-4 text-center" ]
+            [ p [ class "text-sm text-amber-800" ]
+                [ text "If you can't find your record, please ask your teacher to create one for you." ]
             ]
         ]
 
@@ -445,14 +396,6 @@ viewStudentProfilePage model student =
                     [ text "Joined: "
                     , span [ class "ml-1" ] [ text student.created ]
                     ]
-                , case student.email of
-                    Just email ->
-                        div [ class "mt-2 flex items-center text-sm text-gray-500" ]
-                            [ text "Email: "
-                            , span [ class "ml-1" ] [ text email ]
-                            ]
-                    Nothing ->
-                        text ""
                 ]
             ]
 
@@ -587,22 +530,6 @@ viewSubmissionFormPage model student =
                     , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     ]
                     []
-                ]
-
-            , div [ class "space-y-2" ]
-                [ label [ for "studentEmail", class "block text-sm font-medium text-gray-700" ]
-                    [ text "Your Email (optional):" ]
-                , input
-                    [ type_ "email"
-                    , id "studentEmail"
-                    , value model.studentEmail
-                    , onInput UpdateStudentEmail
-                    , placeholder "your.email@example.com"
-                    , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    ]
-                    []
-                , p [ class "text-xs text-gray-500" ]
-                    [ text "Providing your email helps instructors contact you about your submission" ]
                 ]
             ]
 

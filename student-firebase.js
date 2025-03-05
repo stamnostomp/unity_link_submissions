@@ -15,7 +15,6 @@ const firebaseConfig = {
   measurementId: "G-90YCVPGV6M"
 };
 
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
@@ -28,11 +27,6 @@ export function initializeFirebase(elmApp) {
   // Listen for student search requests
   elmApp.ports.findStudent.subscribe(function(studentName) {
     findStudentByName(studentName, elmApp);
-  });
-
-  // Listen for student save requests
-  elmApp.ports.saveStudent.subscribe(function(studentData) {
-    saveStudentRecord(studentData, elmApp);
   });
 
   // Listen for submission save requests

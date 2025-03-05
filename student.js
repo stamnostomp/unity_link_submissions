@@ -5164,7 +5164,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Student$init = function (_v0) {
 	return _Utils_Tuple2(
-		{errorMessage: $elm$core$Maybe$Nothing, gameLevel: '', gameName: '', githubLink: '', notes: '', page: $author$project$Student$NamePage, searchName: '', studentEmail: '', successMessage: $elm$core$Maybe$Nothing},
+		{errorMessage: $elm$core$Maybe$Nothing, gameLevel: '', gameName: '', githubLink: '', notes: '', page: $author$project$Student$NamePage, searchName: '', successMessage: $elm$core$Maybe$Nothing},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Student$StudentFoundResult = function (a) {
@@ -5190,21 +5190,13 @@ var $elm$json$Json$Decode$nullable = function (decoder) {
 				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
 			]));
 };
-var $author$project$Student$Student = F6(
-	function (id, name, email, created, lastActive, submissions) {
-		return {created: created, email: email, id: id, lastActive: lastActive, name: name, submissions: submissions};
+var $author$project$Student$Student = F5(
+	function (id, name, created, lastActive, submissions) {
+		return {created: created, id: id, lastActive: lastActive, name: name, submissions: submissions};
 	});
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$list = _Json_decodeList;
-var $elm$json$Json$Decode$map6 = _Json_map6;
-var $elm$json$Json$Decode$maybe = function (decoder) {
-	return $elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
-				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
-			]));
-};
+var $elm$json$Json$Decode$map5 = _Json_map5;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Student$Submission = F8(
 	function (id, studentId, gameLevel, gameName, githubLink, notes, submissionDate, grade) {
@@ -5224,6 +5216,14 @@ var $author$project$Student$gradeDecoder = A5(
 	A2($elm$json$Json$Decode$field, 'gradedBy', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'gradingDate', $elm$json$Json$Decode$string));
 var $elm$json$Json$Decode$map8 = _Json_map8;
+var $elm$json$Json$Decode$maybe = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder),
+				$elm$json$Json$Decode$succeed($elm$core$Maybe$Nothing)
+			]));
+};
 var $author$project$Student$submissionDecoder = A9(
 	$elm$json$Json$Decode$map8,
 	$author$project$Student$Submission,
@@ -5236,13 +5236,11 @@ var $author$project$Student$submissionDecoder = A9(
 	A2($elm$json$Json$Decode$field, 'submissionDate', $elm$json$Json$Decode$string),
 	$elm$json$Json$Decode$maybe(
 		A2($elm$json$Json$Decode$field, 'grade', $author$project$Student$gradeDecoder)));
-var $author$project$Student$studentDecoder = A7(
-	$elm$json$Json$Decode$map6,
+var $author$project$Student$studentDecoder = A6(
+	$elm$json$Json$Decode$map5,
 	$author$project$Student$Student,
 	A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'name', $elm$json$Json$Decode$string),
-	$elm$json$Json$Decode$maybe(
-		A2($elm$json$Json$Decode$field, 'email', $elm$json$Json$Decode$string)),
 	A2($elm$json$Json$Decode$field, 'created', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'lastActive', $elm$json$Json$Decode$string),
 	A2(
@@ -5276,7 +5274,6 @@ var $author$project$Student$StudentProfilePage = function (a) {
 var $author$project$Student$SubmissionFormPage = function (a) {
 	return {$: 'SubmissionFormPage', a: a};
 };
-var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -5291,35 +5288,6 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			pairs));
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Student$encodeStudent = function (student) {
-	return $elm$json$Json$Encode$object(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(
-				'id',
-				$elm$json$Json$Encode$string(student.id)),
-				_Utils_Tuple2(
-				'name',
-				$elm$json$Json$Encode$string(student.name)),
-				_Utils_Tuple2(
-				'email',
-				function () {
-					var _v0 = student.email;
-					if (_v0.$ === 'Just') {
-						var email = _v0.a;
-						return $elm$json$Json$Encode$string(email);
-					} else {
-						return $elm$json$Json$Encode$null;
-					}
-				}()),
-				_Utils_Tuple2(
-				'created',
-				$elm$json$Json$Encode$string(student.created)),
-				_Utils_Tuple2(
-				'lastActive',
-				$elm$json$Json$Encode$string(student.lastActive))
-			]));
-};
 var $author$project$Student$encodeSubmission = function (submission) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
@@ -5372,17 +5340,7 @@ var $elm$core$List$head = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $elm$core$Basics$neq = _Utils_notEqual;
-var $elm$core$String$replace = F3(
-	function (before, after, string) {
-		return A2(
-			$elm$core$String$join,
-			after,
-			A2($elm$core$String$split, before, string));
-	});
-var $author$project$Student$saveStudent = _Platform_outgoingPort('saveStudent', $elm$core$Basics$identity);
 var $author$project$Student$saveSubmission = _Platform_outgoingPort('saveSubmission', $elm$core$Basics$identity);
-var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$trim = _String_trim;
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
@@ -5418,40 +5376,6 @@ var $author$project$Student$update = F2(
 							page: $author$project$Student$LoadingPage('Searching for your record...')
 						}),
 					$author$project$Student$findStudent(model.searchName));
-			case 'CreateNewStudent':
-				if ($elm$core$String$trim(model.searchName) === '') {
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								errorMessage: $elm$core$Maybe$Just('Please enter your name to continue')
-							}),
-						$elm$core$Platform$Cmd$none);
-				} else {
-					var currentDate = '2025-03-04';
-					var newStudent = {
-						created: currentDate,
-						email: $elm$core$Maybe$Nothing,
-						id: A3(
-							$elm$core$String$replace,
-							' ',
-							'-',
-							$elm$core$String$toLower(model.searchName)) + ('-' + $elm$core$String$fromInt(
-							$elm$core$String$length(model.searchName))),
-						lastActive: currentDate,
-						name: model.searchName,
-						submissions: _List_Nil
-					};
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								errorMessage: $elm$core$Maybe$Nothing,
-								page: $author$project$Student$StudentProfilePage(newStudent)
-							}),
-						$author$project$Student$saveStudent(
-							$author$project$Student$encodeStudent(newStudent)));
-				}
 			case 'StudentFoundResult':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
@@ -5471,7 +5395,7 @@ var $author$project$Student$update = F2(
 							_Utils_update(
 								model,
 								{
-									errorMessage: $elm$core$Maybe$Just('No record found. Please check your name or create a new record.'),
+									errorMessage: $elm$core$Maybe$Just('No record found. Please check your name or ask your teacher to create a record for you.'),
 									page: $author$project$Student$NamePage
 								}),
 							$elm$core$Platform$Cmd$none);
@@ -5535,13 +5459,6 @@ var $author$project$Student$update = F2(
 						model,
 						{notes: notes}),
 					$elm$core$Platform$Cmd$none);
-			case 'UpdateStudentEmail':
-				var email = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{studentEmail: email}),
-					$elm$core$Platform$Cmd$none);
 			case 'SubmitForm':
 				var student = msg.a;
 				if (($elm$core$String$trim(model.gameLevel) === '') || (($elm$core$String$trim(model.gameName) === '') || ($elm$core$String$trim(model.githubLink) === ''))) {
@@ -5553,11 +5470,6 @@ var $author$project$Student$update = F2(
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
-					var updatedStudent = ($elm$core$String$trim(model.studentEmail) !== '') ? _Utils_update(
-						student,
-						{
-							email: $elm$core$Maybe$Just(model.studentEmail)
-						}) : student;
 					var currentDate = '2025-03-04';
 					var newSubmission = {
 						gameLevel: model.gameLevel,
@@ -5577,14 +5489,8 @@ var $author$project$Student$update = F2(
 								errorMessage: $elm$core$Maybe$Nothing,
 								page: $author$project$Student$LoadingPage('Saving your submission...')
 							}),
-						$elm$core$Platform$Cmd$batch(
-							_List_fromArray(
-								[
-									$author$project$Student$saveSubmission(
-									$author$project$Student$encodeSubmission(newSubmission)),
-									($elm$core$String$trim(model.studentEmail) !== '') ? $author$project$Student$saveStudent(
-									$author$project$Student$encodeStudent(updatedStudent)) : $elm$core$Platform$Cmd$none
-								])));
+						$author$project$Student$saveSubmission(
+							$author$project$Student$encodeSubmission(newSubmission)));
 				}
 			case 'SubmissionSaved':
 				var result = msg.a;
@@ -5732,7 +5638,6 @@ var $author$project$Student$viewLoading = function (message) {
 					]))
 			]));
 };
-var $author$project$Student$CreateNewStudent = {$: 'CreateNewStudent'};
 var $author$project$Student$SearchStudent = {$: 'SearchStudent'};
 var $author$project$Student$UpdateSearchName = function (a) {
 	return {$: 'UpdateSearchName', a: a};
@@ -5830,7 +5735,7 @@ var $author$project$Student$viewNamePage = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Please enter your name to find your record or create a new one.')
+						$elm$html$Html$text('Please enter your name to find your record.')
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -5869,7 +5774,7 @@ var $author$project$Student$viewNamePage = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('flex space-x-4')
+						$elm$html$Html$Attributes$class('mt-4')
 					]),
 				_List_fromArray(
 					[
@@ -5878,22 +5783,30 @@ var $author$project$Student$viewNamePage = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$Events$onClick($author$project$Student$SearchStudent),
-								$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								$elm$html$Html$Attributes$class('w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
 							]),
 						_List_fromArray(
 							[
 								$elm$html$Html$text('Find My Record')
-							])),
+							]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('mt-4 bg-amber-50 border border-amber-200 rounded-md p-4 text-center')
+					]),
+				_List_fromArray(
+					[
 						A2(
-						$elm$html$Html$button,
+						$elm$html$Html$p,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick($author$project$Student$CreateNewStudent),
-								$elm$html$Html$Attributes$class('flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500')
+								$elm$html$Html$Attributes$class('text-sm text-amber-800')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Create New Record')
+								$elm$html$Html$text('If you can\'t find your record, please ask your teacher to create one for you.')
 							]))
 					]))
 			]));
@@ -6090,35 +6003,7 @@ var $author$project$Student$viewStudentProfilePage = F2(
 												[
 													$elm$html$Html$text(student.created)
 												]))
-										])),
-									function () {
-									var _v0 = student.email;
-									if (_v0.$ === 'Just') {
-										var email = _v0.a;
-										return A2(
-											$elm$html$Html$div,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$class('mt-2 flex items-center text-sm text-gray-500')
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text('Email: '),
-													A2(
-													$elm$html$Html$span,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$class('ml-1')
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text(email)
-														]))
-												]));
-									} else {
-										return $elm$html$Html$text('');
-									}
-								}()
+										]))
 								]))
 						])),
 					A2(
@@ -6535,9 +6420,6 @@ var $author$project$Student$UpdateGithubLink = function (a) {
 var $author$project$Student$UpdateNotes = function (a) {
 	return {$: 'UpdateNotes', a: a};
 };
-var $author$project$Student$UpdateStudentEmail = function (a) {
-	return {$: 'UpdateStudentEmail', a: a};
-};
 var $elm$html$Html$option = _VirtualDom_node('option');
 var $elm$html$Html$Attributes$rows = function (n) {
 	return A2(
@@ -6788,48 +6670,6 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 											$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 										]),
 									_List_Nil)
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('space-y-2')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$label,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$for('studentEmail'),
-											$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Your Email (optional):')
-										])),
-									A2(
-									$elm$html$Html$input,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$type_('email'),
-											$elm$html$Html$Attributes$id('studentEmail'),
-											$elm$html$Html$Attributes$value(model.studentEmail),
-											$elm$html$Html$Events$onInput($author$project$Student$UpdateStudentEmail),
-											$elm$html$Html$Attributes$placeholder('your.email@example.com'),
-											$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
-										]),
-									_List_Nil),
-									A2(
-									$elm$html$Html$p,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('text-xs text-gray-500')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Providing your email helps instructors contact you about your submission')
-										]))
 								]))
 						])),
 					A2(

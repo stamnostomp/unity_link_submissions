@@ -15,15 +15,19 @@ port receiveSubmissions : (Decode.Value -> msg) -> Sub msg
 port saveGrade : Encode.Value -> Cmd msg
 port gradeResult : (String -> msg) -> Sub msg
 
--- Student record ports
-port requestStudentRecord : String -> Cmd msg
-port receiveStudentRecord : (Decode.Value -> msg) -> Sub msg
-
 -- Authentication ports
 port signIn : Encode.Value -> Cmd msg
 port signOut : () -> Cmd msg
 port receiveAuthState : (Decode.Value -> msg) -> Sub msg
 port receiveAuthResult : (Decode.Value -> msg) -> Sub msg
+
+-- Student record ports (added these to fix the errors)
+port requestStudentRecord : String -> Cmd msg
+port receiveStudentRecord : (Decode.Value -> msg) -> Sub msg
+
+-- Add ports for student creation
+port createStudent : Encode.Value -> Cmd msg
+port studentCreated : (Decode.Value -> msg) -> Sub msg
 
 
 -- MAIN
@@ -43,7 +47,6 @@ main =
 type alias Student =
     { id : String
     , name : String
-    , email : Maybe String
     , created : String
     , lastActive : String
     }
@@ -81,6 +84,7 @@ type AppState
 type Page
     = SubmissionsPage
     | StudentRecordPage Student (List Submission)
+    | CreateStudentPage
 
 type SortBy
     = ByName
@@ -112,6 +116,7 @@ type alias Model =
     , sortDirection : SortDirection
     , tempScore : String
     , tempFeedback : String
+    , newStudentName : String
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -135,6 +140,7 @@ init _ =
       , sortDirection = Descending
       , tempScore = ""
       , tempFeedback = ""
+      , newStudentName = ""
       }
     , Cmd.none
     )
@@ -165,6 +171,11 @@ type Msg
     | ViewStudentRecord String
     | ReceivedStudentRecord (Result Decode.Error { student : Student, submissions : List Submission })
     | CloseStudentRecord
+    | ShowCreateStudentForm
+    | CloseCreateStudentForm
+    | UpdateNewStudentName String
+    | CreateNewStudent
+    | StudentCreated (Result Decode.Error Student)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -386,6 +397,40 @@ update msg model =
             , Cmd.none
             )
 
+        ShowCreateStudentForm ->
+            ( { model | page = CreateStudentPage, newStudentName = "" }, Cmd.none )
+
+        CloseCreateStudentForm ->
+            ( { model | page = SubmissionsPage }, Cmd.none )
+
+        UpdateNewStudentName name ->
+            ( { model | newStudentName = name }, Cmd.none )
+
+        CreateNewStudent ->
+            if String.trim model.newStudentName == "" then
+                ( { model | error = Just "Please enter a student name" }, Cmd.none )
+            else
+                ( { model | loading = True, error = Nothing }
+                , createStudent (encodeNewStudent model.newStudentName)
+                )
+
+        StudentCreated result ->
+            case result of
+                Ok student ->
+                    ( { model
+                      | page = StudentRecordPage student []
+                      , loading = False
+                      , success = Just ("Student record for " ++ student.name ++ " created successfully")
+                      , currentStudent = Just student
+                      , studentSubmissions = []
+                      }, Cmd.none )
+
+                Err error ->
+                    ( { model
+                      | loading = False
+                      , error = Just ("Error creating student: " ++ Decode.errorToString error)
+                      }, Cmd.none )
+
 
 -- SUBSCRIPTIONS
 
@@ -396,6 +441,7 @@ subscriptions _ =
         , receiveAuthResult (decodeAuthResult >> ReceivedAuthResult)
         , receiveSubmissions (decodeSubmissionsResponse >> ReceiveSubmissions)
         , receiveStudentRecord (decodeStudentRecordResponse >> ReceivedStudentRecord)
+        , studentCreated (decodeStudentResponse >> StudentCreated)
         , gradeResult GradeResult
         ]
 
@@ -408,16 +454,11 @@ decodeSubmissionsResponse value =
 
 submissionDecoder : Decoder Submission
 submissionDecoder =
-    Decode.map7
-        (\id gameLevel gameName githubLink notes studentName submissionDate ->
-            let
-                -- Generate a studentId from the studentName if missing
-                derivedStudentId =
-                    String.replace " " "-" (String.toLower studentName)
-            in
+    Decode.map6
+        (\id gameLevel gameName githubLink notes submissionDate ->
             { id = id
-            , studentId = derivedStudentId
-            , studentName = studentName
+            , studentId = ""  -- Temporary value, will be filled in later
+            , studentName = "Unknown"  -- Default value, will be overridden if available
             , gameLevel = gameLevel
             , gameName = gameName
             , githubLink = githubLink
@@ -431,11 +472,10 @@ submissionDecoder =
         (Decode.field "gameName" Decode.string)
         (Decode.field "githubLink" Decode.string)
         (Decode.field "notes" Decode.string)
-        (Decode.field "studentName" Decode.string)
         (Decode.field "submissionDate" Decode.string)
         |> Decode.andThen
             (\submission ->
-                -- Try to get the studentId if it exists
+                -- Try to get studentId if it exists
                 Decode.maybe (Decode.field "studentId" Decode.string)
                     |> Decode.map
                         (\maybeStudentId ->
@@ -443,11 +483,27 @@ submissionDecoder =
                                 Just studentId ->
                                     { submission | studentId = studentId }
                                 Nothing ->
-                                    submission
+                                    -- If no studentId, use a default based on the submission ID
+                                    { submission | studentId = submission.id }
                         )
             )
         |> Decode.andThen
             (\submission ->
+                -- Try to get studentName if it exists
+                Decode.maybe (Decode.field "studentName" Decode.string)
+                    |> Decode.map
+                        (\maybeStudentName ->
+                            case maybeStudentName of
+                                Just studentName ->
+                                    { submission | studentName = studentName }
+                                Nothing ->
+                                    -- If no studentName, derive it from studentId
+                                    { submission | studentName = capitalizeWords (String.replace "-" " " submission.studentId) }
+                        )
+            )
+        |> Decode.andThen
+            (\submission ->
+                -- Finally check for a grade
                 Decode.maybe (Decode.field "grade" gradeDecoder)
                     |> Decode.map (\grade -> { submission | grade = grade })
             )
@@ -462,10 +518,9 @@ gradeDecoder =
 
 studentDecoder : Decoder Student
 studentDecoder =
-    Decode.map5 Student
+    Decode.map4 Student
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
-        (Decode.maybe (Decode.field "email" Decode.string))
         (Decode.field "created" Decode.string)
         (Decode.field "lastActive" Decode.string)
 
@@ -485,6 +540,10 @@ userDecoder =
         (Decode.field "uid" Decode.string)
         (Decode.field "email" Decode.string)
         (Decode.field "displayName" Decode.string)
+
+decodeStudentResponse : Decode.Value -> Result Decode.Error Student
+decodeStudentResponse value =
+    Decode.decodeValue studentDecoder value
 
 decodeAuthState : Decode.Value -> Result Decode.Error { user : Maybe User, isSignedIn : Bool }
 decodeAuthState value =
@@ -522,6 +581,11 @@ encodeGrade grade =
         , ( "gradingDate", Encode.string grade.gradingDate )
         ]
 
+encodeNewStudent : String -> Encode.Value
+encodeNewStudent name =
+    Encode.object
+        [ ( "name", Encode.string name ) ]
+
 
 -- HELPERS
 
@@ -533,6 +597,19 @@ getUserEmail model =
 
         _ ->
             "unknown@example.com"
+
+-- Helper function to capitalize words in a string
+capitalizeWords : String -> String
+capitalizeWords str =
+    String.join " " (List.map capitalizeWord (String.split " " str))
+
+capitalizeWord : String -> String
+capitalizeWord word =
+    case String.uncons word of
+        Just (firstChar, rest) ->
+            String.cons (Char.toUpper firstChar) rest
+        Nothing ->
+            ""
 
 applyFilters : Model -> List Submission
 applyFilters model =
@@ -635,7 +712,21 @@ viewContent model =
 
         Authenticated user ->
             div []
-                [ viewAdminHeader user
+                [ div [ class "bg-white shadow rounded-lg mb-6 p-4 flex justify-between items-center" ]
+                    [ div [ class "flex items-center" ]
+                        [ div [ class "bg-blue-100 text-blue-800 p-2 rounded-full mr-3" ]
+                            [ text (String.left 1 user.displayName |> String.toUpper) ]
+                        , div []
+                            [ p [ class "text-sm font-medium text-gray-900" ] [ text user.displayName ]
+                            , p [ class "text-xs text-gray-500" ] [ text user.email ]
+                            ]
+                        ]
+                    , button
+                        [ onClick PerformSignOut
+                        , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        ]
+                        [ text "Sign Out" ]
+                    ]
                 , if model.loading then
                     div [ class "flex justify-center my-12" ]
                         [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
@@ -664,23 +755,8 @@ viewCurrentPage model =
         StudentRecordPage student submissions ->
             viewStudentRecordPage model student submissions
 
-viewAdminHeader : User -> Html Msg
-viewAdminHeader user =
-    div [ class "bg-white shadow rounded-lg mb-6 p-4 flex justify-between items-center" ]
-        [ div [ class "flex items-center" ]
-            [ div [ class "bg-blue-100 text-blue-800 p-2 rounded-full mr-3" ]
-                [ text (String.left 1 user.displayName |> String.toUpper) ]
-            , div []
-                [ p [ class "text-sm font-medium text-gray-900" ] [ text user.displayName ]
-                , p [ class "text-xs text-gray-500" ] [ text user.email ]
-                ]
-            ]
-        , button
-            [ onClick PerformSignOut
-            , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-            ]
-            [ text "Sign Out" ]
-        ]
+        CreateStudentPage ->
+            viewCreateStudentPage model
 
 viewLoginForm : Model -> Html Msg
 viewLoginForm model =
@@ -762,7 +838,15 @@ viewMessages model =
 viewFilters : Model -> Html Msg
 viewFilters model =
     div [ class "bg-white shadow rounded-lg mb-6 p-4" ]
-        [ div [ class "flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4" ]
+        [ div [ class "flex items-center justify-between mb-4" ]
+            [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Game Submissions" ]
+            , button
+                [ onClick ShowCreateStudentForm
+                , class "ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                ]
+                [ text "Create New Student" ]
+            ]
+        , div [ class "flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4" ]
             [ div [ class "flex-1" ]
                 [ label [ for "filterText", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Search" ]
                 , input
@@ -961,17 +1045,6 @@ viewStudentRecordPage model student submissions =
                     , p [ class "mt-1 text-lg" ] [ text student.lastActive ]
                     ]
                 ]
-            , case student.email of
-                Just email ->
-                    div [ class "mt-4 bg-gray-50 p-4 rounded-md" ]
-                        [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Email Address" ]
-                        , p [ class "mt-1 text-lg" ] [ text email ]
-                        ]
-                Nothing ->
-                    div [ class "mt-4 bg-gray-50 p-4 rounded-md" ]
-                        [ h3 [ class "text-sm font-medium text-gray-700" ] [ text "Email Address" ]
-                        , p [ class "mt-1 text-gray-500 italic" ] [ text "No email provided" ]
-                        ]
             ]
         , div [ class "bg-white shadow rounded-lg overflow-hidden" ]
             [ div [ class "px-6 py-4 border-b border-gray-200" ]
@@ -1017,6 +1090,45 @@ viewStudentSubmissionRow submission =
                 , class "text-blue-600 hover:text-blue-900"
                 ]
                 [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+            ]
+        ]
+
+viewCreateStudentPage : Model -> Html Msg
+viewCreateStudentPage model =
+    div [ class "space-y-6" ]
+        [ div [ class "bg-white shadow rounded-lg p-6" ]
+            [ div [ class "flex justify-between items-center" ]
+                [ h2 [ class "text-xl font-medium text-gray-900" ]
+                    [ text "Create New Student Record" ]
+                , button
+                    [ onClick CloseCreateStudentForm
+                    , class "text-gray-500 hover:text-gray-700 flex items-center"
+                    ]
+                    [ span [ class "mr-1" ] [ text "←" ]
+                    , text "Back to Submissions"
+                    ]
+                ]
+            , div [ class "mt-6 space-y-6" ]
+                [ div [ class "space-y-2" ]
+                    [ label [ for "studentName", class "block text-sm font-medium text-gray-700" ] [ text "Student Name:" ]
+                    , input
+                        [ type_ "text"
+                        , id "studentName"
+                        , value model.newStudentName
+                        , onInput UpdateNewStudentName
+                        , placeholder "Enter student's full name"
+                        , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        ]
+                        []
+                    ]
+                , div [ class "mt-6" ]
+                    [ button
+                        [ onClick CreateNewStudent
+                        , class "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        ]
+                        [ text "Create Student Record" ]
+                    ]
+                ]
             ]
         ]
 

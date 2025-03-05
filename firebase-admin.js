@@ -1,7 +1,7 @@
 // firebase-admin.js
 // Import Firebase modules using CDN URLs
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, get, update, onValue } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, get, update, onValue, set } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -114,6 +114,15 @@ export function initializeFirebase(elmApp) {
       fetchStudentRecord(studentId, elmApp);
     } else {
       console.warn("Cannot fetch student record: User not authenticated");
+    }
+  });
+
+  // Handle student creation
+  elmApp.ports.createStudent.subscribe(function(studentData) {
+    if (auth.currentUser) {
+      createNewStudentRecord(studentData, elmApp);
+    } else {
+      console.warn("Cannot create student: User not authenticated");
     }
   });
 }
@@ -284,6 +293,63 @@ function getAdminAuthErrorMessage(errorCode) {
       return 'Network error. Please check your connection.';
     default:
       return 'An error occurred during authentication. Please try again.';
+  }
+}
+
+/**
+ * Create a new student record
+ * @param {Object} studentData - The student data to create
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function createNewStudentRecord(studentData, elmApp) {
+  try {
+    const { name } = studentData;
+
+    if (!name || name.trim() === '') {
+      throw new Error("Student name is required");
+    }
+
+    // Generate a student ID from the name
+    const studentId = name.toLowerCase().replace(/\s+/g, '-');
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // Create the student record
+    const studentRecord = {
+      name: name,
+      created: currentDate,
+      lastActive: currentDate
+    };
+
+    // Check if student with this ID already exists
+    const studentRef = ref(database, `students/${studentId}`);
+    const snapshot = await get(studentRef);
+
+    if (snapshot.exists()) {
+      // If exists, generate a unique ID by adding a timestamp
+      const timestamp = Date.now();
+      const uniqueId = `${studentId}-${timestamp}`;
+      const uniqueRef = ref(database, `students/${uniqueId}`);
+
+      await set(uniqueRef, studentRecord);
+
+      // Return the created student record with its ID
+      elmApp.ports.studentCreated.send({
+        id: uniqueId,
+        ...studentRecord
+      });
+    } else {
+      // Save the student record with the generated ID
+      await set(studentRef, studentRecord);
+
+      // Return the created student record with its ID
+      elmApp.ports.studentCreated.send({
+        id: studentId,
+        ...studentRecord
+      });
+    }
+  } catch (error) {
+    console.error("Error creating student record:", error);
+    // In a real app, you'd want to send an error back to Elm
   }
 }
 
