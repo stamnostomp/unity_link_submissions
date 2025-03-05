@@ -104,6 +104,13 @@ init _ =
 
 
 -- HELPERS
+isValidNameFormat : String -> Bool
+isValidNameFormat name =
+    let
+        parts = String.split "." name
+    in
+    List.length parts == 2 &&
+    List.all (\part -> String.length part > 0) parts
 
 getGameOptions : String -> List Belt -> List String
 getGameOptions beltId belts =
@@ -111,6 +118,16 @@ getGameOptions beltId belts =
         [] -> []
         belt :: _ -> belt.gameOptions
 
+formatDisplayName : String -> String
+formatDisplayName name =
+    let
+        parts = String.split "." name
+        firstName = List.head parts |> Maybe.withDefault ""
+        lastName = List.drop 1 parts |> List.head |> Maybe.withDefault ""
+        capitalizedFirst = String.toUpper (String.left 1 firstName) ++ String.dropLeft 1 firstName
+        capitalizedLast = String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
+    in
+    capitalizedFirst ++ " " ++ capitalizedLast
 
 -- UPDATE
 
@@ -137,12 +154,17 @@ update msg model =
             ( { model | searchName = name }, Cmd.none )
 
         SearchStudent ->
-            if String.trim model.searchName == "" then
-                ( { model | errorMessage = Just "Please enter your name to continue" }, Cmd.none )
-            else
-                ( { model | page = LoadingPage "Searching for your record...", errorMessage = Nothing }
-                , findStudent model.searchName
-                )
+            let
+                trimmedName = String.trim model.searchName
+            in
+                if String.isEmpty trimmedName then
+                    ( { model | errorMessage = Just "Please enter your name to continue" }, Cmd.none )
+                else if not (isValidNameFormat trimmedName) then
+                         ( { model | errorMessage = Just "Please enter your name in the format firstname.lastname (e.g., tyler.smith)" }, Cmd.none )
+                else
+                    ( { model | page = LoadingPage "Searching for your record...", errorMessage = Nothing }
+                    , findStudent trimmedName
+                    )
 
         StudentFoundResult result ->
             case result of
@@ -380,11 +402,13 @@ viewNamePage model =
                 , id "studentName"
                 , value model.searchName
                 , onInput UpdateSearchName
-                , placeholder "Enter your full name"
+                , placeholder "firstname.lastname (e.g., tyler.smith)"
                 , autofocus True
                 , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 ]
                 []
+            , p [ class "text-sm text-gray-500 mt-1" ]
+                [ text "Name must be in format: firstname.lastname" ]
             ]
         , div [ class "mt-4" ]
             [ button
@@ -405,25 +429,14 @@ viewStudentProfilePage model student =
         [ div [ class "border-b border-gray-200 pb-5" ]
             [ div [ class "flex justify-between items-center" ]
                 [ h2 [ class "text-xl font-medium text-gray-700" ]
-                    [ text ("Welcome, " ++ student.name) ]
+                    [ text ("Welcome, " ++ formatDisplayName student.name) ]
                 , button
                     [ onClick BackToSearch
                     , class "text-sm text-gray-600 hover:text-gray-900"
                     ]
                     [ text "Not you? Switch accounts" ]
                 ]
-            , div [ class "mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6" ]
-                [ div [ class "mt-2 flex items-center text-sm text-gray-500" ]
-                    [ text "Student ID: "
-                    , span [ class "ml-1 font-medium" ] [ text student.id ]
-                    ]
-                , div [ class "mt-2 flex items-center text-sm text-gray-500" ]
-                    [ text "Joined: "
-                    , span [ class "ml-1" ] [ text student.created ]
-                    ]
-                ]
             ]
-
         , div [ class "space-y-4" ]
             [ div [ class "flex justify-between items-center" ]
                 [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Your Game Submissions" ]
@@ -433,11 +446,10 @@ viewStudentProfilePage model student =
                     ]
                     [ text "Submit New Game" ]
                 ]
-
             , if List.isEmpty student.submissions then
                 div [ class "bg-gray-50 rounded-md p-4 text-center" ]
                     [ p [ class "text-gray-500" ] [ text "No submissions yet. Start by submitting your first game!" ] ]
-            else
+              else
                 div [ class "overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg" ]
                     [ table [ class "min-w-full divide-y divide-gray-300" ]
                         [ thead [ class "bg-gray-50" ]
@@ -454,6 +466,7 @@ viewStudentProfilePage model student =
                     ]
             ]
         ]
+
 
 viewSubmissionRow : Model -> Submission -> Html Msg
 viewSubmissionRow model submission =

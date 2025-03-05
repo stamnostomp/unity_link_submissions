@@ -448,12 +448,19 @@ update msg model =
         UpdateNewStudentName name ->
             ( { model | newStudentName = name }, Cmd.none )
 
+
+
         CreateNewStudent ->
-            if String.trim model.newStudentName == "" then
+            let
+                trimmedName = String.trim model.newStudentName
+            in
+            if String.isEmpty trimmedName then
                 ( { model | error = Just "Please enter a student name" }, Cmd.none )
+            else if not (isValidNameFormat trimmedName) then
+                     ( { model | error = Just "Please enter the name in the format firstname.lastname (e.g., tyler.smith)" }, Cmd.none )
             else
                 ( { model | loading = True, error = Nothing }
-                , createStudent (encodeNewStudent model.newStudentName)
+                , createStudent (encodeNewStudent trimmedName)
                 )
 
         StudentCreated result ->
@@ -826,6 +833,26 @@ getUserEmail model =
 
         _ ->
             "unknown@example.com"
+--helper function to check name is correct format
+isValidNameFormat : String -> Bool
+isValidNameFormat name =
+    let
+        parts = String.split "." name
+    in
+    List.length parts == 2 &&
+    List.all (\part -> String.length part > 0) parts
+
+--helper to format the display name properly
+formatDisplayName : String -> String
+formatDisplayName name =
+    let
+        parts = String.split "." name
+        firstName = List.head parts |> Maybe.withDefault ""
+        lastName = List.drop 1 parts |> List.head |> Maybe.withDefault ""
+        capitalizedFirst = String.toUpper (String.left 1 firstName) ++ String.dropLeft 1 firstName
+        capitalizedLast = String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
+    in
+    capitalizedFirst ++ " " ++ capitalizedLast
 
 -- Helper function to capitalize words in a string
 capitalizeWords : String -> String
@@ -1203,12 +1230,11 @@ viewSubmissionList model =
 
 viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
-    tr [ class "hover:bg-gray-50" ]
+   tr [ class "hover:bg-gray-50" ]
         [ td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.studentName ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName submission.studentName) ]
             , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ submission.studentId) ]
-            ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            ]        , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-900" ] [ text submission.gameName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
@@ -1258,8 +1284,8 @@ viewStudentRecordPage model student submissions =
         [ div [ class "bg-white shadow rounded-lg p-6" ]
             [ div [ class "flex justify-between items-center" ]
                 [ h2 [ class "text-xl font-medium text-gray-900" ]
-                    [ text ("Student Record: " ++ student.name) ]
-                , button
+                    [ text ("Student Record: " ++ formatDisplayName student.name) ]
+               , button
                     [ onClick CloseStudentRecord
                     , class "text-gray-500 hover:text-gray-700 flex items-center"
                     ]
@@ -1352,10 +1378,12 @@ viewCreateStudentPage model =
                         , id "studentName"
                         , value model.newStudentName
                         , onInput UpdateNewStudentName
-                        , placeholder "Enter student's full name"
+                        , placeholder "firstname.lastname (e.g., tyler.smith)"
                         , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         ]
                         []
+                    , p [ class "text-sm text-gray-500 mt-1" ]
+                        [ text "Name must be in format: firstname.lastname" ]
                     ]
                 , div [ class "mt-6" ]
                     [ button
@@ -1367,6 +1395,7 @@ viewCreateStudentPage model =
                 ]
             ]
         ]
+
 
 viewBeltManagementPage : Model -> Html Msg
 viewBeltManagementPage model =

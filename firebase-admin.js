@@ -1,5 +1,4 @@
 // firebase-admin.js
-// Import Firebase modules using CDN URLs
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, get, update, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import {
@@ -25,6 +24,44 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app);
+
+/**
+ * Sanitize a string for use as a Firebase path
+ * @param {string} path - The path to sanitize
+ * @return {string} - Sanitized path
+ */
+function sanitizeFirebasePath(path) {
+  // Replace invalid characters with underscores
+  return path.replace(/[.#$[\]]/g, '_');
+}
+
+/**
+ * Helper function to format display name
+ * @param {string} name - Name in firstname.lastname format
+ * @return {string} Formatted display name
+ */
+function formatDisplayName(name) {
+  const parts = name.split('.');
+  if (parts.length !== 2) return name;
+
+  const firstName = parts[0];
+  const lastName = parts[1];
+
+  const capitalizedFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  const capitalizedLast = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+
+  return `${capitalizedFirst} ${capitalizedLast}`;
+}
+
+/**
+ * Validate that a name is in firstname.lastname format
+ * @param {string} name - The name to validate
+ * @return {boolean} True if valid format
+ */
+function isValidNameFormat(name) {
+  const parts = name.split('.');
+  return parts.length === 2 && parts[0].length > 0 && parts[1].length > 0;
+}
 
 /**
  * Initialize the Firebase integration with the Elm app
@@ -435,17 +472,19 @@ async function createNewStudentRecord(studentData, elmApp) {
   try {
     const { name } = studentData;
 
-    if (!name || name.trim() === '') {
-      throw new Error("Student name is required");
+    // Validate name format
+    if (!name || !isValidNameFormat(name)) {
+      throw new Error("Student name must be in firstname.lastname format");
     }
 
-    // Generate a student ID from the name
-    const studentId = name.toLowerCase().replace(/\s+/g, '-');
+    // Use the name as the base for the ID but sanitize it for Firebase
+    // Convert dots to underscores for Firebase path compatibility
+    const studentId = sanitizeFirebasePath(name);
     const currentDate = new Date().toISOString().split('T')[0];
 
-    // Create the student record
+    // Create the student record - keep the original name format for display
     const studentRecord = {
-      name: name,
+      name: name,  // Keep the original name with dots for display
       created: currentDate,
       lastActive: currentDate
     };
@@ -457,7 +496,7 @@ async function createNewStudentRecord(studentData, elmApp) {
     if (snapshot.exists()) {
       // If exists, generate a unique ID by adding a timestamp
       const timestamp = Date.now();
-      const uniqueId = `${studentId}-${timestamp}`;
+      const uniqueId = `${studentId}_${timestamp}`;
       const uniqueRef = ref(database, `students/${uniqueId}`);
 
       await set(uniqueRef, studentRecord);
@@ -468,7 +507,7 @@ async function createNewStudentRecord(studentData, elmApp) {
         ...studentRecord
       });
     } else {
-      // Save the student record with the generated ID
+      // Save the student record with the sanitized ID
       await set(studentRef, studentRecord);
 
       // Return the created student record with its ID
@@ -479,6 +518,9 @@ async function createNewStudentRecord(studentData, elmApp) {
     }
   } catch (error) {
     console.error("Error creating student record:", error);
-    // In a real app, you'd want to send an error back to Elm
+    // Send error back to Elm
+    elmApp.ports.studentCreated.send({
+      error: error.message || "Error creating student record"
+    });
   }
 }

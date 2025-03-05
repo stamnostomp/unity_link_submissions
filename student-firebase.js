@@ -19,6 +19,34 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
 /**
+ * Sanitize a string for use as a Firebase path
+ * @param {string} path - The path to sanitize
+ * @return {string} - Sanitized path
+ */
+function sanitizeFirebasePath(path) {
+  // Replace invalid characters with underscores
+  return path.replace(/[.#$[\]]/g, '_');
+}
+
+/**
+ * Helper function to format display name
+ * @param {string} name - Name in firstname.lastname format
+ * @return {string} Formatted display name
+ */
+function formatDisplayName(name) {
+  const parts = name.split('.');
+  if (parts.length !== 2) return name;
+
+  const firstName = parts[0];
+  const lastName = parts[1];
+
+  const capitalizedFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+  const capitalizedLast = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+
+  return `${capitalizedFirst} ${capitalizedLast}`;
+}
+
+/**
  * Initialize the Firebase integration with the Elm app
  * @param {Object} elmApp - The Elm application instance
  */
@@ -46,8 +74,57 @@ export function initializeFirebase(elmApp) {
  */
 async function findStudentByName(studentName, elmApp) {
   try {
-    // First try exact match on normalized name
-    const normalizedName = studentName.trim().toLowerCase();
+    // Format is firstname.lastname, which is not a valid Firebase path
+    // We need to sanitize it for searching
+    const sanitizedName = sanitizeFirebasePath(studentName);
+
+    // Try direct lookup by sanitized name first (most efficient)
+    const directRef = ref(database, `students/${sanitizedName}`);
+    const directSnapshot = await get(directRef);
+
+    if (directSnapshot.exists()) {
+      // Found by direct lookup with sanitized name
+      const studentData = directSnapshot.val();
+      const foundStudent = {
+        ...studentData,
+        id: sanitizedName,
+        submissions: []
+      };
+
+      // Now get this student's submissions
+      const submissionsRef = ref(database, 'submissions');
+      const submissionsSnapshot = await get(submissionsRef);
+
+      if (submissionsSnapshot.exists()) {
+        const submissionsData = submissionsSnapshot.val();
+        const studentSubmissions = [];
+
+        // Find all submissions for this student
+        for (const submissionId in submissionsData) {
+          const submission = submissionsData[submissionId];
+          if (submission.studentId === foundStudent.id) {
+            studentSubmissions.push({
+              ...submission,
+              id: submissionId
+            });
+          }
+        }
+
+        // Sort submissions by date (newest first)
+        studentSubmissions.sort((a, b) => {
+          return new Date(b.submissionDate) - new Date(a.submissionDate);
+        });
+
+        foundStudent.submissions = studentSubmissions;
+      }
+
+      // Send the student data back to Elm
+      elmApp.ports.studentFound.send(foundStudent);
+      return;
+    }
+
+    // If not found by direct lookup, try searching through all students
+    // by checking the original name format in the name field
     const studentsRef = ref(database, 'students');
     const snapshot = await get(studentsRef);
 
@@ -55,10 +132,10 @@ async function findStudentByName(studentName, elmApp) {
       let foundStudent = null;
       const studentsData = snapshot.val();
 
-      // Search through students for a case-insensitive match
+      // Search through students for a match by the name field
       for (const studentId in studentsData) {
         const student = studentsData[studentId];
-        if (student.name.toLowerCase() === normalizedName) {
+        if (student.name === studentName) {
           foundStudent = {
             ...student,
             id: studentId,
