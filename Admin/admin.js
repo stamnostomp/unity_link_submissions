@@ -5159,7 +5159,9 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Admin$Ascending = {$: 'Ascending'};
 var $author$project$Admin$ByDate = {$: 'ByDate'};
+var $author$project$Admin$ByStudentName = {$: 'ByStudentName'};
 var $author$project$Admin$Descending = {$: 'Descending'};
 var $author$project$Admin$NotAuthenticated = {$: 'NotAuthenticated'};
 var $author$project$Admin$SubmissionsPage = {$: 'SubmissionsPage'};
@@ -5167,7 +5169,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Admin$init = function (_v0) {
 	return _Utils_Tuple2(
-		{appState: $author$project$Admin$NotAuthenticated, authError: $elm$core$Maybe$Nothing, belts: _List_Nil, currentStudent: $elm$core$Maybe$Nothing, currentSubmission: $elm$core$Maybe$Nothing, editingBelt: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, filterBelt: $elm$core$Maybe$Nothing, filterGraded: $elm$core$Maybe$Nothing, filterText: '', loading: false, loginEmail: '', loginPassword: '', newBeltColor: '#000000', newBeltGameOptions: '', newBeltName: '', newBeltOrder: '', newStudentName: '', page: $author$project$Admin$SubmissionsPage, sortBy: $author$project$Admin$ByDate, sortDirection: $author$project$Admin$Descending, studentSubmissions: _List_Nil, submissions: _List_Nil, success: $elm$core$Maybe$Nothing, tempFeedback: '', tempScore: ''},
+		{appState: $author$project$Admin$NotAuthenticated, authError: $elm$core$Maybe$Nothing, belts: _List_Nil, confirmDeleteStudent: $elm$core$Maybe$Nothing, currentStudent: $elm$core$Maybe$Nothing, currentSubmission: $elm$core$Maybe$Nothing, editingBelt: $elm$core$Maybe$Nothing, editingStudent: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, filterBelt: $elm$core$Maybe$Nothing, filterGraded: $elm$core$Maybe$Nothing, filterText: '', loading: false, loginEmail: '', loginPassword: '', newBeltColor: '#000000', newBeltGameOptions: '', newBeltName: '', newBeltOrder: '', newStudentName: '', page: $author$project$Admin$SubmissionsPage, sortBy: $author$project$Admin$ByDate, sortDirection: $author$project$Admin$Descending, studentFilterText: '', studentSortBy: $author$project$Admin$ByStudentName, studentSortDirection: $author$project$Admin$Ascending, studentSubmissions: _List_Nil, students: _List_Nil, submissions: _List_Nil, success: $elm$core$Maybe$Nothing, tempFeedback: '', tempScore: ''},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Admin$BeltResult = function (a) {
@@ -5175,6 +5177,9 @@ var $author$project$Admin$BeltResult = function (a) {
 };
 var $author$project$Admin$GradeResult = function (a) {
 	return {$: 'GradeResult', a: a};
+};
+var $author$project$Admin$ReceiveAllStudents = function (a) {
+	return {$: 'ReceiveAllStudents', a: a};
 };
 var $author$project$Admin$ReceiveBelts = function (a) {
 	return {$: 'ReceiveBelts', a: a};
@@ -5193,6 +5198,12 @@ var $author$project$Admin$ReceivedStudentRecord = function (a) {
 };
 var $author$project$Admin$StudentCreated = function (a) {
 	return {$: 'StudentCreated', a: a};
+};
+var $author$project$Admin$StudentDeleted = function (a) {
+	return {$: 'StudentDeleted', a: a};
+};
+var $author$project$Admin$StudentUpdated = function (a) {
+	return {$: 'StudentUpdated', a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$string = _Json_decodeString;
@@ -5274,6 +5285,9 @@ var $author$project$Admin$decodeBeltsResponse = function (value) {
 		$elm$json$Json$Decode$decodeValue,
 		$elm$json$Json$Decode$list($author$project$Admin$beltDecoder),
 		value);
+};
+var $author$project$Admin$decodeStudentDeletedResponse = function (value) {
+	return A2($elm$json$Json$Decode$decodeValue, $elm$json$Json$Decode$string, value);
 };
 var $author$project$Admin$Student = F4(
 	function (id, name, created, lastActive) {
@@ -5425,6 +5439,12 @@ var $author$project$Admin$decodeStudentRecordResponse = function (value) {
 var $author$project$Admin$decodeStudentResponse = function (value) {
 	return A2($elm$json$Json$Decode$decodeValue, $author$project$Admin$studentDecoder, value);
 };
+var $author$project$Admin$decodeStudentsResponse = function (value) {
+	return A2(
+		$elm$json$Json$Decode$decodeValue,
+		$elm$json$Json$Decode$list($author$project$Admin$studentDecoder),
+		value);
+};
 var $author$project$Admin$decodeSubmissionsResponse = function (value) {
 	return A2(
 		$elm$json$Json$Decode$decodeValue,
@@ -5433,12 +5453,15 @@ var $author$project$Admin$decodeSubmissionsResponse = function (value) {
 };
 var $author$project$Admin$gradeResult = _Platform_incomingPort('gradeResult', $elm$json$Json$Decode$string);
 var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $author$project$Admin$receiveAllStudents = _Platform_incomingPort('receiveAllStudents', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveAuthResult = _Platform_incomingPort('receiveAuthResult', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveAuthState = _Platform_incomingPort('receiveAuthState', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveBelts = _Platform_incomingPort('receiveBelts', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveStudentRecord = _Platform_incomingPort('receiveStudentRecord', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveSubmissions = _Platform_incomingPort('receiveSubmissions', $elm$json$Json$Decode$value);
 var $author$project$Admin$studentCreated = _Platform_incomingPort('studentCreated', $elm$json$Json$Decode$value);
+var $author$project$Admin$studentDeleted = _Platform_incomingPort('studentDeleted', $elm$json$Json$Decode$value);
+var $author$project$Admin$studentUpdated = _Platform_incomingPort('studentUpdated', $elm$json$Json$Decode$value);
 var $author$project$Admin$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
@@ -5455,11 +5478,16 @@ var $author$project$Admin$subscriptions = function (_v0) {
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentResponse, $author$project$Admin$StudentCreated)),
 				$author$project$Admin$receiveBelts(
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeBeltsResponse, $author$project$Admin$ReceiveBelts)),
+				$author$project$Admin$receiveAllStudents(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentsResponse, $author$project$Admin$ReceiveAllStudents)),
+				$author$project$Admin$studentUpdated(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentResponse, $author$project$Admin$StudentUpdated)),
+				$author$project$Admin$studentDeleted(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentDeletedResponse, $author$project$Admin$StudentDeleted)),
 				$author$project$Admin$gradeResult($author$project$Admin$GradeResult),
 				$author$project$Admin$beltResult($author$project$Admin$BeltResult)
 			]));
 };
-var $author$project$Admin$Ascending = {$: 'Ascending'};
 var $author$project$Admin$Authenticated = function (a) {
 	return {$: 'Authenticated', a: a};
 };
@@ -5481,6 +5509,7 @@ var $elm$core$Basics$composeL = F3(
 var $author$project$Admin$createStudent = _Platform_outgoingPort('createStudent', $elm$core$Basics$identity);
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Admin$deleteBelt = _Platform_outgoingPort('deleteBelt', $elm$json$Json$Encode$string);
+var $author$project$Admin$deleteStudent = _Platform_outgoingPort('deleteStudent', $elm$json$Json$Encode$string);
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -5565,6 +5594,18 @@ var $author$project$Admin$encodeNewStudent = function (name) {
 				$elm$json$Json$Encode$string(name))
 			]));
 };
+var $author$project$Admin$encodeStudentUpdate = function (student) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$string(student.id)),
+				_Utils_Tuple2(
+				'name',
+				$elm$json$Json$Encode$string(student.name))
+			]));
+};
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -5633,7 +5674,13 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Admin$requestAllStudents = _Platform_outgoingPort(
+	'requestAllStudents',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
 var $author$project$Admin$requestBelts = _Platform_outgoingPort(
 	'requestBelts',
 	function ($) {
@@ -5655,6 +5702,7 @@ var $author$project$Admin$signOut = _Platform_outgoingPort(
 	});
 var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$trim = _String_trim;
+var $author$project$Admin$updateStudent = _Platform_outgoingPort('updateStudent', $elm$core$Basics$identity);
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Just') {
@@ -6023,12 +6071,6 @@ var $author$project$Admin$update = F2(
 						model,
 						{currentStudent: $elm$core$Maybe$Nothing, page: $author$project$Admin$SubmissionsPage, studentSubmissions: _List_Nil}),
 					$elm$core$Platform$Cmd$none);
-			case 'ShowCreateStudentForm':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{newStudentName: '', page: $author$project$Admin$CreateStudentPage}),
-					$elm$core$Platform$Cmd$none);
 			case 'CloseCreateStudentForm':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6285,12 +6327,215 @@ var $author$project$Admin$update = F2(
 							success: $elm$core$Maybe$Just(result)
 						}),
 					$author$project$Admin$requestBelts(_Utils_Tuple0));
-			default:
+			case 'RefreshBelts':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{loading: true}),
 					$author$project$Admin$requestBelts(_Utils_Tuple0));
+			case 'ShowCreateStudentForm':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{newStudentName: '', page: $author$project$Admin$CreateStudentPage}),
+					$author$project$Admin$requestAllStudents(_Utils_Tuple0));
+			case 'RequestAllStudents':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{loading: true}),
+					$author$project$Admin$requestAllStudents(_Utils_Tuple0));
+			case 'ReceiveAllStudents':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var students = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{loading: false, students: students}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just(
+									$elm$json$Json$Decode$errorToString(error)),
+								loading: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'UpdateStudentFilterText':
+				var text = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{studentFilterText: text}),
+					$elm$core$Platform$Cmd$none);
+			case 'UpdateStudentSortBy':
+				var sortBy = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{studentSortBy: sortBy}),
+					$elm$core$Platform$Cmd$none);
+			case 'ToggleStudentSortDirection':
+				var newDirection = function () {
+					var _v16 = model.studentSortDirection;
+					if (_v16.$ === 'Ascending') {
+						return $author$project$Admin$Descending;
+					} else {
+						return $author$project$Admin$Ascending;
+					}
+				}();
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{studentSortDirection: newDirection}),
+					$elm$core$Platform$Cmd$none);
+			case 'EditStudent':
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							editingStudent: $elm$core$Maybe$Just(student)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'UpdateEditingStudentName':
+				var name = msg.a;
+				var _v17 = model.editingStudent;
+				if (_v17.$ === 'Just') {
+					var student = _v17.a;
+					var updatedStudent = _Utils_update(
+						student,
+						{name: name});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								editingStudent: $elm$core$Maybe$Just(updatedStudent)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'SaveStudentEdit':
+				var _v18 = model.editingStudent;
+				if (_v18.$ === 'Just') {
+					var student = _v18.a;
+					return ($elm$core$String$trim(student.name) === '') ? _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just('Please enter a student name')
+							}),
+						$elm$core$Platform$Cmd$none) : ((!$author$project$Admin$isValidNameFormat(student.name)) ? _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just('Please enter the name in the format firstname.lastname')
+							}),
+						$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{editingStudent: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing, loading: true}),
+						$author$project$Admin$updateStudent(
+							$author$project$Admin$encodeStudentUpdate(student))));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'CancelStudentEdit':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{editingStudent: $elm$core$Maybe$Nothing, error: $elm$core$Maybe$Nothing}),
+					$elm$core$Platform$Cmd$none);
+			case 'DeleteStudent':
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							confirmDeleteStudent: $elm$core$Maybe$Just(student)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'ConfirmDeleteStudent':
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{confirmDeleteStudent: $elm$core$Maybe$Nothing, loading: true}),
+					$author$project$Admin$deleteStudent(student.id));
+			case 'CancelDeleteStudent':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{confirmDeleteStudent: $elm$core$Maybe$Nothing}),
+					$elm$core$Platform$Cmd$none);
+			case 'StudentUpdated':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var student = result.a;
+					var updatedStudents = A2(
+						$elm$core$List$map,
+						function (s) {
+							return _Utils_eq(s.id, student.id) ? student : s;
+						},
+						model.students);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								loading: false,
+								students: updatedStudents,
+								success: $elm$core$Maybe$Just('Student ' + (student.name + ' updated successfully'))
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just(
+									'Error updating student: ' + $elm$json$Json$Decode$errorToString(error)),
+								loading: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var studentId = result.a;
+					var updatedStudents = A2(
+						$elm$core$List$filter,
+						function (s) {
+							return !_Utils_eq(s.id, studentId);
+						},
+						model.students);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								loading: false,
+								students: updatedStudents,
+								success: $elm$core$Maybe$Just('Student deleted successfully')
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								error: $elm$core$Maybe$Just(
+									'Error deleting student: ' + $elm$json$Json$Decode$errorToString(error)),
+								loading: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -6931,10 +7176,507 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 					]))
 			]));
 };
+var $author$project$Admin$ByStudentCreated = {$: 'ByStudentCreated'};
+var $author$project$Admin$ByStudentLastActive = {$: 'ByStudentLastActive'};
 var $author$project$Admin$CloseCreateStudentForm = {$: 'CloseCreateStudentForm'};
 var $author$project$Admin$CreateNewStudent = {$: 'CreateNewStudent'};
+var $author$project$Admin$RequestAllStudents = {$: 'RequestAllStudents'};
+var $author$project$Admin$ToggleStudentSortDirection = {$: 'ToggleStudentSortDirection'};
 var $author$project$Admin$UpdateNewStudentName = function (a) {
 	return {$: 'UpdateNewStudentName', a: a};
+};
+var $author$project$Admin$UpdateStudentFilterText = function (a) {
+	return {$: 'UpdateStudentFilterText', a: a};
+};
+var $author$project$Admin$UpdateStudentSortBy = function (a) {
+	return {$: 'UpdateStudentSortBy', a: a};
+};
+var $author$project$Admin$filterStudentByText = F2(
+	function (filterText, student) {
+		if ($elm$core$String$isEmpty(filterText)) {
+			return true;
+		} else {
+			var lowercaseFilter = $elm$core$String$toLower(filterText);
+			var containsFilter = function (text) {
+				return A2(
+					$elm$core$String$contains,
+					lowercaseFilter,
+					$elm$core$String$toLower(text));
+			};
+			return containsFilter(student.name) || containsFilter(student.id);
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$List$sortWith = _List_sortWith;
+var $author$project$Admin$sortStudents = F3(
+	function (sortBy, direction, students) {
+		var sortFunction = function () {
+			switch (sortBy.$) {
+				case 'ByStudentName':
+					return F2(
+						function (a, b) {
+							return A2($elm$core$Basics$compare, a.name, b.name);
+						});
+				case 'ByStudentCreated':
+					return F2(
+						function (a, b) {
+							return A2($elm$core$Basics$compare, a.created, b.created);
+						});
+				default:
+					return F2(
+						function (a, b) {
+							return A2($elm$core$Basics$compare, a.lastActive, b.lastActive);
+						});
+			}
+		}();
+		var sortedList = A2($elm$core$List$sortWith, sortFunction, students);
+		if (direction.$ === 'Ascending') {
+			return sortedList;
+		} else {
+			return $elm$core$List$reverse(sortedList);
+		}
+	});
+var $author$project$Admin$applyStudentFilters = function (model) {
+	return A3(
+		$author$project$Admin$sortStudents,
+		model.studentSortBy,
+		model.studentSortDirection,
+		A2(
+			$elm$core$List$filter,
+			$author$project$Admin$filterStudentByText(model.studentFilterText),
+			model.students));
+};
+var $author$project$Admin$getStudentSortButtonClass = F2(
+	function (model, sortType) {
+		var baseClass = 'px-3 py-1 rounded text-sm';
+		return _Utils_eq(model.studentSortBy, sortType) ? (baseClass + ' bg-blue-100 text-blue-800 font-medium') : (baseClass + ' text-gray-600 hover:bg-gray-100');
+	});
+var $elm$html$Html$table = _VirtualDom_node('table');
+var $elm$html$Html$tbody = _VirtualDom_node('tbody');
+var $elm$html$Html$th = _VirtualDom_node('th');
+var $elm$html$Html$thead = _VirtualDom_node('thead');
+var $elm$html$Html$tr = _VirtualDom_node('tr');
+var $author$project$Admin$CancelDeleteStudent = {$: 'CancelDeleteStudent'};
+var $author$project$Admin$ConfirmDeleteStudent = function (a) {
+	return {$: 'ConfirmDeleteStudent', a: a};
+};
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Admin$formatDisplayName = function (name) {
+	var parts = A2($elm$core$String$split, '.', name);
+	var lastName = A2(
+		$elm$core$Maybe$withDefault,
+		'',
+		$elm$core$List$head(
+			A2($elm$core$List$drop, 1, parts)));
+	var firstName = A2(
+		$elm$core$Maybe$withDefault,
+		'',
+		$elm$core$List$head(parts));
+	var capitalizedLast = _Utils_ap(
+		$elm$core$String$toUpper(
+			A2($elm$core$String$left, 1, lastName)),
+		A2($elm$core$String$dropLeft, 1, lastName));
+	var capitalizedFirst = _Utils_ap(
+		$elm$core$String$toUpper(
+			A2($elm$core$String$left, 1, firstName)),
+		A2($elm$core$String$dropLeft, 1, firstName));
+	return capitalizedFirst + (' ' + capitalizedLast);
+};
+var $author$project$Admin$viewConfirmDeleteModal = function (student) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('px-6 py-4 bg-red-50 border-b border-gray-200')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$h2,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-lg font-medium text-red-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Confirm Delete')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('p-6')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('mb-6 text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										'Are you sure you want to delete the student record for ' + ($author$project$Admin$formatDisplayName(student.name) + '? This action cannot be undone.'))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex justify-end space-x-3')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$CancelDeleteStudent),
+												$elm$html$Html$Attributes$class('px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Cancel')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$ConfirmDeleteStudent(student)),
+												$elm$html$Html$Attributes$class('px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Delete Student')
+											]))
+									]))
+							]))
+					]))
+			]));
+};
+var $author$project$Admin$CancelStudentEdit = {$: 'CancelStudentEdit'};
+var $author$project$Admin$SaveStudentEdit = {$: 'SaveStudentEdit'};
+var $author$project$Admin$UpdateEditingStudentName = function (a) {
+	return {$: 'UpdateEditingStudentName', a: a};
+};
+var $author$project$Admin$viewEditStudentModal = F2(
+	function (model, student) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('px-6 py-4 bg-gray-50 border-b border-gray-200')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h2,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Edit Student')
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('p-6')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('space-y-4')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$div,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$label,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$for('editStudentName'),
+															$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Student Name:')
+														])),
+													A2(
+													$elm$html$Html$input,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$type_('text'),
+															$elm$html$Html$Attributes$id('editStudentName'),
+															$elm$html$Html$Attributes$value(student.name),
+															$elm$html$Html$Events$onInput($author$project$Admin$UpdateEditingStudentName),
+															$elm$html$Html$Attributes$placeholder('firstname.lastname'),
+															$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$p,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('text-sm text-gray-500 mt-1')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Name must be in format: firstname.lastname')
+														]))
+												])),
+											A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('pt-2 flex justify-end space-x-3')
+												]),
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$button,
+													_List_fromArray(
+														[
+															$elm$html$Html$Events$onClick($author$project$Admin$CancelStudentEdit),
+															$elm$html$Html$Attributes$class('px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Cancel')
+														])),
+													A2(
+													$elm$html$Html$button,
+													_List_fromArray(
+														[
+															$elm$html$Html$Events$onClick($author$project$Admin$SaveStudentEdit),
+															$elm$html$Html$Attributes$class('px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Save Changes')
+														]))
+												]))
+										]))
+								]))
+						]))
+				]));
+	});
+var $author$project$Admin$DeleteStudent = function (a) {
+	return {$: 'DeleteStudent', a: a};
+};
+var $author$project$Admin$EditStudent = function (a) {
+	return {$: 'EditStudent', a: a};
+};
+var $author$project$Admin$ViewStudentRecord = function (a) {
+	return {$: 'ViewStudentRecord', a: a};
+};
+var $elm$html$Html$td = _VirtualDom_node('td');
+var $author$project$Admin$viewStudentRow = function (student) {
+	return A2(
+		$elm$html$Html$tr,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('hover:bg-gray-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm font-medium text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$author$project$Admin$formatDisplayName(student.name))
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(student.id)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(student.created)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(student.lastActive)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$ViewStudentRecord(student.id)),
+								$elm$html$Html$Attributes$class('text-green-600 hover:text-green-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('View Records')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$EditStudent(student)),
+								$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Edit')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$DeleteStudent(student)),
+								$elm$html$Html$Attributes$class('text-red-600 hover:text-red-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Delete')
+							]))
+					]))
+			]));
 };
 var $author$project$Admin$viewCreateStudentPage = function (model) {
 	return A2(
@@ -7091,19 +7833,307 @@ var $author$project$Admin$viewCreateStudentPage = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Existing Students')
+								$elm$html$Html$text('Student Directory')
 							])),
 						A2(
-						$elm$html$Html$p,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('text-gray-500 italic')
+								$elm$html$Html$Attributes$class('mb-4')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Student listing functionality will be added here in a future update.')
-							]))
-					]))
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex items-center justify-between mb-4')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('flex-1 max-w-md')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$label,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$for('studentFilterText'),
+														$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700 mb-1')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Search Students')
+													])),
+												A2(
+												$elm$html$Html$input,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$type_('text'),
+														$elm$html$Html$Attributes$id('studentFilterText'),
+														$elm$html$Html$Attributes$placeholder('Search by name or ID'),
+														$elm$html$Html$Attributes$value(model.studentFilterText),
+														$elm$html$Html$Events$onInput($author$project$Admin$UpdateStudentFilterText),
+														$elm$html$Html$Attributes$class('w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+													]),
+												_List_Nil)
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('flex items-center ml-4 self-end')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$button,
+												_List_fromArray(
+													[
+														$elm$html$Html$Events$onClick($author$project$Admin$RequestAllStudents),
+														$elm$html$Html$Attributes$class('flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Refresh')
+													]))
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex items-center mt-2')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-sm text-gray-500 mr-2')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Sort by:')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$UpdateStudentSortBy($author$project$Admin$ByStudentName)),
+												$elm$html$Html$Attributes$class(
+												A2($author$project$Admin$getStudentSortButtonClass, model, $author$project$Admin$ByStudentName))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Name')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$UpdateStudentSortBy($author$project$Admin$ByStudentCreated)),
+												$elm$html$Html$Attributes$class(
+												A2($author$project$Admin$getStudentSortButtonClass, model, $author$project$Admin$ByStudentCreated))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Created')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$UpdateStudentSortBy($author$project$Admin$ByStudentLastActive)),
+												$elm$html$Html$Attributes$class(
+												A2($author$project$Admin$getStudentSortButtonClass, model, $author$project$Admin$ByStudentLastActive))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Last Active')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$ToggleStudentSortDirection),
+												$elm$html$Html$Attributes$class('ml-2 px-2 py-1 rounded text-gray-600 hover:bg-gray-100')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												_Utils_eq(model.studentSortDirection, $author$project$Admin$Ascending) ? '↑' : '↓')
+											])),
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('ml-4 text-sm text-gray-500')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												'Total: ' + ($elm$core$String$fromInt(
+													$elm$core$List$length(
+														$author$project$Admin$applyStudentFilters(model))) + ' students'))
+											]))
+									]))
+							])),
+						model.loading ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('flex justify-center my-12')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500')
+									]),
+								_List_Nil)
+							])) : ($elm$core$List$isEmpty(
+						$author$project$Admin$applyStudentFilters(model)) ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-center py-12 bg-gray-50 rounded-lg')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-gray-500')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('No students found matching your filters.')
+									]))
+							])) : A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('overflow-x-auto bg-white')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$table,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('min-w-full divide-y divide-gray-200')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$thead,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('bg-gray-50')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$tr,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Name')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Student ID')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Created')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Last Active')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Actions')
+															]))
+													]))
+											])),
+										A2(
+										$elm$html$Html$tbody,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('bg-white divide-y divide-gray-200')
+											]),
+										A2(
+											$elm$core$List$map,
+											$author$project$Admin$viewStudentRow,
+											$author$project$Admin$applyStudentFilters(model)))
+									]))
+							])))
+					])),
+				function () {
+				var _v0 = model.editingStudent;
+				if (_v0.$ === 'Just') {
+					var student = _v0.a;
+					return A2($author$project$Admin$viewEditStudentModal, model, student);
+				} else {
+					return $elm$html$Html$text('');
+				}
+			}(),
+				function () {
+				var _v1 = model.confirmDeleteStudent;
+				if (_v1.$ === 'Just') {
+					var student = _v1.a;
+					return $author$project$Admin$viewConfirmDeleteModal(student);
+				} else {
+					return $elm$html$Html$text('');
+				}
+			}()
 			]));
 };
 var $author$project$Admin$ByBelt = {$: 'ByBelt'};
@@ -7163,8 +8193,6 @@ var $author$project$Admin$filterByText = F2(
 			return containsFilter(submission.studentName) || (containsFilter(submission.gameName) || containsFilter(submission.beltLevel));
 		}
 	});
-var $elm$core$Basics$compare = _Utils_compare;
-var $elm$core$List$sortWith = _List_sortWith;
 var $author$project$Admin$sortSubmissions = F3(
 	function (sortBy, direction, submissions) {
 		var sortFunction = function () {
@@ -7595,66 +8623,9 @@ var $author$project$Admin$viewFilters = function (model) {
 			]));
 };
 var $author$project$Admin$CloseStudentRecord = {$: 'CloseStudentRecord'};
-var $elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $author$project$Admin$formatDisplayName = function (name) {
-	var parts = A2($elm$core$String$split, '.', name);
-	var lastName = A2(
-		$elm$core$Maybe$withDefault,
-		'',
-		$elm$core$List$head(
-			A2($elm$core$List$drop, 1, parts)));
-	var firstName = A2(
-		$elm$core$Maybe$withDefault,
-		'',
-		$elm$core$List$head(parts));
-	var capitalizedLast = _Utils_ap(
-		$elm$core$String$toUpper(
-			A2($elm$core$String$left, 1, lastName)),
-		A2($elm$core$String$dropLeft, 1, lastName));
-	var capitalizedFirst = _Utils_ap(
-		$elm$core$String$toUpper(
-			A2($elm$core$String$left, 1, firstName)),
-		A2($elm$core$String$dropLeft, 1, firstName));
-	return capitalizedFirst + (' ' + capitalizedLast);
-};
-var $elm$html$Html$table = _VirtualDom_node('table');
-var $elm$html$Html$tbody = _VirtualDom_node('tbody');
-var $elm$html$Html$th = _VirtualDom_node('th');
-var $elm$html$Html$thead = _VirtualDom_node('thead');
-var $elm$html$Html$tr = _VirtualDom_node('tr');
 var $author$project$Admin$SelectSubmission = function (a) {
 	return {$: 'SelectSubmission', a: a};
 };
-var $elm$html$Html$td = _VirtualDom_node('td');
 var $elm$core$Basics$ge = _Utils_ge;
 var $author$project$Admin$viewGradeBadge = function (maybeGrade) {
 	if (maybeGrade.$ === 'Just') {
@@ -8082,9 +9053,6 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 						]))
 				]));
 	});
-var $author$project$Admin$ViewStudentRecord = function (a) {
-	return {$: 'ViewStudentRecord', a: a};
-};
 var $author$project$Admin$viewSubmissionRow = function (submission) {
 	return A2(
 		$elm$html$Html$tr,

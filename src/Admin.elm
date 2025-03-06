@@ -29,6 +29,16 @@ port receiveStudentRecord : (Decode.Value -> msg) -> Sub msg
 port createStudent : Encode.Value -> Cmd msg
 port studentCreated : (Decode.Value -> msg) -> Sub msg
 
+-- Student listing ports
+port requestAllStudents : () -> Cmd msg
+port receiveAllStudents : (Decode.Value -> msg) -> Sub msg
+
+-- Student edit/delete ports
+port updateStudent : Encode.Value -> Cmd msg
+port deleteStudent : String -> Cmd msg
+port studentUpdated : (Decode.Value -> msg) -> Sub msg
+port studentDeleted : (Decode.Value -> msg) -> Sub msg
+
 -- Belt management ports
 port requestBelts : () -> Cmd msg
 port receiveBelts : (Decode.Value -> msg) -> Sub msg
@@ -112,6 +122,11 @@ type SortDirection
     = Ascending
     | Descending
 
+type StudentSortBy
+    = ByStudentName
+    | ByStudentCreated
+    | ByStudentLastActive
+
 type alias Model =
     { appState : AppState
     , page : Page
@@ -139,6 +154,13 @@ type alias Model =
     , newBeltOrder : String
     , newBeltGameOptions : String
     , editingBelt : Maybe Belt
+    , students : List Student
+    , studentFilterText : String
+    , studentSortBy : StudentSortBy
+    , studentSortDirection : SortDirection
+    , editingStudent : Maybe Student
+    , confirmDeleteStudent : Maybe Student
+
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -169,6 +191,12 @@ init _ =
       , newBeltOrder = ""
       , newBeltGameOptions = ""
       , editingBelt = Nothing
+      , students = []
+      , studentFilterText = ""
+      , studentSortBy = ByStudentName
+      , studentSortDirection = Ascending
+      , editingStudent = Nothing
+      , confirmDeleteStudent = Nothing
       }
     , Cmd.none
     )
@@ -218,8 +246,23 @@ type Msg
     | DeleteBelt String
     | BeltResult String
     | RefreshBelts
+    | RequestAllStudents
+    | ReceiveAllStudents (Result Decode.Error (List Student))
+    | UpdateStudentFilterText String
+    | UpdateStudentSortBy StudentSortBy
+    | ToggleStudentSortDirection
+    | EditStudent Student
+    | DeleteStudent Student
+    | UpdateEditingStudentName String
+    | SaveStudentEdit
+    | CancelStudentEdit
+    | ConfirmDeleteStudent Student
+    | CancelDeleteStudent
+    | StudentUpdated (Result Decode.Error Student)
+    | StudentDeleted (Result Decode.Error String)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
+
 update msg model =
     case msg of
         UpdateLoginEmail email ->
@@ -439,9 +482,6 @@ update msg model =
             , Cmd.none
             )
 
-        ShowCreateStudentForm ->
-            ( { model | page = CreateStudentPage, newStudentName = "" }, Cmd.none )
-
         CloseCreateStudentForm ->
             ( { model | page = SubmissionsPage }, Cmd.none )
 
@@ -641,7 +681,117 @@ update msg model =
 
         RefreshBelts ->
             ( { model | loading = True }, requestBelts () )
+        ShowCreateStudentForm ->
+            ( { model | page = CreateStudentPage, newStudentName = "" }, requestAllStudents () )
 
+        RequestAllStudents ->
+            ( { model | loading = True }, requestAllStudents () )
+
+        ReceiveAllStudents result ->
+            case result of
+                Ok students ->
+                    ( { model | students = students, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+
+        UpdateStudentFilterText text ->
+            ( { model | studentFilterText = text }, Cmd.none )
+
+        UpdateStudentSortBy sortBy ->
+            ( { model | studentSortBy = sortBy }, Cmd.none )
+
+        ToggleStudentSortDirection ->
+            let
+                newDirection =
+                    case model.studentSortDirection of
+                        Ascending -> Descending
+                        Descending -> Ascending
+            in
+            ( { model | studentSortDirection = newDirection }, Cmd.none )
+
+        EditStudent student ->
+            ( { model | editingStudent = Just student }, Cmd.none )
+
+        UpdateEditingStudentName name ->
+            case model.editingStudent of
+                Just student ->
+                    let
+                        updatedStudent = { student | name = name }
+                    in
+                    ( { model | editingStudent = Just updatedStudent }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SaveStudentEdit ->
+            case model.editingStudent of
+                Just student ->
+                    if String.trim student.name == "" then
+                        ( { model | error = Just "Please enter a student name" }, Cmd.none )
+                    else if not (isValidNameFormat student.name) then
+                        ( { model | error = Just "Please enter the name in the format firstname.lastname" }, Cmd.none )
+                    else
+                        ( { model | loading = True, error = Nothing, editingStudent = Nothing }
+                        , updateStudent (encodeStudentUpdate student)
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        CancelStudentEdit ->
+            ( { model | editingStudent = Nothing, error = Nothing }, Cmd.none )
+
+        DeleteStudent student ->
+            ( { model | confirmDeleteStudent = Just student }, Cmd.none )
+
+        ConfirmDeleteStudent student ->
+            ( { model | loading = True, confirmDeleteStudent = Nothing }
+            , deleteStudent student.id
+            )
+
+        CancelDeleteStudent ->
+            ( { model | confirmDeleteStudent = Nothing }, Cmd.none )
+
+        StudentUpdated result ->
+            case result of
+                Ok student ->
+                    let
+                        updatedStudents =
+                            List.map
+                                (\s -> if s.id == student.id then student else s)
+                                model.students
+                    in
+                    ( { model
+                      | loading = False
+                      , success = Just ("Student " ++ student.name ++ " updated successfully")
+                      , students = updatedStudents
+                      }, Cmd.none )
+
+                Err error ->
+                    ( { model
+                      | loading = False
+                      , error = Just ("Error updating student: " ++ Decode.errorToString error)
+                      }, Cmd.none )
+
+        StudentDeleted result ->
+            case result of
+                Ok studentId ->
+                    let
+                        updatedStudents =
+                            List.filter (\s -> s.id /= studentId) model.students
+                    in
+                    ( { model
+                      | loading = False
+                      , success = Just "Student deleted successfully"
+                      , students = updatedStudents
+                      }, Cmd.none )
+
+                Err error ->
+                    ( { model
+                      | loading = False
+                      , error = Just ("Error deleting student: " ++ Decode.errorToString error)
+                      }, Cmd.none )
 
 -- SUBSCRIPTIONS
 
@@ -654,6 +804,9 @@ subscriptions _ =
         , receiveStudentRecord (decodeStudentRecordResponse >> ReceivedStudentRecord)
         , studentCreated (decodeStudentResponse >> StudentCreated)
         , receiveBelts (decodeBeltsResponse >> ReceiveBelts)
+        , receiveAllStudents (decodeStudentsResponse >> ReceiveAllStudents)
+        , studentUpdated (decodeStudentResponse >> StudentUpdated)
+        , studentDeleted (decodeStudentDeletedResponse >> StudentDeleted)
         , gradeResult GradeResult
         , beltResult BeltResult
         ]
@@ -661,6 +814,13 @@ subscriptions _ =
 
 -- JSON DECODERS & ENCODERS
 
+decodeStudentsResponse : Decode.Value -> Result Decode.Error (List Student)
+decodeStudentsResponse value =
+    Decode.decodeValue (Decode.list studentDecoder) value
+
+decodeStudentDeletedResponse : Decode.Value -> Result Decode.Error String
+decodeStudentDeletedResponse value =
+    Decode.decodeValue Decode.string value
 decodeSubmissionsResponse : Decode.Value -> Result Decode.Error (List Submission)
 decodeSubmissionsResponse value =
     Decode.decodeValue (Decode.list submissionDecoder) value
@@ -822,8 +982,70 @@ encodeBelt belt =
         , ( "gameOptions", Encode.list Encode.string belt.gameOptions )
         ]
 
+encodeStudentUpdate : Student -> Encode.Value
+encodeStudentUpdate student =
+    Encode.object
+        [ ( "id", Encode.string student.id )
+        , ( "name", Encode.string student.name )
+        ]
+
 
 -- HELPERS
+
+applyStudentFilters : Model -> List Student
+applyStudentFilters model =
+    model.students
+        |> List.filter (filterStudentByText model.studentFilterText)
+        |> sortStudents model.studentSortBy model.studentSortDirection
+
+filterStudentByText : String -> Student -> Bool
+filterStudentByText filterText student =
+    if String.isEmpty filterText then
+        True
+    else
+        let
+            lowercaseFilter =
+                String.toLower filterText
+
+            containsFilter text =
+                String.contains lowercaseFilter (String.toLower text)
+        in
+        containsFilter student.name || containsFilter student.id
+
+sortStudents : StudentSortBy -> SortDirection -> List Student -> List Student
+sortStudents sortBy direction students =
+    let
+        sortFunction =
+            case sortBy of
+                ByStudentName ->
+                    \a b -> compare a.name b.name
+
+                ByStudentCreated ->
+                    \a b -> compare a.created b.created
+
+                ByStudentLastActive ->
+                    \a b -> compare a.lastActive b.lastActive
+
+        sortedList =
+            List.sortWith sortFunction students
+    in
+    case direction of
+        Ascending ->
+            sortedList
+
+        Descending ->
+            List.reverse sortedList
+
+getStudentSortButtonClass : Model -> StudentSortBy -> String
+getStudentSortButtonClass model sortType =
+    let
+        baseClass = "px-3 py-1 rounded text-sm"
+    in
+    if model.studentSortBy == sortType then
+        baseClass ++ " bg-blue-100 text-blue-800 font-medium"
+    else
+        baseClass ++ " text-gray-600 hover:bg-gray-100"
+
 
 getUserEmail : Model -> String
 getUserEmail model =
@@ -833,6 +1055,7 @@ getUserEmail model =
 
         _ ->
             "unknown@example.com"
+
 --helper function to check name is correct format
 isValidNameFormat : String -> Bool
 isValidNameFormat name =
@@ -1357,6 +1580,7 @@ viewStudentSubmissionRow submission =
             ]
         ]
 
+
 viewCreateStudentPage : Model -> Html Msg
 viewCreateStudentPage model =
     div [ class "space-y-6" ]
@@ -1398,11 +1622,191 @@ viewCreateStudentPage model =
                 ]
             ]
 
-        -- This section would be expanded in the future to list existing students
+        -- Student listing section
         , div [ class "bg-white shadow rounded-lg p-6 mt-6" ]
-            [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Existing Students" ]
-            , p [ class "text-gray-500 italic" ]
-                [ text "Student listing functionality will be added here in a future update." ]
+            [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Student Directory" ]
+            , div [ class "mb-4" ]
+                [ div [ class "flex items-center justify-between mb-4" ]
+                    [ div [ class "flex-1 max-w-md" ]
+                        [ label [ for "studentFilterText", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Search Students" ]
+                        , input
+                            [ type_ "text"
+                            , id "studentFilterText"
+                            , placeholder "Search by name or ID"
+                            , value model.studentFilterText
+                            , onInput UpdateStudentFilterText
+                            , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            ]
+                            []
+                        ]
+                    , div [ class "flex items-center ml-4 self-end" ]
+                        [ button
+                            [ onClick RequestAllStudents
+                            , class "flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                            ]
+                            [ text "Refresh" ]
+                        ]
+                    ]
+                , div [ class "flex items-center mt-2" ]
+                    [ span [ class "text-sm text-gray-500 mr-2" ] [ text "Sort by:" ]
+                    , button
+                        [ onClick (UpdateStudentSortBy ByStudentName)
+                        , class (getStudentSortButtonClass model ByStudentName)
+                        ]
+                        [ text "Name" ]
+                    , button
+                        [ onClick (UpdateStudentSortBy ByStudentCreated)
+                        , class (getStudentSortButtonClass model ByStudentCreated)
+                        ]
+                        [ text "Created" ]
+                    , button
+                        [ onClick (UpdateStudentSortBy ByStudentLastActive)
+                        , class (getStudentSortButtonClass model ByStudentLastActive)
+                        ]
+                        [ text "Last Active" ]
+                    , button
+                        [ onClick ToggleStudentSortDirection
+                        , class "ml-2 px-2 py-1 rounded text-gray-600 hover:bg-gray-100"
+                        ]
+                        [ text (if model.studentSortDirection == Ascending then "↑" else "↓") ]
+                    , span [ class "ml-4 text-sm text-gray-500" ]
+                        [ text ("Total: " ++ String.fromInt (List.length (applyStudentFilters model)) ++ " students") ]
+                    ]
+                ]
+            , if model.loading then
+                div [ class "flex justify-center my-12" ]
+                    [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+              else if List.isEmpty (applyStudentFilters model) then
+                div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
+                    [ p [ class "text-gray-500" ] [ text "No students found matching your filters." ] ]
+              else
+                div [ class "overflow-x-auto bg-white" ]
+                    [ table [ class "min-w-full divide-y divide-gray-200" ]
+                        [ thead [ class "bg-gray-50" ]
+                            [ tr []
+                                [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Name" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Student ID" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Created" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Last Active" ]
+                                , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                                ]
+                            ]
+                        , tbody [ class "bg-white divide-y divide-gray-200" ]
+                            (List.map viewStudentRow (applyStudentFilters model))
+                        ]
+                    ]
+            ]
+
+        -- Student edit modal
+        , case model.editingStudent of
+            Just student ->
+                viewEditStudentModal model student
+
+            Nothing ->
+                text ""
+
+        -- Confirm delete modal
+        , case model.confirmDeleteStudent of
+            Just student ->
+                viewConfirmDeleteModal student
+
+            Nothing ->
+                text ""
+        ]
+
+
+
+viewStudentRow : Student -> Html Msg
+viewStudentRow student =
+    tr [ class "hover:bg-gray-50" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName student.name) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text student.id ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text student.created ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text student.lastActive ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3" ]
+            [ button
+                [ onClick (ViewStudentRecord student.id)
+                , class "text-green-600 hover:text-green-900"
+                ]
+                [ text "View Records" ]
+            , button
+                [ onClick (EditStudent student)
+                , class "text-blue-600 hover:text-blue-900"
+                ]
+                [ text "Edit" ]
+            , button
+                [ onClick (DeleteStudent student)
+                , class "text-red-600 hover:text-red-900"
+                ]
+                [ text "Delete" ]
+            ]
+        ]
+
+viewEditStudentModal : Model -> Student -> Html Msg
+viewEditStudentModal model student =
+    div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+        [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+            [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
+                [ h2 [ class "text-lg font-medium text-gray-900" ] [ text "Edit Student" ] ]
+            , div [ class "p-6" ]
+                [ div [ class "space-y-4" ]
+                    [ div []
+                        [ label [ for "editStudentName", class "block text-sm font-medium text-gray-700" ] [ text "Student Name:" ]
+                        , input
+                            [ type_ "text"
+                            , id "editStudentName"
+                            , value student.name
+                            , onInput UpdateEditingStudentName
+                            , placeholder "firstname.lastname"
+                            , class "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            ]
+                            []
+                        , p [ class "text-sm text-gray-500 mt-1" ]
+                            [ text "Name must be in format: firstname.lastname" ]
+                        ]
+                    , div [ class "pt-2 flex justify-end space-x-3" ]
+                        [ button
+                            [ onClick CancelStudentEdit
+                            , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                            ]
+                            [ text "Cancel" ]
+                        , button
+                            [ onClick SaveStudentEdit
+                            , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                            ]
+                            [ text "Save Changes" ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+viewConfirmDeleteModal : Student -> Html Msg
+viewConfirmDeleteModal student =
+    div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+        [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+            [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete" ] ]
+            , div [ class "p-6" ]
+                [ p [ class "mb-6 text-gray-700" ]
+                    [ text ("Are you sure you want to delete the student record for " ++ formatDisplayName student.name ++ "? This action cannot be undone.") ]
+                , div [ class "flex justify-end space-x-3" ]
+                    [ button
+                        [ onClick CancelDeleteStudent
+                        , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        ]
+                        [ text "Cancel" ]
+                    , button
+                        [ onClick (ConfirmDeleteStudent student)
+                        , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                        ]
+                        [ text "Delete Student" ]
+                    ]
+                ]
             ]
         ]
 
