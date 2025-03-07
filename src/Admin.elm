@@ -992,6 +992,20 @@ encodeStudentUpdate student =
 
 -- HELPERS
 
+truncateGamesList : List String -> String
+truncateGamesList games =
+    let
+        maxGamesToShow = 3
+        totalGames = List.length games
+        displayGames =
+            if totalGames <= maxGamesToShow then
+                games
+            else
+                List.take maxGamesToShow games ++ [ "..." ++ String.fromInt (totalGames - maxGamesToShow) ++ " more" ]
+    in
+    String.join ", " displayGames
+
+
 applyStudentFilters : Model -> List Student
 applyStudentFilters model =
     model.students
@@ -1957,10 +1971,10 @@ viewBeltRow model belt =
                         [ text ("Order: " ++ String.fromInt belt.order) ]
                     ]
                 , p [ class "text-xs text-gray-500 truncate" ]
-                    [ text ("Games: " ++ String.join ", " belt.gameOptions) ]
+                    [ text ("Games: " ++ truncateGamesList belt.gameOptions) ]
                 ]
             ]
-        , div [ class "flex space-x-2" ]
+        , div [ class "flex space-x-2 ml-2 flex-shrink-0" ]
             [ button
                 [ onClick (EditBelt belt)
                 , class "text-indigo-600 hover:text-indigo-900 text-sm font-medium"
@@ -1973,6 +1987,7 @@ viewBeltRow model belt =
                 [ text "Delete" ]
             ]
         ]
+
 
 viewSubmissionModal : Model -> Submission -> Html Msg
 viewSubmissionModal model submission =

@@ -104,6 +104,7 @@ init _ =
 
 
 -- HELPERS
+
 isValidNameFormat : String -> Bool
 isValidNameFormat name =
     let
@@ -128,6 +129,33 @@ formatDisplayName name =
         capitalizedLast = String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
     in
     capitalizedFirst ++ " " ++ capitalizedLast
+
+
+-- BELT COLOR INDICATOR
+
+viewBeltColorIndicator : String -> List Belt -> Html Msg
+viewBeltColorIndicator selectedBeltId belts =
+    let
+        selectedBelt =
+            belts
+                |> List.filter (\b -> b.id == selectedBeltId)
+                |> List.head
+    in
+    case selectedBelt of
+        Just belt ->
+            div
+                [ class "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" ]
+                [ div
+                    [ class "w-4 h-4 rounded-full"
+                    , style "background-color" belt.color
+                    , style "border" "1px solid #ddd"
+                    ]
+                    []
+                ]
+
+        Nothing ->
+            -- No belt selected
+            text ""
 
 -- UPDATE
 
@@ -467,7 +495,6 @@ viewStudentProfilePage model student =
             ]
         ]
 
-
 viewSubmissionRow : Model -> Submission -> Html Msg
 viewSubmissionRow model submission =
     let
@@ -536,26 +563,26 @@ viewSubmissionFormPage model student =
     div [ class "space-y-6" ]
         [ h2 [ class "text-xl font-medium text-gray-700" ] [ text ("New Submission for " ++ student.name) ]
         , p [ class "text-gray-600" ] [ text "Please provide details about your Unity game submission." ]
-
         , div [ class "space-y-4" ]
             [ div [ class "space-y-2" ]
                 [ label [ for "beltLevel", class "block text-sm font-medium text-gray-700" ] [ text "Belt Level:" ]
-                , select
-                    [ id "beltLevel"
-                    , onInput UpdateBeltLevel
-                    , value model.beltLevel
-                    , class "mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                , div [ class "relative" ]
+                    [ select
+                        [ id "beltLevel"
+                        , onInput UpdateBeltLevel
+                        , value model.beltLevel
+                        , class "mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm pl-8"
+                        ]
+                        ([ option [ value "" ] [ text "-- Select Belt --" ] ] ++
+                            List.map (\belt ->
+                                option
+                                    [ value belt.id
+                                    ]
+                                    [ text belt.name ]
+                            ) sortedBelts)
+                    , viewBeltColorIndicator model.beltLevel sortedBelts
                     ]
-                    ([ option [ value "" ] [ text "-- Select Belt --" ] ] ++
-                        List.map (\belt ->
-                            option
-                                [ value belt.id
-                                , style "background-color" belt.color
-                                ]
-                                [ text belt.name ]
-                        ) sortedBelts)
                 ]
-
             , div [ class "space-y-2" ]
                 [ label [ for "gameName", class "block text-sm font-medium text-gray-700" ] [ text "Game Name:" ]
                 , if model.beltLevel == "" then
@@ -574,7 +601,6 @@ viewSubmissionFormPage model student =
                         ([ option [ value "" ] [ text "-- Select Game --" ] ] ++
                             List.map (\game -> option [ value game ] [ text game ]) gameOptions)
                 ]
-
             , div [ class "space-y-2" ]
                 [ label [ for "githubLink", class "block text-sm font-medium text-gray-700" ] [ text "GitHub Repository Link:" ]
                 , input
@@ -587,7 +613,6 @@ viewSubmissionFormPage model student =
                     ]
                     []
                 ]
-
             , div [ class "space-y-2" ]
                 [ label [ for "notes", class "block text-sm font-medium text-gray-700" ] [ text "Additional Notes:" ]
                 , textarea
@@ -601,7 +626,6 @@ viewSubmissionFormPage model student =
                     []
                 ]
             ]
-
         , div [ class "flex space-x-4 mt-6" ]
             [ button
                 [ onClick BackToProfile
@@ -632,7 +656,6 @@ viewSubmissionCompletePage model student submission =
             [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Submission Successful!" ]
             , p [ class "text-gray-600 mt-2" ] [ text ("Thank you, " ++ student.name ++ "! Your Unity game project has been submitted.") ]
             ]
-
         , div [ class "mt-6 border rounded-md p-4 bg-gray-50" ]
             [ h3 [ class "text-lg font-medium text-gray-700 mb-3" ] [ text "Submission Details:" ]
             , ul [ class "space-y-2" ]
@@ -658,7 +681,6 @@ viewSubmissionCompletePage model student submission =
                     ]
                 ]
             ]
-
         , div [ class "flex space-x-4 mt-6" ]
             [ button
                 [ onClick BackToProfile
