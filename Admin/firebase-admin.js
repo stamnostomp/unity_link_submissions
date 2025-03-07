@@ -25,20 +25,6 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app);
 
-// Debug flag - set to true for detailed console logs
-const DEBUG = true;
-
-// Utility functions
-function log(message, data) {
-  if (DEBUG) {
-    console.log(`[Firebase Admin] ${message}`, data || '');
-  }
-}
-
-function logError(message, error) {
-  console.error(`[Firebase Admin Error] ${message}`, error);
-}
-
 /**
  * Sanitize a string for use as a Firebase path
  * @param {string} path - The path to sanitize
@@ -82,8 +68,6 @@ function isValidNameFormat(name) {
  * @param {Object} elmApp - The Elm application instance
  */
 export function initializeFirebase(elmApp) {
-  log('Initializing Firebase integration');
-
   // Handle authentication state changes
   onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -93,7 +77,7 @@ export function initializeFirebase(elmApp) {
         email: user.email,
         displayName: user.displayName || user.email,
       };
-      log("User is signed in:", userData);
+      console.log("User is signed in:", userData);
       elmApp.ports.receiveAuthState.send({
         user: userData,
         isSignedIn: true
@@ -103,7 +87,7 @@ export function initializeFirebase(elmApp) {
       setupAdminSubmissionListeners(elmApp);
     } else {
       // User is signed out
-      log("User is signed out");
+      console.log("User is signed out");
       elmApp.ports.receiveAuthState.send({
         user: null,
         isSignedIn: false
@@ -111,10 +95,8 @@ export function initializeFirebase(elmApp) {
     }
   });
 
-  // Auth Ports -----------------
   // Handle sign in requests from Elm
   elmApp.ports.signIn.subscribe(function(credentials) {
-    log('Sign in request received');
     const { email, password } = credentials;
 
     signInWithEmailAndPassword(auth, email, password)
@@ -126,7 +108,7 @@ export function initializeFirebase(elmApp) {
         });
       })
       .catch((error) => {
-        logError("Error signing in:", error);
+        console.error("Error signing in:", error);
         elmApp.ports.receiveAuthResult.send({
           success: false,
           message: getAdminAuthErrorMessage(error.code)
@@ -136,128 +118,158 @@ export function initializeFirebase(elmApp) {
 
   // Handle sign out requests from Elm
   elmApp.ports.signOut.subscribe(function() {
-    log('Sign out request received');
     signOut(auth)
       .then(() => {
         // Successful sign-out is handled by onAuthStateChanged
       })
       .catch((error) => {
-        logError("Error signing out:", error);
+        console.error("Error signing out:", error);
       });
   });
 
-  // Submission Ports -----------------
-  // Handle submission requests from Elm
+  // Other functionality (fetch submissions, save grades) only works when authenticated
   elmApp.ports.requestSubmissions.subscribe(function() {
-    log('Request submissions received');
     if (auth.currentUser) {
       fetchAdminSubmissions(elmApp);
     } else {
-      logError("Cannot fetch submissions: User not authenticated");
+      console.warn("Cannot fetch submissions: User not authenticated");
     }
   });
 
-  // Handle grade submissions from Elm
   elmApp.ports.saveGrade.subscribe(function(data) {
-    log('Save grade request received', data);
     if (auth.currentUser) {
       saveAdminGrade(data, elmApp);
     } else {
-      logError("Cannot save grade: User not authenticated");
+      console.warn("Cannot save grade: User not authenticated");
       elmApp.ports.gradeResult.send("Error: Not authenticated");
     }
   });
 
-  // Student Record Ports -----------------
   // Handle student record requests
   elmApp.ports.requestStudentRecord.subscribe(function(studentId) {
-    log('Request student record received', { studentId });
     if (auth.currentUser) {
       fetchStudentRecord(studentId, elmApp);
     } else {
-      logError("Cannot fetch student record: User not authenticated");
+      console.warn("Cannot fetch student record: User not authenticated");
     }
   });
 
   // Handle student creation
   elmApp.ports.createStudent.subscribe(function(studentData) {
-    log('Create student request received', studentData);
     if (auth.currentUser) {
       createNewStudentRecord(studentData, elmApp);
     } else {
-      logError("Cannot create student: User not authenticated");
+      console.warn("Cannot create student: User not authenticated");
     }
   });
 
-  // Student Management Ports -----------------
-  // Handle request for all students
-  elmApp.ports.requestAllStudents.subscribe(function() {
-    log('Request all students received');
-    if (auth.currentUser) {
-      fetchAllStudents(elmApp);
-    } else {
-      logError("Cannot fetch students: User not authenticated");
-    }
-  });
-
-  // Handle student updates
-  elmApp.ports.updateStudent.subscribe(function(studentData) {
-    log('Update student request received', studentData);
-    if (auth.currentUser) {
-      updateStudentRecord(studentData, elmApp);
-    } else {
-      logError("Cannot update student: User not authenticated");
-    }
-  });
-
-  // Handle student deletion
-  elmApp.ports.deleteStudent.subscribe(function(studentId) {
-    log('Delete student request received', { studentId });
-    if (auth.currentUser) {
-      deleteStudentRecord(studentId, elmApp);
-    } else {
-      logError("Cannot delete student: User not authenticated");
-    }
-  });
-
-  // Belt Management Ports -----------------
-  // Handle belt management
+  // Belt management functionality
   elmApp.ports.requestBelts.subscribe(function() {
-    log('Request belts received');
     if (auth.currentUser) {
       fetchBelts(elmApp);
     } else {
-      logError("Cannot fetch belts: User not authenticated");
+      console.warn("Cannot fetch belts: User not authenticated");
     }
   });
 
   elmApp.ports.saveBelt.subscribe(function(beltData) {
-    log('Save belt request received', beltData);
     if (auth.currentUser) {
       saveBelt(beltData, elmApp);
     } else {
-      logError("Cannot save belt: User not authenticated");
+      console.warn("Cannot save belt: User not authenticated");
       elmApp.ports.beltResult.send("Error: Not authenticated");
     }
   });
 
   elmApp.ports.deleteBelt.subscribe(function(beltId) {
-    log('Delete belt request received', { beltId });
     if (auth.currentUser) {
       deleteBelt(beltId, elmApp);
     } else {
-      logError("Cannot delete belt: User not authenticated");
+      console.warn("Cannot delete belt: User not authenticated");
       elmApp.ports.beltResult.send("Error: Not authenticated");
     }
   });
+
+  // Handle submission deletion requests
+  elmApp.ports.deleteSubmission.subscribe(function(submissionId) {
+    if (auth.currentUser) {
+      deleteSubmissionRecord(submissionId, elmApp);
+    } else {
+      console.warn("Cannot delete submission: User not authenticated");
+      elmApp.ports.submissionDeleted.send("Error: Not authenticated");
+    }
+  });
+
+  elmApp.ports.deleteStudent.subscribe(function(studentId) {
+    if (auth.currentUser) {
+      deleteStudentAndSubmissions(studentId, elmApp);
+    } else {
+      console.warn("Cannot delete student: User not authenticated");
+      elmApp.ports.studentDeleted.send("Error: Not authenticated");
+    }
+  });
+
+  // Handle student listing requests
+  elmApp.ports.requestAllStudents.subscribe(function() {
+    if (auth.currentUser) {
+      fetchAllStudents(elmApp);
+    } else {
+      console.warn("Cannot fetch students: User not authenticated");
+      elmApp.ports.receiveAllStudents.send([]);
+    }
+  });
 }
+/**
+ * Delete a student and all their submissions from Firebase
+ * @param {string} studentId - The student ID to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function deleteStudentAndSubmissions(studentId, elmApp) {
+  try {
+    // First fetch all submissions to find those belonging to this student
+    const submissionsRef = ref(database, 'submissions');
+    const submissionsSnapshot = await get(submissionsRef);
+
+    const deletionPromises = [];
+
+    // Delete all submissions for this student
+    if (submissionsSnapshot.exists()) {
+      const submissionsData = submissionsSnapshot.val();
+
+      // Find all submissions for this student and delete them
+      for (const submissionId in submissionsData) {
+        const submission = submissionsData[submissionId];
+        if (submission.studentId === studentId) {
+          // Add to deletion promises
+          const submissionRef = ref(database, `submissions/${submissionId}`);
+          deletionPromises.push(remove(submissionRef));
+          console.log(`Deleting submission: ${submissionId}`);
+        }
+      }
+    }
+
+    // Wait for all submission deletions to complete
+    await Promise.all(deletionPromises);
+
+    // Finally delete the student record
+    const studentRef = ref(database, `students/${studentId}`);
+    await remove(studentRef);
+
+    // Send success message back to Elm
+    elmApp.ports.studentDeleted.send(studentId);
+    console.log(`Student ${studentId} and all their submissions deleted successfully`);
+  } catch (error) {
+    console.error("Error deleting student and submissions:", error);
+    elmApp.ports.studentDeleted.send("Error: " + error.message);
+  }
+}
+
 
 /**
  * Fetch all students from Firebase
  * @param {Object} elmApp - The Elm application instance
  */
 function fetchAllStudents(elmApp) {
-  log('Fetching all students');
   const studentsRef = ref(database, 'students');
 
   get(studentsRef)
@@ -272,120 +284,43 @@ function fetchAllStudents(elmApp) {
           };
         });
 
-        log(`Found ${students.length} students`);
         elmApp.ports.receiveAllStudents.send(students);
       } else {
-        log('No students found');
         // Return empty array if no students
         elmApp.ports.receiveAllStudents.send([]);
       }
     })
     .catch((error) => {
-      logError("Error fetching students:", error);
+      console.error("Error fetching students:", error);
       elmApp.ports.receiveAllStudents.send([]);
     });
 }
 
 /**
- * Update a student record in Firebase
- * @param {Object} studentData - The student data to update
+ * Delete a submission from Firebase
+ * @param {string} submissionId - The submission ID to delete
  * @param {Object} elmApp - The Elm application instance
  */
-function updateStudentRecord(studentData, elmApp) {
-  log('Updating student record', studentData);
-  const studentId = studentData.id;
-  const studentRef = ref(database, `students/${studentId}`);
+async function deleteSubmissionRecord(submissionId, elmApp) {
+  try {
+    const submissionRef = ref(database, `submissions/${submissionId}`);
 
-  // Update only specific fields to preserve others
-  get(studentRef)
-    .then((snapshot) => {
-      if (snapshot.exists()) {
-        const existingData = snapshot.val();
-        const updatedData = {
-          ...existingData,
-          name: studentData.name
-        };
+    // First check if the submission exists
+    const snapshot = await get(submissionRef);
+    if (!snapshot.exists()) {
+      throw new Error("Submission not found");
+    }
 
-        update(studentRef, updatedData)
-          .then(() => {
-            // Return the updated student data
-            const updatedStudent = {
-              id: studentId,
-              ...updatedData
-            };
-            log('Student updated successfully', updatedStudent);
-            elmApp.ports.studentUpdated.send(updatedStudent);
-          })
-          .catch((error) => {
-            logError("Error updating student record:", error);
-            elmApp.ports.studentUpdated.send({
-              error: error.message
-            });
-          });
-      } else {
-        logError("Student record not found for update");
-        elmApp.ports.studentUpdated.send({
-          error: "Student record not found"
-        });
-      }
-    })
-    .catch((error) => {
-      logError("Error fetching student record for update:", error);
-      elmApp.ports.studentUpdated.send({
-        error: error.message
-      });
-    });
-}
+    // Delete the submission
+    await remove(submissionRef);
 
-/**
- * Delete a student record from Firebase
- * @param {string} studentId - The student ID to delete
- * @param {Object} elmApp - The Elm application instance
- */
-function deleteStudentRecord(studentId, elmApp) {
-  log('Deleting student record', { studentId });
-  // First check if the student has any submissions
-  const submissionsRef = ref(database, 'submissions');
-
-  get(submissionsRef)
-    .then((snapshot) => {
-      if (snapshot.exists()) {
-        const submissions = snapshot.val();
-        const hasSubmissions = Object.values(submissions).some(
-          submission => submission.studentId === studentId
-        );
-
-        if (hasSubmissions) {
-          const errorMsg = "Cannot delete student with existing submissions. Please delete the submissions first.";
-          logError(errorMsg);
-          elmApp.ports.studentDeleted.send({
-            error: errorMsg
-          });
-          return;
-        }
-      }
-
-      // If no submissions, proceed with deletion
-      const studentRef = ref(database, `students/${studentId}`);
-
-      remove(studentRef)
-        .then(() => {
-          log('Student deleted successfully', { studentId });
-          elmApp.ports.studentDeleted.send(studentId);
-        })
-        .catch((error) => {
-          logError("Error deleting student record:", error);
-          elmApp.ports.studentDeleted.send({
-            error: error.message
-          });
-        });
-    })
-    .catch((error) => {
-      logError("Error checking student submissions:", error);
-      elmApp.ports.studentDeleted.send({
-        error: error.message
-      });
-    });
+    // Send success message back to Elm
+    elmApp.ports.submissionDeleted.send(submissionId);
+    console.log("Submission deleted successfully");
+  } catch (error) {
+    console.error("Error deleting submission:", error);
+    elmApp.ports.submissionDeleted.send("Error: " + error.message);
+  }
 }
 
 /**
@@ -393,7 +328,6 @@ function deleteStudentRecord(studentId, elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function fetchBelts(elmApp) {
-  log('Fetching belts');
   const beltsRef = ref(database, 'belts');
 
   get(beltsRef)
@@ -408,16 +342,14 @@ function fetchBelts(elmApp) {
           };
         });
 
-        log(`Found ${belts.length} belts`);
         elmApp.ports.receiveBelts.send(belts);
       } else {
-        log('No belts found');
         // Return empty array if no belts
         elmApp.ports.receiveBelts.send([]);
       }
     })
     .catch((error) => {
-      logError("Error fetching belts:", error);
+      console.error("Error fetching belts:", error);
       elmApp.ports.receiveBelts.send([]);
     });
 }
@@ -428,7 +360,6 @@ function fetchBelts(elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function saveBelt(beltData, elmApp) {
-  log('Saving belt', beltData);
   const beltId = beltData.id;
   const beltRef = ref(database, `belts/${beltId}`);
 
@@ -440,22 +371,18 @@ function saveBelt(beltData, elmApp) {
       // Save the belt data
       set(beltRef, beltData)
         .then(() => {
-          const resultMsg = isNewBelt ?
+          elmApp.ports.beltResult.send(isNewBelt ?
             "Success: Belt created successfully" :
-            "Success: Belt updated successfully";
-          log(resultMsg);
-          elmApp.ports.beltResult.send(resultMsg);
+            "Success: Belt updated successfully");
         })
         .catch((error) => {
-          const errorMsg = "Error: " + error.message;
-          logError("Error saving belt:", error);
-          elmApp.ports.beltResult.send(errorMsg);
+          elmApp.ports.beltResult.send("Error: " + error.message);
+          console.error("Error saving belt:", error);
         });
     })
     .catch((error) => {
-      const errorMsg = "Error: " + error.message;
-      logError("Error checking belt existence:", error);
-      elmApp.ports.beltResult.send(errorMsg);
+      elmApp.ports.beltResult.send("Error: " + error.message);
+      console.error("Error checking belt existence:", error);
     });
 }
 
@@ -465,7 +392,6 @@ function saveBelt(beltData, elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function deleteBelt(beltId, elmApp) {
-  log('Deleting belt', { beltId });
   const beltRef = ref(database, `belts/${beltId}`);
 
   // First check if the belt is being used in any submissions
@@ -479,9 +405,7 @@ function deleteBelt(beltId, elmApp) {
         );
 
         if (isUsed) {
-          const errorMsg = "Error: Cannot delete. This belt is already in use by one or more submissions.";
-          logError(errorMsg);
-          elmApp.ports.beltResult.send(errorMsg);
+          elmApp.ports.beltResult.send("Error: Cannot delete. This belt is already in use by one or more submissions.");
           return;
         }
       }
@@ -489,19 +413,16 @@ function deleteBelt(beltId, elmApp) {
       // If the belt is not in use, proceed with deletion
       remove(beltRef)
         .then(() => {
-          log('Belt deleted successfully', { beltId });
           elmApp.ports.beltResult.send("Success: Belt deleted successfully");
         })
         .catch((error) => {
-          const errorMsg = "Error: " + error.message;
-          logError("Error deleting belt:", error);
-          elmApp.ports.beltResult.send(errorMsg);
+          elmApp.ports.beltResult.send("Error: " + error.message);
+          console.error("Error deleting belt:", error);
         });
     })
     .catch((error) => {
-      const errorMsg = "Error: " + error.message;
-      logError("Error checking belt usage:", error);
-      elmApp.ports.beltResult.send(errorMsg);
+      elmApp.ports.beltResult.send("Error: " + error.message);
+      console.error("Error checking belt usage:", error);
     });
 }
 
@@ -511,7 +432,6 @@ function deleteBelt(beltId, elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 async function fetchStudentRecord(studentId, elmApp) {
-  log('Fetching student record', { studentId });
   try {
     // Fetch the student record
     const studentRef = ref(database, `students/${studentId}`);
@@ -552,8 +472,6 @@ async function fetchStudentRecord(studentId, elmApp) {
       });
     }
 
-    log(`Found student with ${studentSubmissions.length} submissions`);
-
     // Send the data back to Elm
     elmApp.ports.receiveStudentRecord.send({
       student,
@@ -561,11 +479,8 @@ async function fetchStudentRecord(studentId, elmApp) {
     });
 
   } catch (error) {
-    logError("Error fetching student record:", error);
+    console.error("Error fetching student record:", error);
     // In a real app, you'd want to send an error back to Elm
-    elmApp.ports.receiveStudentRecord.send({
-      error: error.message || "Error fetching student record"
-    });
   }
 }
 
@@ -574,7 +489,6 @@ async function fetchStudentRecord(studentId, elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function setupAdminSubmissionListeners(elmApp) {
-  log('Setting up submission listeners');
   // Initial fetch
   fetchAdminSubmissions(elmApp);
 
@@ -591,10 +505,8 @@ function setupAdminSubmissionListeners(elmApp) {
         };
       });
 
-      log(`Received ${submissions.length} submissions from real-time update`);
       elmApp.ports.receiveSubmissions.send(submissions);
     } else {
-      log('No submissions in real-time update');
       elmApp.ports.receiveSubmissions.send([]);
     }
   });
@@ -605,7 +517,6 @@ function setupAdminSubmissionListeners(elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function fetchAdminSubmissions(elmApp) {
-  log('Fetching submissions');
   const submissionsRef = ref(database, 'submissions');
 
   get(submissionsRef)
@@ -620,16 +531,14 @@ function fetchAdminSubmissions(elmApp) {
           };
         });
 
-        log(`Found ${submissions.length} submissions`);
         elmApp.ports.receiveSubmissions.send(submissions);
       } else {
-        log('No submissions found');
         // Return empty array if no submissions
         elmApp.ports.receiveSubmissions.send([]);
       }
     })
     .catch((error) => {
-      logError("Error fetching submissions:", error);
+      console.error("Error fetching submissions:", error);
       elmApp.ports.receiveSubmissions.send([]);
     });
 }
@@ -640,7 +549,6 @@ function fetchAdminSubmissions(elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function saveAdminGrade(data, elmApp) {
-  log('Saving grade', data);
   const submissionId = data.submissionId;
   const grade = data.grade;
 
@@ -655,14 +563,36 @@ function saveAdminGrade(data, elmApp) {
   // Update the grade for the submission
   update(submissionRef, { grade })
     .then(() => {
-      log('Grade saved successfully');
       elmApp.ports.gradeResult.send("Success: Grade saved successfully");
     })
     .catch((error) => {
-      const errorMsg = "Error: " + error.message;
-      logError("Error saving grade:", error);
-      elmApp.ports.gradeResult.send(errorMsg);
+      elmApp.ports.gradeResult.send("Error: " + error.message);
+      console.error("Error saving grade:", error);
     });
+}
+
+/**
+ * Get a user-friendly error message for authentication errors
+ * @param {string} errorCode - The Firebase error code
+ * @return {string} A user-friendly error message
+ */
+function getAdminAuthErrorMessage(errorCode) {
+  switch (errorCode) {
+    case 'auth/invalid-email':
+      return 'The email address is not valid.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled.';
+    case 'auth/user-not-found':
+      return 'No account found with this email.';
+    case 'auth/wrong-password':
+      return 'Incorrect password.';
+    case 'auth/too-many-requests':
+      return 'Too many failed login attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection.';
+    default:
+      return 'An error occurred during authentication. Please try again.';
+  }
 }
 
 /**
@@ -671,7 +601,6 @@ function saveAdminGrade(data, elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 async function createNewStudentRecord(studentData, elmApp) {
-  log('Creating new student record', studentData);
   try {
     const { name } = studentData;
 
@@ -705,55 +634,25 @@ async function createNewStudentRecord(studentData, elmApp) {
       await set(uniqueRef, studentRecord);
 
       // Return the created student record with its ID
-      const createdStudent = {
+      elmApp.ports.studentCreated.send({
         id: uniqueId,
         ...studentRecord
-      };
-
-      log('Student created with timestamp-based ID', createdStudent);
-      elmApp.ports.studentCreated.send(createdStudent);
+      });
     } else {
       // Save the student record with the sanitized ID
       await set(studentRef, studentRecord);
 
       // Return the created student record with its ID
-      const createdStudent = {
+      elmApp.ports.studentCreated.send({
         id: studentId,
         ...studentRecord
-      };
-
-      log('Student created with normal ID', createdStudent);
-      elmApp.ports.studentCreated.send(createdStudent);
+      });
     }
   } catch (error) {
-    logError("Error creating student record:", error);
+    console.error("Error creating student record:", error);
     // Send error back to Elm
     elmApp.ports.studentCreated.send({
       error: error.message || "Error creating student record"
     });
-  }
-}
-
-/**
- * Get a user-friendly error message for authentication errors
- * @param {string} errorCode - The Firebase error code
- * @return {string} A user-friendly error message
- */
-function getAdminAuthErrorMessage(errorCode) {
-  switch (errorCode) {
-    case 'auth/invalid-email':
-      return 'The email address is not valid.';
-    case 'auth/user-disabled':
-      return 'This account has been disabled.';
-    case 'auth/user-not-found':
-      return 'No account found with this email.';
-    case 'auth/wrong-password':
-      return 'Incorrect password.';
-    case 'auth/too-many-requests':
-      return 'Too many failed login attempts. Please try again later.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection.';
-    default:
-      return 'An error occurred during authentication. Please try again.';
   }
 }

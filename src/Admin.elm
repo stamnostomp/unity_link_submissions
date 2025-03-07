@@ -46,6 +46,10 @@ port saveBelt : Encode.Value -> Cmd msg
 port deleteBelt : String -> Cmd msg
 port beltResult : (String -> msg) -> Sub msg
 
+-- Submission deletion ports
+port deleteSubmission : String -> Cmd msg
+port submissionDeleted : (Decode.Value -> msg) -> Sub msg
+
 
 -- MAIN
 
@@ -160,7 +164,7 @@ type alias Model =
     , studentSortDirection : SortDirection
     , editingStudent : Maybe Student
     , confirmDeleteStudent : Maybe Student
-
+    , confirmDeleteSubmission : Maybe Submission
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -197,6 +201,7 @@ init _ =
       , studentSortDirection = Ascending
       , editingStudent = Nothing
       , confirmDeleteStudent = Nothing
+      , confirmDeleteSubmission = Nothing
       }
     , Cmd.none
     )
@@ -260,6 +265,10 @@ type Msg
     | CancelDeleteStudent
     | StudentUpdated (Result Decode.Error Student)
     | StudentDeleted (Result Decode.Error String)
+    | DeleteSubmission Submission
+    | ConfirmDeleteSubmission Submission
+    | CancelDeleteSubmission
+    | SubmissionDeleted (Result Decode.Error String)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 
@@ -487,8 +496,6 @@ update msg model =
 
         UpdateNewStudentName name ->
             ( { model | newStudentName = name }, Cmd.none )
-
-
 
         CreateNewStudent ->
             let
@@ -793,6 +800,36 @@ update msg model =
                       , error = Just ("Error deleting student: " ++ Decode.errorToString error)
                       }, Cmd.none )
 
+        DeleteSubmission submission ->
+            ( { model | confirmDeleteSubmission = Just submission }, Cmd.none )
+
+        ConfirmDeleteSubmission submission ->
+            ( { model | loading = True, confirmDeleteSubmission = Nothing }
+            , deleteSubmission submission.id
+            )
+
+        CancelDeleteSubmission ->
+            ( { model | confirmDeleteSubmission = Nothing }, Cmd.none )
+
+        SubmissionDeleted result ->
+            case result of
+                Ok submissionId ->
+                    let
+                        updatedSubmissions =
+                            List.filter (\s -> s.id /= submissionId) model.submissions
+                    in
+                    ( { model
+                      | loading = False
+                      , success = Just "Submission deleted successfully"
+                      , submissions = updatedSubmissions
+                      }, Cmd.none )
+
+                Err error ->
+                    ( { model
+                      | loading = False
+                      , error = Just ("Error deleting submission: " ++ Decode.errorToString error)
+                      }, Cmd.none )
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -807,6 +844,7 @@ subscriptions _ =
         , receiveAllStudents (decodeStudentsResponse >> ReceiveAllStudents)
         , studentUpdated (decodeStudentResponse >> StudentUpdated)
         , studentDeleted (decodeStudentDeletedResponse >> StudentDeleted)
+        , submissionDeleted (decodeSubmissionDeletedResponse >> SubmissionDeleted)
         , gradeResult GradeResult
         , beltResult BeltResult
         ]
@@ -821,6 +859,11 @@ decodeStudentsResponse value =
 decodeStudentDeletedResponse : Decode.Value -> Result Decode.Error String
 decodeStudentDeletedResponse value =
     Decode.decodeValue Decode.string value
+
+decodeSubmissionDeletedResponse : Decode.Value -> Result Decode.Error String
+decodeSubmissionDeletedResponse value =
+    Decode.decodeValue Decode.string value
+
 decodeSubmissionsResponse : Decode.Value -> Result Decode.Error (List Submission)
 decodeSubmissionsResponse value =
     Decode.decodeValue (Decode.list submissionDecoder) value
@@ -1236,6 +1279,12 @@ viewContent model =
 
                     Nothing ->
                         text ""
+                , case model.confirmDeleteSubmission of
+                    Just submission ->
+                        viewConfirmDeleteSubmissionModal submission
+
+                    Nothing ->
+                        text ""
                 ]
 
 viewCurrentPage : Model -> Html Msg
@@ -1467,13 +1516,15 @@ viewSubmissionList model =
                 ]
             ]
 
+
 viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
    tr [ class "hover:bg-gray-50" ]
         [ td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName submission.studentName) ]
             , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ submission.studentId) ]
-            ]        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-900" ] [ text submission.gameName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
@@ -1481,19 +1532,25 @@ viewSubmissionRow submission =
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ viewGradeBadge submission.grade ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3" ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
             [ button
                 [ onClick (SelectSubmission submission)
-                , class "text-blue-600 hover:text-blue-900"
+                , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
                 ]
                 [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
             , button
                 [ onClick (ViewStudentRecord submission.studentId)
-                , class "text-green-600 hover:text-green-900"
+                , class "w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
                 ]
-                [ text "Student Record" ]
+                [ text "Student" ]
+            , button
+                [ onClick (DeleteSubmission submission)
+                , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
+                ]
+                [ text "Delete" ]
             ]
         ]
+
 
 viewGradeBadge : Maybe Grade -> Html Msg
 viewGradeBadge maybeGrade =
@@ -1516,6 +1573,31 @@ viewGradeBadge maybeGrade =
         Nothing ->
             span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
                 [ text "Ungraded" ]
+
+viewConfirmDeleteSubmissionModal : Submission -> Html Msg
+viewConfirmDeleteSubmissionModal submission =
+    div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+        [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+            [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete" ] ]
+            , div [ class "p-6" ]
+                [ p [ class "mb-6 text-gray-700" ]
+                    [ text ("Are you sure you want to delete the submission for " ++ formatDisplayName submission.studentName ++ "'s " ++ submission.gameName ++ "? This action cannot be undone.") ]
+                , div [ class "flex justify-end space-x-3" ]
+                    [ button
+                        [ onClick CancelDeleteSubmission
+                        , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                        ]
+                        [ text "Cancel" ]
+                    , button
+                        [ onClick (ConfirmDeleteSubmission submission)
+                        , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                        ]
+                        [ text "Delete Submission" ]
+                    ]
+                ]
+            ]
+        ]
 
 viewStudentRecordPage : Model -> Student -> List Submission -> Html Msg
 viewStudentRecordPage model student submissions =
@@ -1585,12 +1667,17 @@ viewStudentSubmissionRow submission =
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ viewGradeBadge submission.grade ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-right text-sm font-medium" ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
             [ button
                 [ onClick (SelectSubmission submission)
-                , class "text-blue-600 hover:text-blue-900"
+                , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
                 ]
                 [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+            , button
+                [ onClick (DeleteSubmission submission)
+                , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
+                ]
+                [ text "Delete" ]
             ]
         ]
 
@@ -1729,7 +1816,6 @@ viewCreateStudentPage model =
         ]
 
 
-
 viewStudentRow : Student -> Html Msg
 viewStudentRow student =
     tr [ class "hover:bg-gray-50" ]
@@ -1741,24 +1827,25 @@ viewStudentRow student =
             [ div [ class "text-sm text-gray-500" ] [ text student.created ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm text-gray-500" ] [ text student.lastActive ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3" ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
             [ button
                 [ onClick (ViewStudentRecord student.id)
-                , class "text-green-600 hover:text-green-900"
+                , class "w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
                 ]
                 [ text "View Records" ]
             , button
                 [ onClick (EditStudent student)
-                , class "text-blue-600 hover:text-blue-900"
+                , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
                 ]
                 [ text "Edit" ]
             , button
                 [ onClick (DeleteStudent student)
-                , class "text-red-600 hover:text-red-900"
+                , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
                 ]
                 [ text "Delete" ]
             ]
         ]
+
 
 viewEditStudentModal : Model -> Student -> Html Msg
 viewEditStudentModal model student =
@@ -1806,8 +1893,10 @@ viewConfirmDeleteModal student =
             [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
                 [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete" ] ]
             , div [ class "p-6" ]
-                [ p [ class "mb-6 text-gray-700" ]
-                    [ text ("Are you sure you want to delete the student record for " ++ formatDisplayName student.name ++ "? This action cannot be undone.") ]
+                [ p [ class "mb-4 text-gray-700" ]
+                    [ text ("Are you sure you want to delete the student record for " ++ formatDisplayName student.name ++ "?") ]
+                , p [ class "mb-6 text-red-600 font-medium" ]
+                    [ text "This will permanently delete the student AND all their game submissions. This action cannot be undone." ]
                 , div [ class "flex justify-end space-x-3" ]
                     [ button
                         [ onClick CancelDeleteStudent
@@ -1818,7 +1907,7 @@ viewConfirmDeleteModal student =
                         [ onClick (ConfirmDeleteStudent student)
                         , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
                         ]
-                        [ text "Delete Student" ]
+                        [ text "Delete Student & Submissions" ]
                     ]
                 ]
             ]
@@ -1977,12 +2066,12 @@ viewBeltRow model belt =
         , div [ class "flex space-x-2 ml-2 flex-shrink-0" ]
             [ button
                 [ onClick (EditBelt belt)
-                , class "text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                , class "px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
                 ]
                 [ text "Edit" ]
             , button
                 [ onClick (DeleteBelt belt.id)
-                , class "text-red-600 hover:text-red-900 text-sm font-medium"
+                , class "px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition"
                 ]
                 [ text "Delete" ]
             ]
