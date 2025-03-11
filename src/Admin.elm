@@ -62,6 +62,11 @@ port adminUserDeleted : (Decode.Value -> msg) -> Sub msg
 port updateAdminUser : Encode.Value -> Cmd msg
 port adminUserUpdated : (Decode.Value -> msg) -> Sub msg
 
+-- Ports for password reset
+port requestPasswordReset : String -> Cmd msg
+port passwordResetResult : (Decode.Value -> msg) -> Sub msg
+
+
 -- MAIN
 
 main : Program () Model Msg
@@ -215,6 +220,9 @@ type alias Model =
     , confirmDeleteAdmin : Maybe AdminUser
     , adminUserDeletionResult : Maybe String
     , adminUserUpdateResult : Maybe String
+    ,showPasswordReset : Bool
+    , passwordResetEmail : String
+    , passwordResetMessage : Maybe String
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -260,6 +268,9 @@ init _ =
       , confirmDeleteAdmin = Nothing
       , adminUserDeletionResult = Nothing
       , adminUserUpdateResult = Nothing
+      , showPasswordReset = False
+      , passwordResetEmail = ""
+      , passwordResetMessage = Nothing
       }
     , Cmd.none
     )
@@ -351,11 +362,52 @@ type Msg
     | AdminUserDeleted (Result Decode.Error { success : Bool, message : String })
     | UpdateAdminUserRole String
     | UpdateEditingAdminUserRole String
+    | ShowPasswordReset
+    | HidePasswordReset
+    | UpdatePasswordResetEmail String
+    | SubmitPasswordReset
+    | PasswordResetResult (Result Decode.Error { success : Bool, message : String })
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 
 update msg model =
     case msg of
+
+        ShowPasswordReset ->
+            ( { model | showPasswordReset = True, passwordResetEmail = model.loginEmail }, Cmd.none )
+
+        HidePasswordReset ->
+            ( { model | showPasswordReset = False, passwordResetMessage = Nothing }, Cmd.none )
+
+        UpdatePasswordResetEmail email ->
+            ( { model | passwordResetEmail = email }, Cmd.none )
+
+        SubmitPasswordReset ->
+            if String.isEmpty model.passwordResetEmail then
+                ( { model | passwordResetMessage = Just "Please enter your email address" }, Cmd.none )
+            else
+                ( { model | passwordResetMessage = Nothing, loading = True }
+                , requestPasswordReset model.passwordResetEmail
+                )
+
+        PasswordResetResult result ->
+            case result of
+                Ok resetResult ->
+                    ( { model
+                      | passwordResetMessage = Just resetResult.message
+                      , loading = False
+                      }
+                    , Cmd.none
+                    )
+
+                Err error ->
+                    ( { model
+                      | passwordResetMessage = Just ("Error: " ++ Decode.errorToString error)
+                      , loading = False
+                      }
+                    , Cmd.none
+                    )
+
 
         UpdateEditingAdminUserRole role ->
             case model.editingAdminUser of
@@ -1206,8 +1258,18 @@ subscriptions _ =
         , receiveAllAdmins (decodeAdminUsersResponse >> ReceiveAllAdmins)
         , adminUserDeleted (decodeAdminActionResult >> AdminUserDeleted)
         , adminUserUpdated (decodeAdminActionResult >> AdminUserUpdated)
+        , passwordResetResult (decodePasswordResetResult >> PasswordResetResult)
         ]
 
+decodePasswordResetResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
+decodePasswordResetResult value =
+    let
+        decoder =
+            Decode.map2 (\success message -> { success = success, message = message })
+                (Decode.field "success" Decode.bool)
+                (Decode.field "message" Decode.string)
+    in
+    Decode.decodeValue decoder value
 
 decodeAdminCreationResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodeAdminCreationResult value =
@@ -2177,7 +2239,64 @@ viewLoginForm model =
                 [ p [ class "text-xs text-gray-500" ]
                     [ text "This admin panel requires authentication. Please contact your administrator if you need access." ]
                 ]
+            , div [ class "text-center mt-2" ]
+                [ button
+                    [ onClick ShowPasswordReset
+                    , class "text-sm text-blue-600 hover:text-blue-800"
+                    ]
+                    [ text "Forgot Password?" ]
+                ]
             ]
+
+        -- Password Reset Modal
+        , if model.showPasswordReset then
+            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                    [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
+                        [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Reset Password" ] ]
+                    , div [ class "p-6" ]
+                        [ p [ class "mb-4 text-sm text-gray-600" ]
+                            [ text "Enter your email address and we'll send you a password reset link." ]
+                        , case model.passwordResetMessage of
+                            Just message ->
+                                if String.startsWith "Error" message then
+                                    div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
+                                        [ p [ class "text-sm text-red-700" ] [ text message ] ]
+                                else
+                                    div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
+                                        [ p [ class "text-sm text-green-700" ] [ text message ] ]
+                            Nothing ->
+                                text ""
+                        , div [ class "mb-4" ]
+                            [ label [ for "resetEmail", class "block text-sm font-medium text-gray-700 mb-1" ]
+                                [ text "Email Address" ]
+                            , input
+                                [ type_ "email"
+                                , id "resetEmail"
+                                , value model.passwordResetEmail
+                                , onInput UpdatePasswordResetEmail
+                                , placeholder "admin@example.com"
+                                , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                ]
+                                []
+                            ]
+                        , div [ class "flex justify-end space-x-3" ]
+                            [ button
+                                [ onClick HidePasswordReset
+                                , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                                ]
+                                [ text "Cancel" ]
+                            , button
+                                [ onClick SubmitPasswordReset
+                                , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                                ]
+                                [ text "Send Reset Link" ]
+                            ]
+                        ]
+                    ]
+                ]
+          else
+            text ""
         ]
 
 viewLoadingAuthentication : Html Msg

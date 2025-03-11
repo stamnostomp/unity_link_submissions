@@ -7,7 +7,8 @@ import {
   onAuthStateChanged,
   signOut,
   createUserWithEmailAndPassword,
-  deleteUser
+  deleteUser,
+  sendPasswordResetEmail
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Your web app's Firebase configuration
@@ -71,6 +72,40 @@ function isValidNameFormat(name) {
  */
 export function initializeFirebase(elmApp) {
   // Handle authentication state changes
+  if (elmApp.ports && elmApp.ports.requestPasswordReset) {
+    elmApp.ports.requestPasswordReset.subscribe(function(email) {
+      console.log("Attempting to send password reset email to:", email);
+
+      sendPasswordResetEmail(auth, email)
+        .then(() => {
+          console.log("Password reset email sent successfully!");
+          // Make sure this port exists
+          if (elmApp.ports.passwordResetResult) {
+            elmApp.ports.passwordResetResult.send({
+              success: true,
+              message: "Password reset email sent! Check your inbox."
+            });
+          } else {
+            console.error("passwordResetResult port not found in Elm app");
+          }
+        })
+        .catch((error) => {
+          console.error("Error sending password reset email:", error);
+          // Make sure this port exists
+          if (elmApp.ports.passwordResetResult) {
+            elmApp.ports.passwordResetResult.send({
+              success: false,
+              message: getPasswordResetErrorMessage(error.code)
+            });
+          } else {
+            console.error("passwordResetResult port not found in Elm app");
+          }
+        });
+    });
+  } else {
+    console.warn("requestPasswordReset port not found in Elm app");
+  }
+
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       try {
