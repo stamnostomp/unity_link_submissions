@@ -183,6 +183,79 @@ EOF
                 echo "Created Student/student.html"
               fi
 
+              # Create or copy index.html for the root directory
+              if [ -f "./index.html" ]; then
+                cp ./index.html $out/ || true
+                echo "Copied index.html"
+              else
+                # Create index.html if it doesn't exist
+                cat > $out/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
+    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+
+    <div>
+      <a href="/student" class="btn btn-blue">Student Portal</a>
+      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+    </div>
+  </div>
+</body>
+</html>
+EOF
+                echo "Created index.html"
+              fi
+
               # Copy Firebase integration files
               if [ -f "./Admin/firebase-admin.js" ]; then
                 cp ./Admin/firebase-admin.js $out/Admin/ || true
@@ -261,10 +334,12 @@ EOF
               self.packages.${system}.tailwind
             ];
 
-            # Add firebase.json to the output
+            # Add firebase.json to the output if needed
             postBuild = ''
-              # Create firebase.json if it doesn't exist in source
-              if [ ! -f "$out/firebase.json" ]; then
+              # Copy firebase.json if it exists, otherwise create a standard one
+              if [ -f "${self.packages.${system}.elm-apps}/firebase.json" ]; then
+                cp "${self.packages.${system}.elm-apps}/firebase.json" "$out/" || true
+              elif [ ! -f "$out/firebase.json" ]; then
                 cat > $out/firebase.json << 'EOF'
 {
   "hosting": {
@@ -274,14 +349,56 @@ EOF
       ".firebaserc",
       "**/.*",
       "**/node_modules/**",
-      "elm-stuff/**",
-      "src/**",
+      "**/elm-stuff/**",
+      "**/src/**",
       "dist/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/student",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/student/**",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/admin/**",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
+          }
+        ]
+      }
     ]
   }
 }
 EOF
-                echo "Created firebase.json for root directory hosting"
+                echo "Created firebase.json for hosting"
               fi
             '';
           };
@@ -303,7 +420,7 @@ EOF
             '';
           };
 
-deploy = flake-utils.lib.mkApp {
+          deploy = flake-utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "deploy" ''
               # Get Firebase project ID
               if [ -f .firebaserc ]; then
@@ -348,6 +465,82 @@ deploy = flake-utils.lib.mkApp {
               cp ./Admin/admin.js dist/Admin/ || echo "Warning: Failed to copy Admin/admin.js"
               cp ./Student/student.js dist/Student/ || echo "Warning: Failed to copy Student/student.js"
 
+              # Copy Firebase config files - PRESERVE the original firebase.json
+              echo "Copying Firebase configuration files..."
+              cp ./firebase.json dist/ || echo "Warning: Failed to copy firebase.json"
+              cp ./.firebaserc dist/ || echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
+
+              # Make sure index.html exists or create it
+              if [ -f "./index.html" ]; then
+                cp ./index.html dist/ || echo "Warning: Failed to copy index.html"
+              else
+                echo "Creating default index.html..."
+                cat > dist/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
+    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+
+    <div>
+      <a href="/student" class="btn btn-blue">Student Portal</a>
+      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+    </div>
+  </div>
+</body>
+</html>
+EOF
+              fi
+
               # Display content for debugging
               echo "Content of dist directory:"
               ls -la dist/
@@ -355,30 +548,6 @@ deploy = flake-utils.lib.mkApp {
               ls -la dist/Admin/
               echo "Content of dist/Student directory:"
               ls -la dist/Student/
-
-              # Make sure firebase.json exists
-              if [ ! -f "dist/firebase.json" ]; then
-                echo "Creating firebase.json..."
-                cat > dist/firebase.json << 'EOF'
-{
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      ".firebaserc",
-      "**/.*",
-      "**/node_modules/**",
-      "elm-stuff/**",
-      "src/**",
-      "dist/**"
-    ]
-  }
-}
-EOF
-              fi
-
-              # Copy Firebase config files
-              cp ./.firebaserc dist/ || echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
 
               # Ensure correct permissions for deployment
               chmod -R u+w dist
@@ -473,6 +642,144 @@ EOF
               mkdir -p Admin Student
               cp ./css/tailwind.css ./Admin/style.css || true
               cp ./css/tailwind.css ./Student/style.css || true
+
+              # Make sure we have an index.html
+              if [ ! -f "index.html" ]; then
+                echo "Creating index.html..."
+                cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
+    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+
+    <div>
+      <a href="/student" class="btn btn-blue">Student Portal</a>
+      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+    </div>
+  </div>
+</body>
+</html>
+EOF
+              fi
+
+              # Make sure firebase.json has the correct routing settings
+              if [ -f "firebase.json" ]; then
+                echo "Checking firebase.json for proper routing..."
+                if ! grep -q "rewrites" firebase.json; then
+                  echo "firebase.json seems to be missing rewrites. Consider updating it with proper routing."
+                  echo "See the project documentation for the recommended firebase.json configuration."
+                fi
+              else
+                echo "Creating firebase.json with proper routing..."
+                cat > firebase.json << 'EOF'
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "**/elm-stuff/**",
+      "**/src/**",
+      "dist/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/student",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/student/**",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/admin/**",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+              fi
 
               echo "Build complete!"
             }

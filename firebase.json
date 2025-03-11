@@ -6,7 +6,8 @@
       "**/.*",
       "**/node_modules/**",
       "**/elm-stuff/**",
-      "**/src/**"
+      "**/src/**",
+      "dist/**"
     ],
     "rewrites": [
       {
@@ -24,6 +25,10 @@
       {
         "source": "/admin/**",
         "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ],
     "headers": [
