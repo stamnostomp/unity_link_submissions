@@ -2140,7 +2140,7 @@ viewStudentRow student =
         , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
             [ button
                 [ onClick (ViewStudentRecord student.id)
-                , class "w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
+                , class "w-29 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
                 ]
                 [ text "View Records" ]
             , button
