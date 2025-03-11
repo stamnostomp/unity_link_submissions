@@ -51,7 +51,7 @@ port deleteSubmission : String -> Cmd msg
 port submissionDeleted : (Decode.Value -> msg) -> Sub msg
 
 -- Admin user creation ports
-port createAdminUser : { email : String, password : String, displayName : String } -> Cmd msg
+port createAdminUser : { email : String, password : String, displayName : String,  role : String } -> Cmd msg
 port adminUserCreated : (Decode.Value -> msg) -> Sub msg
 
 -- Ports for admin user management
@@ -106,6 +106,7 @@ type alias User =
     { uid : String
     , email : String
     , displayName : String
+    , role : String
     }
 
 type alias Belt =
@@ -121,6 +122,7 @@ type alias AdminUserForm =
     , password : String
     , confirmPassword : String
     , displayName : String
+    , role : String
     , formError : Maybe String
     }
 
@@ -128,6 +130,7 @@ type alias AdminUser =
     { uid : String
     , email : String
     , displayName : String
+    , role : String
     , createdBy : Maybe String
     , createdAt : Maybe String
     }
@@ -139,6 +142,7 @@ initAdminUserForm =
     , password = ""
     , confirmPassword = ""
     , displayName = ""
+    , role = "admin"
     , formError = Nothing
     }
 
@@ -345,11 +349,25 @@ type Msg
     | ConfirmDeleteAdminUser AdminUser
     | CancelDeleteAdminUser
     | AdminUserDeleted (Result Decode.Error { success : Bool, message : String })
+    | UpdateAdminUserRole String
+    | UpdateEditingAdminUserRole String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 
 update msg model =
     case msg of
+
+        UpdateEditingAdminUserRole role ->
+            case model.editingAdminUser of
+                Just adminUser ->
+                    let
+                        updatedAdminUser = { adminUser | role = role }
+                    in
+                    ( { model | editingAdminUser = Just updatedAdminUser }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
         UpdateLoginEmail email ->
             ( { model | loginEmail = email }, Cmd.none )
 
@@ -909,10 +927,32 @@ update msg model =
 
         -- Admin User Management
         ShowAdminUsersPage ->
-            ( { model | page = AdminUsersPage, adminUserCreationResult = Nothing }, Cmd.none )
+            if isSuperUser model then
+                -- Set the page, reset any previous results, set loading to true, and request admin users
+                ( { model
+                    | page = AdminUsersPage
+                    , adminUserCreationResult = Nothing
+                    , adminUserUpdateResult = Nothing
+                    , adminUserDeletionResult = Nothing
+                    , loading = True  -- Set loading to true while data is being fetched
+                }
+                , requestAllAdmins ()  -- Immediately request admin users
+                )
+            else
+                ( { model | error = Just "You don't have permission to access admin management." }, Cmd.none )
 
         ReturnToSubmissionsPage ->
-            ( { model | page = SubmissionsPage }, Cmd.none )
+            ( { model
+                | page = SubmissionsPage
+                , adminUserCreationResult = Nothing
+                , adminUserUpdateResult = Nothing
+                , adminUserDeletionResult = Nothing
+                , showAdminUserForm = False
+                , editingAdminUser = Nothing
+                , confirmDeleteAdmin = Nothing
+            }
+            , Cmd.none
+            )
 
         ShowAdminUserForm ->
             ( { model | showAdminUserForm = True, adminUserForm = initAdminUserForm }, Cmd.none )
@@ -993,8 +1033,19 @@ update msg model =
                         { email = form.email
                         , password = form.password
                         , displayName = form.displayName
+                        , role = form.role
                         }
                     )
+
+        UpdateAdminUserRole role ->
+            let
+                form =
+                    model.adminUserForm
+
+                updatedForm =
+                    { form | role = role }
+            in
+            ( { model | adminUserForm = updatedForm }, Cmd.none )
 
         AdminUserCreated result ->
             case result of
@@ -1068,6 +1119,15 @@ update msg model =
                     else if not (String.contains "@" adminUser.email) then
                         ( { model | error = Just "Please enter a valid email address" }, Cmd.none )
                     else
+                        -- Add debug info
+                        let
+                            _ =
+                                { uid = adminUser.uid
+                                , email = adminUser.email
+                                , displayName = adminUser.displayName
+                                , role = adminUser.role
+                                }
+                        in
                         ( { model | loading = True, editingAdminUser = Nothing, error = Nothing }
                         , updateAdminUser (encodeAdminUserUpdate adminUser)
                         )
@@ -1160,10 +1220,15 @@ decodeAdminCreationResult value =
 
 adminUserDecoder : Decoder AdminUser
 adminUserDecoder =
-    Decode.map5 AdminUser
+    Decode.map6 AdminUser
         (Decode.field "uid" Decode.string)
         (Decode.field "email" Decode.string)
         (Decode.field "displayName" Decode.string)
+        (Decode.oneOf
+            [ Decode.field "role" Decode.string
+            , Decode.succeed "admin"  -- Default to adimn
+            ]
+        )
         (Decode.maybe (Decode.field "createdBy" Decode.string))
         (Decode.maybe (Decode.field "createdAt" Decode.string))
 
@@ -1293,10 +1358,14 @@ decodeStudentRecordResponse value =
 
 userDecoder : Decoder User
 userDecoder =
-    Decode.map3 User
+    Decode.map4 User
         (Decode.field "uid" Decode.string)
         (Decode.field "email" Decode.string)
         (Decode.field "displayName" Decode.string)
+        (Decode.oneOf
+            [ Decode.field "role" Decode.string
+            , Decode.succeed "admin" -- default to adimn role
+            ])
 
 decodeStudentResponse : Decode.Value -> Result Decode.Error Student
 decodeStudentResponse value =
@@ -1366,9 +1435,49 @@ encodeAdminUserUpdate adminUser =
         [ ( "uid", Encode.string adminUser.uid )
         , ( "email", Encode.string adminUser.email )
         , ( "displayName", Encode.string adminUser.displayName )
+        , ( "role", Encode.string adminUser.role)
         ]
 
 -- HELPERS
+
+formatDate : String -> String
+formatDate dateString =
+    -- Check if it's ISO format
+    if String.contains "T" dateString then
+        -- Extract just the date and time parts without milliseconds/timezone
+        let
+            dateParts =
+                dateString
+                    |> String.split "T"
+                    |> List.take 2
+
+            date = Maybe.withDefault "" (List.head dateParts)
+
+            time =
+                case List.drop 1 dateParts |> List.head of
+                    Just timeStr ->
+                        -- Take just HH:MM part of the time
+                        String.split ":" timeStr
+                            |> List.take 2
+                            |> String.join ":"
+                    Nothing ->
+                        ""
+        in
+        date ++ " " ++ time
+    else
+        -- If not ISO format, return as is
+        dateString
+
+
+isSuperUser : Model -> Bool
+isSuperUser model =
+    case model.appState of
+        Authenticated user ->
+            user.role == "superuser"
+        _ ->
+            False
+
+
 
 truncateGamesList : List String -> String
 truncateGamesList games =
@@ -1593,18 +1702,21 @@ viewContent model =
                             ]
                         ]
                     , div [ class "flex space-x-2" ]
-                         [ button
-                            [ onClick ShowAdminUsersPage
-                            , class "px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none"
-                            ]
-                            [ text "Manage Admins" ]
-                         , button
+                        [ if isSuperUser model then
+                            button
+                                [ onClick ShowAdminUsersPage
+                                , class "px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none"
+                                ]
+                                [ text "Manage Admins" ]
+                        else
+                            text ""  -- Don't show button for regular admins
+                        , button
                             [ onClick PerformSignOut
                             , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
                             ]
                             [ text "Sign Out" ]
                         ]
-                    ]
+                                        ]
                 , if model.loading then
                     div [ class "flex justify-center my-12" ]
                         [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
@@ -1789,6 +1901,21 @@ viewAdminUserForm form =
                         ]
                         []
                     ]
+                -- Add role selection dropdown
+                , div []
+                    [ label [ for "adminRole", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Role:" ]
+                    , select
+                        [ id "adminRole"
+                        , value form.role
+                        , onInput UpdateAdminUserRole
+                        , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        ]
+                        [ option [ value "admin" ] [ text "Regular Admin" ]
+                        , option [ value "superuser" ] [ text "Superuser" ]
+                        ]
+                    , p [ class "mt-1 text-xs text-gray-500" ]
+                        [ text "Superusers can manage other admin accounts." ]
+                    ]
                 ]
             , div [ class "mt-6 flex justify-end space-x-3" ]
                 [ button
@@ -1827,11 +1954,12 @@ viewAdminUsersList model =
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
                     [ thead [ class "bg-gray-50" ]
                         [ tr []
-                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Email" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Display Name" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Created By" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Created At" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Email" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Display Name" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20" ] [ text "Role" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Created By" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Created At" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Actions" ]
                             ]
                         ]
                     , tbody [ class "bg-white divide-y divide-gray-200" ]
@@ -1844,26 +1972,59 @@ viewAdminUserRow : AdminUser -> Html Msg
 viewAdminUserRow admin =
     tr [ class "hover:bg-gray-50" ]
         [ td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm font-medium text-gray-900" ] [ text admin.email ] ]
+            [ div [ class "text-sm font-medium text-gray-900 truncate max-w-xs" ] [ text admin.email ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm text-gray-500" ] [ text admin.displayName ] ]
+            [ div [ class "text-sm text-gray-500 truncate max-w-xs" ] [ text admin.displayName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm text-gray-500" ] [ text (Maybe.withDefault "Unknown" admin.createdBy) ] ]
+            [ viewRoleBadge admin.role ]
         , td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div [ class "text-sm text-gray-500" ] [ text (Maybe.withDefault "Unknown" admin.createdAt) ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
-            [ button
-                [ onClick (EditAdminUser admin)
-                , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
+            [ div [ class "text-sm text-gray-500 truncate max-w-xs" ] [ text (Maybe.withDefault "Unknown" admin.createdBy) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ]
+                [ text (formatDate (Maybe.withDefault "Unknown" admin.createdAt)) ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium" ]
+            [ div [ class "flex space-x-2" ]
+                [ button
+                    [ onClick (EditAdminUser admin)
+                    , class "flex-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
+                    ]
+                    [ text "Edit" ]
+                , button
+                    [ onClick (DeleteAdminUser admin)
+                    , class "flex-1 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
+                    ]
+                    [ text "Delete" ]
                 ]
-                [ text "Edit" ]
-            , button
-                [ onClick (DeleteAdminUser admin)
-                , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
-                ]
-                [ text "Delete" ]
             ]
         ]
+
+viewRoleBadge : String -> Html Msg
+viewRoleBadge role =
+    let
+        (bgColor, textColor) =
+            if role == "superuser" then
+                ("bg-purple-100", "text-purple-800")
+            else
+                ("bg-blue-100", "text-blue-800")
+    in
+    span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
+        [ text role ]
+
+
+viewAdminUserCreationResult : Maybe String -> Html Msg
+viewAdminUserCreationResult maybeResult =
+    case maybeResult of
+        Just result ->
+            if String.startsWith "Success" result then
+                div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
+                    [ p [ class "text-sm text-green-700" ] [ text result ] ]
+            else
+                div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
+                    [ p [ class "text-sm text-red-700" ] [ text result ] ]
+
+        Nothing ->
+            text ""
 
 viewAdminUserEditModal : Model -> Html Msg
 viewAdminUserEditModal model =
@@ -1872,7 +2033,9 @@ viewAdminUserEditModal model =
             div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
                 [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
                     [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
-                        [ h2 [ class "text-lg font-medium text-gray-900" ] [ text "Edit Admin User" ] ]
+                        [ h2 [ class "text-lg font-medium text-gray-900" ]
+                            [ text ("Edit Admin User: " ++ adminUser.email) ]
+                        ]
                     , div [ class "p-6" ]
                         [ div [ class "space-y-4" ]
                             [ div []
@@ -1899,6 +2062,24 @@ viewAdminUserEditModal model =
                                     ]
                                     []
                                 ]
+                            -- Role dropdown with enhanced styling and current role display
+                            , div []
+                                [ label [ for "editAdminRole", class "block text-sm font-medium text-gray-700 mb-1" ]
+                                    [ text "Role:" ]
+                                , div [ class "mb-2 text-xs text-gray-500" ]
+                                    [ text ("Current role: " ++ adminUser.role) ]
+                                , select
+                                    [ id "editAdminRole"
+                                    , value adminUser.role
+                                    , onInput UpdateEditingAdminUserRole
+                                    , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    ]
+                                    [ option [ value "admin" ] [ text "Regular Admin" ]
+                                    , option [ value "superuser" ] [ text "Superuser" ]
+                                    ]
+                                , p [ class "mt-1 text-xs text-gray-500" ]
+                                    [ text "Only superusers can manage other admin accounts" ]
+                                ]
                             , div [ class "pt-2 flex justify-end space-x-3" ]
                                 [ button
                                     [ onClick CancelAdminUserEdit
@@ -1915,20 +2096,6 @@ viewAdminUserEditModal model =
                         ]
                     ]
                 ]
-        Nothing ->
-            text ""
-
-viewAdminUserCreationResult : Maybe String -> Html Msg
-viewAdminUserCreationResult maybeResult =
-    case maybeResult of
-        Just result ->
-            if String.startsWith "Success" result then
-                div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
-                    [ p [ class "text-sm text-green-700" ] [ text result ] ]
-            else
-                div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
-                    [ p [ class "text-sm text-red-700" ] [ text result ] ]
-
         Nothing ->
             text ""
 

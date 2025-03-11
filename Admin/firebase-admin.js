@@ -1,14 +1,6 @@
 // firebase-admin.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import {
-  getDatabase,
-  ref,
-  get,
-  update,
-  onValue,
-  set,
-  remove
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, get, update, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -79,22 +71,53 @@ function isValidNameFormat(name) {
  */
 export function initializeFirebase(elmApp) {
   // Handle authentication state changes
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (user) {
-      // User is signed in
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email,
-      };
-      console.log("User is signed in:", userData);
-      elmApp.ports.receiveAuthState.send({
-        user: userData,
-        isSignedIn: true
-      });
+      try {
+        // Get the admin data to include the role
+        const adminRef = ref(database, `admins/${user.uid}`);
+        const adminSnapshot = await get(adminRef);
 
-      // Now that user is signed in, we can start listening for submissions
-      setupAdminSubmissionListeners(elmApp);
+        if (adminSnapshot.exists()) {
+          const adminData = adminSnapshot.val();
+          // User is signed in
+          const userData = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email,
+            role: adminData.role || "admin"  // Guarantee a default value
+          };
+          console.log("User is signed in:", userData);
+
+          // If the admin doesn't have a role set, let's add one
+          if (!adminData.role) {
+            // Update the admin record with a default role
+            await update(adminRef, { role: "admin" });
+            console.log("Added default 'admin' role to existing admin user");
+          }
+
+          elmApp.ports.receiveAuthState.send({
+            user: userData,
+            isSignedIn: true
+          });
+
+          // Now that user is signed in, we can start listening for submissions
+          setupAdminSubmissionListeners(elmApp);
+        } else {
+          // Admin record not found
+          console.log("Admin record not found for authenticated user");
+          elmApp.ports.receiveAuthState.send({
+            user: null,
+            isSignedIn: false
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching admin data:", error);
+        elmApp.ports.receiveAuthState.send({
+          user: null,
+          isSignedIn: false
+        });
+      }
     } else {
       // User is signed out
       console.log("User is signed out");
@@ -292,6 +315,50 @@ export function initializeFirebase(elmApp) {
       }
     });
   }
+
+  // If logged in, check if we need to migrate role fields
+  if (auth.currentUser) {
+    migrateAdminRoles(elmApp);
+  }
+}
+
+/**
+ * Automatically migrate existing admin records to include role field
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function migrateAdminRoles(elmApp) {
+  try {
+    console.log("Checking for admin records missing role field...");
+    const adminsRef = ref(database, 'admins');
+    const adminsSnapshot = await get(adminsRef);
+
+    if (adminsSnapshot.exists()) {
+      const adminsData = adminsSnapshot.val();
+      let migratedCount = 0;
+
+      for (const uid in adminsData) {
+        const admin = adminsData[uid];
+
+        // If role is missing, add it
+        if (!admin.role) {
+          // For the first admin, make them a superuser
+          const role = migratedCount === 0 ? "superuser" : "admin";
+
+          await update(ref(database, `admins/${uid}`), { role });
+          console.log(`Migrated admin ${admin.email} to role: ${role}`);
+          migratedCount++;
+        }
+      }
+
+      if (migratedCount > 0) {
+        console.log(`Migrated ${migratedCount} admin records to include role field`);
+      } else {
+        console.log("All admin records already have role field");
+      }
+    }
+  } catch (error) {
+    console.error("Error migrating admin roles:", error);
+  }
 }
 
 /**
@@ -322,6 +389,7 @@ async function fetchAllAdminUsers(elmApp) {
           uid,
           email: admin.email,
           displayName: admin.displayName || admin.email,
+          role: admin.role || "admin",  // Ensure role has a default value
           createdBy: admin.createdBy || null,
           createdAt: admin.createdAt || null
         });
@@ -344,6 +412,8 @@ async function fetchAllAdminUsers(elmApp) {
  * @param {Object} adminUserData - The admin user data to update
  * @param {Object} elmApp - The Elm application instance
  */
+// In firebase-admin.js, modify the updateAdminUserRecord function's permission checks:
+
 async function updateAdminUserRecord(adminUserData, elmApp) {
   try {
     // First check if the current user is an admin
@@ -354,34 +424,65 @@ async function updateAdminUserRecord(adminUserData, elmApp) {
       throw new Error("Only existing admins can manage admin accounts");
     }
 
+    // Get the current user's role
+    const currentAdminData = adminSnapshot.val();
+    const isCurrentUserSuperuser = currentAdminData.role === "superuser";
+
+    // Make sure regular admins can't update superusers
+    const targetAdminRef = ref(database, `admins/${adminUserData.uid}`);
+    const targetAdminSnapshot = await get(targetAdminRef);
+
+    if (targetAdminSnapshot.exists()) {
+      const targetAdminData = targetAdminSnapshot.val();
+      const isTargetSuperuser = targetAdminData.role === "superuser";
+
+      // Check if a non-superuser is trying to update a superuser
+      if (isTargetSuperuser && !isCurrentUserSuperuser) {
+        throw new Error("Only superusers can modify other superuser accounts");
+      }
+
+      // Check if trying to promote to superuser without being a superuser
+      if (adminUserData.role === "superuser" && !isCurrentUserSuperuser) {
+        throw new Error("Only superusers can promote accounts to superuser status");
+      }
+
+      // IMPORTANT: There's no restriction on superusers downgrading other superusers to regular admins
+      // This allows role changes in both directions
+    }
+
     // Check if trying to update your own account
     if (adminUserData.uid === currentUserUid) {
+      // Don't allow superusers to downgrade themselves (prevents lockout situation)
+      if (isCurrentUserSuperuser && adminUserData.role !== "superuser") {
+        throw new Error("You cannot downgrade your own superuser status");
+      }
+
       // Allow updating display name but not email for current user
       // This is to prevent locking yourself out
       const adminRef = ref(database, `admins/${adminUserData.uid}`);
       await update(adminRef, {
-        displayName: adminUserData.displayName
+        displayName: adminUserData.displayName,
+        // Allow updating your own role if you're not downgrading from superuser
+        role: adminUserData.role
       });
 
       elmApp.ports.adminUserUpdated.send({
         success: true,
-        message: "Success: Your display name has been updated. For security reasons, you cannot change your own email."
+        message: "Success: Your account information has been updated."
       });
       return;
     }
 
-    // Check if the admin exists
-    const adminRef = ref(database, `admins/${adminUserData.uid}`);
-    const adminCheck = await get(adminRef);
+    // Ensure role is defined with a default value if it's missing
+    const roleToUse = adminUserData.role || "admin";
 
-    if (!adminCheck.exists()) {
-      throw new Error("Admin user not found");
-    }
+    console.log("Updating admin user with role:", roleToUse);
 
     // Update the admin record
-    await update(adminRef, {
+    await update(targetAdminRef, {
       email: adminUserData.email,
       displayName: adminUserData.displayName,
+      role: roleToUse, // Use the role with fallback to "admin"
       updatedBy: auth.currentUser.email,
       updatedAt: new Date().toISOString()
     });
@@ -415,6 +516,23 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
       throw new Error("Only existing admins can manage admin accounts");
     }
 
+    // Get the current user's role
+    const currentAdminData = adminSnapshot.val();
+    const isCurrentUserSuperuser = currentAdminData.role === "superuser";
+
+    // Check if trying to delete a superuser
+    const targetAdminRef = ref(database, `admins/${adminUserId}`);
+    const targetAdminSnapshot = await get(targetAdminRef);
+
+    if (targetAdminSnapshot.exists()) {
+      const targetAdminData = targetAdminSnapshot.val();
+      if (targetAdminData.role === "superuser" && !isCurrentUserSuperuser) {
+        throw new Error("Only superusers can delete other superuser accounts");
+      }
+    } else {
+      throw new Error("Admin user not found");
+    }
+
     // Check if trying to delete your own account
     if (adminUserId === currentUserUid) {
       throw new Error("You cannot delete your own admin account");
@@ -428,16 +546,8 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
       throw new Error("Cannot delete the only admin user");
     }
 
-    // Check if the admin exists
-    const adminRef = ref(database, `admins/${adminUserId}`);
-    const adminCheck = await get(adminRef);
-
-    if (!adminCheck.exists()) {
-      throw new Error("Admin user not found");
-    }
-
     // Delete the admin record
-    await remove(adminRef);
+    await remove(targetAdminRef);
 
     // Return success
     elmApp.ports.adminUserDeleted.send({
@@ -455,12 +565,12 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
 
 /**
  * Create a new admin user account
- * @param {Object} userData - The user data {email, password, displayName}
+ * @param {Object} userData - The user data {email, password, displayName, role}
  * @param {Object} elmApp - The Elm application instance
  */
 async function createAdminUserAccount(userData, elmApp) {
   try {
-    const { email, password, displayName } = userData;
+    const { email, password, displayName, role } = userData;
 
     // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
@@ -468,6 +578,13 @@ async function createAdminUserAccount(userData, elmApp) {
 
     if (!adminSnapshot.exists()) {
       throw new Error("Only existing admins can create new admin accounts");
+    }
+
+    // Check if the current user is a superuser before allowing creation of another superuser
+    const currentAdminData = adminSnapshot.val();
+    const currentUserRole = currentAdminData.role || "admin";
+    if (role === "superuser" && currentUserRole !== "superuser") {
+      throw new Error("Only superusers can create other superuser accounts");
     }
 
     // Create the user with Firebase Auth
@@ -479,7 +596,7 @@ async function createAdminUserAccount(userData, elmApp) {
     await set(adminRef, {
       email: email,
       displayName: displayName || email,
-      role: "admin",
+      role: role || "admin",  // Use the provided role or default to "admin"
       createdBy: auth.currentUser.email,
       createdAt: new Date().toISOString()
     });
@@ -868,8 +985,6 @@ function getAdminAuthErrorMessage(errorCode) {
       return 'No account found with this email.';
     case 'auth/wrong-password':
       return 'Incorrect password.';
-    case 'auth/too-many-requests':
-      return 'Too many failed login attempts. Please try again later.';
     case 'auth/too-many-requests':
       return 'Too many failed login attempts. Please try again later.';
     case 'auth/network-request-failed':
