@@ -1,92 +1,113 @@
-# Unity Game Submissions with Nix Flake
+# Unity Game Submissions
 
-This project uses Nix flakes to provide a consistent development environment and build pipeline for an Elm application that integrates with Firebase.
+A web application for managing Unity game submissions built with Elm and Firebase, using Nix for reproducible builds.
 
-## Prerequisites
+## 🌐 Live Demo
 
-- [Nix package manager](https://nixos.org/download.html) with flakes enabled
-- Firebase project and credentials
+Visit the application at: [https://elm-unity-subs.web.app](https://elm-unity-subs.web.app)
 
-## Getting Started
+## 🚀 Features
 
-1. Clone this repository:
-   ```bash
-   git clone <your-repository-url>
-   cd <your-repository-directory>
-   ```
+- Separate interfaces for administrators and students
+- Real-time data synchronization with Firebase
+- Responsive design with Tailwind CSS
+- Reproducible builds with Nix flakes
 
-2. Generate the Node.js packages file:
-   ```bash
-   node2nix -i node-packages.json -o node-packages.nix
-   ```
-
-3. Enter the development shell:
-   ```bash
-   nix develop
-   ```
-
-## Project Structure
+## 📋 Project Structure
 
 ```
 .
-├── Admin/                  # Admin Elm application
-│   ├── src/                # Elm source files
-│   ├── index.html          # Admin HTML template
-│   └── firebase-admin.js   # Firebase integration for admin
-├── Students/               # Student Elm application
-│   ├── src/                # Elm source files
-│   ├── index.html          # Student HTML template
-│   └── student-firebase.js # Firebase integration for students
-├── src/
-│   └── css/
-│       └── tailwind.css    # Tailwind CSS entry point
+├── Admin/                  # Admin interface
+│   ├── admin.html          # Admin HTML template
+│   ├── admin.js            # Compiled Elm code for Admin
+│   ├── firebase-admin.js   # Firebase integration for Admin
+│   └── style.css           # Compiled CSS for Admin
+├── Student/                # Student interface
+│   ├── student.html        # Student HTML template
+│   ├── student.js          # Compiled Elm code for Student
+│   ├── student-firebase.js # Firebase integration for Student
+│   └── style.css           # Compiled CSS for Student
+├── css/                    # Global CSS directory
+│   └── tailwind.css        # Compiled Tailwind CSS
+├── src/                    # Source files
+│   ├── Admin.elm           # Elm source for Admin interface
+│   ├── Student.elm         # Elm source for Student interface
+│   └── css/                # CSS source
+│       └── tailwind.css    # Tailwind CSS source file
 ├── flake.nix               # Nix flake configuration
-├── node-packages.json      # Node.js dependencies
-├── node-packages.nix       # Generated Node.js packages
-├── tailwind.config.js      # Tailwind configuration
-├── postcss.config.js       # PostCSS configuration
-└── firebase.json           # Firebase configuration
+├── elm.json                # Elm package configuration
+├── firebase.json           # Firebase configuration
+└── tailwind.config.js      # Tailwind CSS configuration
 ```
 
-## Available Commands
+## 🛠️ Development
 
-- **Build the entire project**:
-  ```bash
-  nix build
-  ```
+This project uses Nix flakes for reproducible builds and development environments. Here's how to get started:
 
-- **Deploy to Firebase**:
-  ```bash
-  nix run
-  ```
+### Prerequisites
 
-- **Update Node.js dependencies**:
-  ```bash
-  node2nix -i node-packages.json -o node-packages.nix
-  ```
+- [Nix package manager](https://nixos.org/download.html) with flakes enabled
+- Firebase project for deployment
 
-## Adding or Modifying Dependencies
+### Local Development
 
-1. Update the `node-packages.json` file with your new dependencies
-2. Run `node2nix -i node-packages.json -o node-packages.nix`
-3. Rebuild your project with `nix build`
+1. Clone the repository:
+```bash
+git clone https://github.com/stamnostomp/unity_link_submissions.git
+cd unity_link_submissions
+```
 
-## Elm Dependencies
+2. Enter the development shell:
+```bash
+nix develop
+```
 
-Elm dependencies are managed through the standard `elm.json` file in each Elm application directory. When you add new Elm dependencies, the Nix build process will automatically pick them up.
+3. Build the project:
+```bash
+build_all
+```
 
-## Firebase Configuration
+### Available Commands
 
-Make sure to set up your Firebase project and credentials:
+Once in the Nix development shell, you can use these commands:
 
-1. Log in to Firebase:
-   ```bash
-   firebase login
-   ```
+- `build_all` - Build Elm and CSS for local development
+- `deploy_firebase` - Deploy to Firebase
+- `nix run` - Show interactive menu
+- `nix run .#build-elm` - Build only Elm files
+- `nix run .#favicon` - Generate favicon
+- `nix run .#deploy` - Deploy to Firebase
 
-2. Initialize your project (if you haven't already):
-   ```bash
-   firebase init
-   ```
+## 📝 Firebase Configuration
 
-3. Update the `firebase.json` file as needed for your specific project requirements.
+To deploy to Firebase:
+
+1. Create a file named `.firebaserc` with your project ID:
+```json
+{
+  "projects": {
+    "default": "your-firebase-project-id"
+  }
+}
+```
+
+2. Deploy the project:
+```bash
+nix run .#deploy
+```
+
+## 📜 URL Routes
+
+- `/admin` - Administrator interface
+- `/student` - Student interface
+
+## 🧰 Technologies Used
+
+- [Elm](https://elm-lang.org/) - The frontend language
+- [Firebase](https://firebase.google.com/) - Backend and hosting
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Nix](https://nixos.org/) - Build system
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
