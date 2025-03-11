@@ -10,68 +10,33 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-
-        # Project directories based on existing structure
-        srcDir = "./src";
-        adminOutputDir = "./Admin";
-        studentOutputDir = "./Student";
-
-        # Node.js dependencies
-        nodeDependencies = (pkgs.callPackage ./node-packages.nix {}).nodeDependencies;
       in
       {
         packages = {
-          # Build Elm code for Admin
-          admin = pkgs.stdenv.mkDerivation {
-            name = "elm-admin-app";
+          # Use pre-built Elm JavaScript files
+          elm-apps = pkgs.stdenv.mkDerivation {
+            name = "elm-applications";
             src = ./.;
-            buildInputs = [ pkgs.elmPackages.elm ];
-            buildPhase = ''
-              # Ensure output directory exists
-              mkdir -p ${adminOutputDir}
 
-              # Compile Elm code
-              ${pkgs.elmPackages.elm}/bin/elm make ${srcDir}/Admin.elm --output=${adminOutputDir}/admin.js --optimize
-            '';
+            # No build needed - we'll use the pre-built JS files
+            dontBuild = true;
+
             installPhase = ''
-              mkdir -p $out/Admin
-              cp ${adminOutputDir}/admin.js $out/Admin/
+              mkdir -p $out/Admin $out/Student
 
-              # Copy other static files from Admin folder
-              cp ${adminOutputDir}/*.html $out/Admin/ || true
-              cp ${adminOutputDir}/*.css $out/Admin/ || true
-              cp ${adminOutputDir}/*.js $out/Admin/ || true
+              # Copy pre-built JavaScript files
+              cp ./Admin/admin.js $out/Admin/ || true
+              cp ./Student/student.js $out/Student/ || true
 
-              # Exclude admin.js which we just compiled
-              rm -f $out/Admin/admin.js
-              cp ${adminOutputDir}/admin.js $out/Admin/
-            '';
-          };
+              # Copy static files
+              cp ./Admin/*.html $out/Admin/ || true
+              cp ./Admin/firebase-admin.js $out/Admin/ || true
 
-          # Build Elm code for Student
-          student = pkgs.stdenv.mkDerivation {
-            name = "elm-student-app";
-            src = ./.;
-            buildInputs = [ pkgs.elmPackages.elm ];
-            buildPhase = ''
-              # Ensure output directory exists
-              mkdir -p ${studentOutputDir}
+              cp ./Student/*.html $out/Student/ || true
+              cp ./Student/student-firebase.js $out/Student/ || true
 
-              # Compile Elm code
-              ${pkgs.elmPackages.elm}/bin/elm make ${srcDir}/Student.elm --output=${studentOutputDir}/student.js --optimize
-            '';
-            installPhase = ''
-              mkdir -p $out/Student
-              cp ${studentOutputDir}/student.js $out/Student/
-
-              # Copy other static files from Student folder
-              cp ${studentOutputDir}/*.html $out/Student/ || true
-              cp ${studentOutputDir}/*.css $out/Student/ || true
-              cp ${studentOutputDir}/*.js $out/Student/ || true
-
-              # Exclude student.js which we just compiled
-              rm -f $out/Student/student.js
-              cp ${studentOutputDir}/student.js $out/Student/
+              # Copy favicon
+              cp ./favicon.ico $out/ || true
             '';
           };
 
@@ -79,25 +44,31 @@
           tailwind = pkgs.stdenv.mkDerivation {
             name = "tailwind-css";
             src = ./.;
-            buildInputs = [ pkgs.nodejs ];
+
+            nativeBuildInputs = [ pkgs.nodePackages.tailwindcss ];
+
             buildPhase = ''
-              # Setup Node environment
-              export PATH="${nodeDependencies}/bin:$PATH"
-              export NODE_PATH="${nodeDependencies}/lib/node_modules"
+              # Create output directory
+              mkdir -p css-output
 
-              # Create output directories
-              mkdir -p ${adminOutputDir}
-              mkdir -p ${studentOutputDir}
-
-              # Build Tailwind CSS for Admin
-              npx tailwindcss -i ${srcDir}/css/tailwind.css -o ${adminOutputDir}/style.css --minify
-              # Copy the same CSS to Student folder
-              cp ${adminOutputDir}/style.css ${studentOutputDir}/style.css
+              # Build Tailwind CSS
+              tailwindcss \
+                -i ./src/css/tailwind.css \
+                -o ./css-output/tailwind.css \
+                --minify
             '';
+
             installPhase = ''
+              # Create both css directory and individual app directories
+              mkdir -p $out/css
               mkdir -p $out/Admin $out/Student
-              cp ${adminOutputDir}/style.css $out/Admin/
-              cp ${studentOutputDir}/style.css $out/Student/
+
+              # Copy CSS to the css directory (main location)
+              cp ./css-output/tailwind.css $out/css/
+
+              # Also copy to individual app directories for backward compatibility
+              cp ./css-output/tailwind.css $out/Admin/style.css
+              cp ./css-output/tailwind.css $out/Student/style.css
             '';
           };
 
@@ -105,69 +76,154 @@
           default = pkgs.symlinkJoin {
             name = "unity-game-submissions";
             paths = [
-              self.packages.${system}.admin
-              self.packages.${system}.student
+              self.packages.${system}.elm-apps
               self.packages.${system}.tailwind
             ];
           };
         };
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = pkgs.writeShellScriptBin "deploy" ''
-            echo "Building project..."
-            # Clean and create dist directory
-            rm -rf dist
-            mkdir -p dist/Admin dist/Student
+        apps = {
+          build-elm = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "build-elm" ''
+              set -e
+              echo "Building Elm applications..."
+              ${pkgs.elmPackages.elm}/bin/elm make src/Admin.elm --output=Admin/admin.js --optimize
+              ${pkgs.elmPackages.elm}/bin/elm make src/Student.elm --output=Student/student.js --optimize
+              echo "Elm build complete!"
+            '';
+          };
 
-            # Copy files to dist
-            cp -r ${self.packages.${system}.default}/* dist/
+          deploy = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "deploy" ''
+              # Get Firebase project ID
+              if [ -f .firebaserc ]; then
+                PROJECT_ID=$(${pkgs.jq}/bin/jq -r '.projects.default' .firebaserc)
+                echo "Using Firebase project: $PROJECT_ID"
+              else
+                echo "No .firebaserc file found."
+                echo "Please specify your Firebase project ID:"
+                read PROJECT_ID
 
-            # Copy firebase.json to dist
-            cp ./firebase.json dist/
+                # Create .firebaserc file
+                echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > .firebaserc
+                echo "Created .firebaserc with project: $PROJECT_ID"
+              fi
 
-            echo "Deploying to Firebase..."
-            export PATH="${pkgs.firebase-tools}/bin:$PATH"
-            cd dist && firebase deploy
-          '';
+              echo "Building Elm applications locally..."
+              # Build Elm apps using the build-elm app
+              $(nix run .#build-elm)
+
+              echo "Packaging with Nix..."
+              # Build the project with Nix
+              nix build
+
+              echo "Preparing for deployment..."
+              # Handle dist directory with proper permissions
+              if [ -d "dist" ]; then
+                echo "Removing old dist directory (may require sudo)..."
+                if ! rm -rf dist 2>/dev/null; then
+                  sudo rm -rf dist
+                fi
+              fi
+
+              # Create a fresh dist directory with proper permissions
+              mkdir -p dist
+
+              # Copy build artifacts
+              echo "Copying build artifacts..."
+              cp -r ${self.packages.${system}.default}/* dist/
+
+              # Copy Firebase config files
+              cp ./firebase.json dist/
+              cp ./.firebaserc dist/
+
+              # Ensure correct permissions for deployment
+              chmod -R u+w dist
+
+              echo "Deploying to Firebase project: $PROJECT_ID"
+              cd dist && ${pkgs.firebase-tools}/bin/firebase deploy --project $PROJECT_ID
+            '';
+          };
+
+          default = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "unity-submissions" ''
+              echo "Unity Game Submissions Manager"
+              echo "-----------------------------"
+              echo "1: Build Elm applications"
+              echo "2: Deploy to Firebase"
+              echo "3: Build and Deploy"
+              echo "4: Exit"
+              echo ""
+              echo "Enter your choice (1-4):"
+              read choice
+
+              case $choice in
+                1)
+                  nix run .#build-elm
+                  ;;
+                2)
+                  nix run .#deploy
+                  ;;
+                3)
+                  nix run .#build-elm && nix run .#deploy
+                  ;;
+                4)
+                  echo "Exiting..."
+                  exit 0
+                  ;;
+                *)
+                  echo "Invalid choice. Exiting."
+                  exit 1
+                  ;;
+              esac
+            '';
+          };
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = [
+          packages = [
             # Development dependencies
             pkgs.elmPackages.elm
             pkgs.elmPackages.elm-format
             pkgs.elmPackages.elm-test
             pkgs.nodejs
+            pkgs.nodePackages.tailwindcss
             pkgs.firebase-tools
-
-            # For node_modules linking
-            pkgs.nodePackages.node2nix
+            pkgs.jq
           ];
 
           shellHook = ''
-            export NODE_PATH="${nodeDependencies}/lib/node_modules"
-            export PATH="${nodeDependencies}/bin:$PATH"
+            build_all() {
+              echo "Building everything..."
+              # Build Elm
+              nix run .#build-elm
 
-            echo "Nix development environment loaded!"
-            echo "Available commands:"
-            echo "  nix build - Build all packages"
-            echo "  nix run - Deploy to Firebase"
-            echo "  node2nix - Update Node.js dependencies"
-
-            # Helper for local development
-            build_local() {
-              echo "Building Elm applications..."
-              elm make src/Admin.elm --output=Admin/admin.js --optimize
-              elm make src/Student.elm --output=Student/student.js --optimize
-
+              # Build CSS
               echo "Building CSS..."
-              npx tailwindcss -i src/css/tailwind.css -o Admin/style.css --minify
-              cp Admin/style.css Student/style.css
+              mkdir -p css
+              ${pkgs.nodePackages.tailwindcss}/bin/tailwindcss \
+                -i ./src/css/tailwind.css \
+                -o ./css/tailwind.css \
+                --minify
+
+              # Also copy to individual directories for compatibility
+              cp ./css/tailwind.css ./Admin/style.css
+              cp ./css/tailwind.css ./Student/style.css
 
               echo "Build complete!"
             }
 
-            echo "  build_local - Build project for local development"
+            deploy_firebase() {
+              nix run .#deploy
+            }
+
+            echo "Nix development environment loaded!"
+            echo "Available commands:"
+            echo "  build_all - Build Elm and CSS for local development"
+            echo "  deploy_firebase - Deploy to Firebase"
+            echo "  nix run - Show interactive menu"
+            echo "  nix run .#build-elm - Build only Elm files"
+            echo "  nix run .#deploy - Deploy to Firebase"
           '';
         };
       }
