@@ -10,9 +10,42 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        # SVG content for favicon
+        faviconSvg = ''
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+            <!-- Background -->
+            <rect width="64" height="64" rx="14" fill="#2C2C2C"/>
+
+            <!-- Unity-like triangular logo -->
+            <polygon points="32,10 50,45 14,45" fill="#f5f5f5" stroke="#1A1A1A" stroke-width="2"/>
+
+            <!-- Form element suggestion -->
+            <rect x="18" y="24" width="28" height="15" rx="3" fill="#4169E1" opacity="0.7"/>
+
+            <!-- Upload arrow -->
+            <path d="M32,18 L38,26 H34 V32 H30 V26 H26 Z" fill="#56C173" stroke="#1A1A1A" stroke-width="1"/>
+
+            <!-- Submission text line suggestions -->
+            <rect x="22" y="28" width="20" height="2" rx="1" fill="#f5f5f5" opacity="0.8"/>
+            <rect x="22" y="32" width="14" height="2" rx="1" fill="#f5f5f5" opacity="0.8"/>
+          </svg>
+        '';
       in
       {
         packages = {
+          # Generate favicon
+          favicon = pkgs.runCommand "favicon" {
+            buildInputs = [ pkgs.imagemagick ];
+          } ''
+            # Create SVG file
+            mkdir -p $out
+            echo '${faviconSvg}' > favicon.svg
+
+            # Convert to ICO
+            convert favicon.svg -background none -define icon:auto-resize=64,48,32,16 $out/favicon.ico
+          '';
+
           # Use pre-built Elm JavaScript files
           elm-apps = pkgs.stdenv.mkDerivation {
             name = "elm-applications";
@@ -22,6 +55,8 @@
             dontBuild = true;
 
             installPhase = ''
+              # Create root directory and app directories
+              mkdir -p $out
               mkdir -p $out/Admin $out/Student
 
               # Copy pre-built JavaScript files
@@ -35,8 +70,8 @@
               cp ./Student/*.html $out/Student/ || true
               cp ./Student/student-firebase.js $out/Student/ || true
 
-              # Copy favicon
-              cp ./favicon.ico $out/ || true
+              # Copy favicon from the favicon package to the root directory
+              cp ${self.packages.${system}.favicon}/favicon.ico $out/
             '';
           };
 
@@ -137,6 +172,11 @@
               cp ./firebase.json dist/
               cp ./.firebaserc dist/
 
+              # Explicitly copy favicon to ensure it's at the root level
+              if [ ! -f "dist/favicon.ico" ]; then
+                cp ${self.packages.${system}.favicon}/favicon.ico dist/ || true
+              fi
+
               # Ensure correct permissions for deployment
               chmod -R u+w dist
 
@@ -145,16 +185,29 @@
             '';
           };
 
+          favicon = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "generate-favicon" ''
+              echo "Generating favicon..."
+              nix build .#favicon
+
+              # Copy to project root
+              cp ${self.packages.${system}.favicon}/favicon.ico ./
+
+              echo "Favicon generated and copied to the project root."
+            '';
+          };
+
           default = flake-utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "unity-submissions" ''
               echo "Unity Game Submissions Manager"
               echo "-----------------------------"
               echo "1: Build Elm applications"
-              echo "2: Deploy to Firebase"
-              echo "3: Build and Deploy"
-              echo "4: Exit"
+              echo "2: Generate favicon"
+              echo "3: Deploy to Firebase"
+              echo "4: Build and Deploy"
+              echo "5: Exit"
               echo ""
-              echo "Enter your choice (1-4):"
+              echo "Enter your choice (1-5):"
               read choice
 
               case $choice in
@@ -162,12 +215,15 @@
                   nix run .#build-elm
                   ;;
                 2)
-                  nix run .#deploy
+                  nix run .#favicon
                   ;;
                 3)
-                  nix run .#build-elm && nix run .#deploy
+                  nix run .#deploy
                   ;;
                 4)
+                  nix run .#build-elm && nix run .#deploy
+                  ;;
+                5)
                   echo "Exiting..."
                   exit 0
                   ;;
@@ -190,6 +246,7 @@
             pkgs.nodePackages.tailwindcss
             pkgs.firebase-tools
             pkgs.jq
+            pkgs.imagemagick
           ];
 
           shellHook = ''
@@ -197,6 +254,9 @@
               echo "Building everything..."
               # Build Elm
               nix run .#build-elm
+
+              # Generate favicon
+              nix run .#favicon
 
               # Build CSS
               echo "Building CSS..."
@@ -219,10 +279,11 @@
 
             echo "Nix development environment loaded!"
             echo "Available commands:"
-            echo "  build_all - Build Elm and CSS for local development"
+            echo "  build_all - Build everything for local development"
             echo "  deploy_firebase - Deploy to Firebase"
             echo "  nix run - Show interactive menu"
             echo "  nix run .#build-elm - Build only Elm files"
+            echo "  nix run .#favicon - Generate favicon"
             echo "  nix run .#deploy - Deploy to Firebase"
           '';
         };

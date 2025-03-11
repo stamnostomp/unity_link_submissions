@@ -11,11 +11,11 @@
     "rewrites": [
       {
         "source": "/student",
-        "destination": "/Students/student.html"
+        "destination": "/Student/student.html"
       },
       {
         "source": "/student/**",
-        "destination": "/Students/student.html"
+        "destination": "/Student/student.html"
       },
       {
         "source": "/admin",
