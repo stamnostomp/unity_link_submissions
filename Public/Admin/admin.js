@@ -784,11 +784,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.aA.ag === region.aH.ag)
+	if (region.aJ.an === region.aP.an)
 	{
-		return 'on line ' + region.aA.ag;
+		return 'on line ' + region.aJ.an;
 	}
-	return 'on lines ' + region.aA.ag + ' through ' + region.aH.ag;
+	return 'on lines ' + region.aJ.an + ' through ' + region.aP.an;
 }
 
 
@@ -1857,9 +1857,9 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.bv,
-		impl.bJ,
-		impl.bF,
+		impl.bC,
+		impl.bQ,
+		impl.bM,
 		function() { return function() {} }
 	);
 });
@@ -2719,9 +2719,9 @@ var _VirtualDom_mapEventTuple = F2(function(func, tuple)
 var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
-		aQ: func(record.aQ),
-		aB: record.aB,
-		ay: record.ay
+		aX: func(record.aX),
+		aK: record.aK,
+		aH: record.aH
 	}
 });
 
@@ -2989,11 +2989,11 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		// 3 = Custom
 
 		var value = result.a;
-		var message = !tag ? value : tag < 3 ? value.a : value.aQ;
-		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.aB;
+		var message = !tag ? value : tag < 3 ? value.a : value.aX;
+		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.aK;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.ay) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.aH) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3943,11 +3943,11 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.bv,
-		impl.bJ,
-		impl.bF,
+		impl.bC,
+		impl.bQ,
+		impl.bM,
 		function(sendToApp, initialModel) {
-			var view = impl.bK;
+			var view = impl.bR;
 			/**/
 			var domNode = args['node'];
 			//*/
@@ -3979,12 +3979,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.bv,
-		impl.bJ,
-		impl.bF,
+		impl.bC,
+		impl.bQ,
+		impl.bM,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.az && impl.az(sendToApp)
-			var view = impl.bK;
+			var divertHrefToApp = impl.aI && impl.aI(sendToApp)
+			var view = impl.bR;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -3992,12 +3992,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 			{
 				_VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
-				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.bi);
+				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.bp);
 				var patches = _VirtualDom_diff(currNode, nextNode);
 				bodyNode = _VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
 				_VirtualDom_divertHrefToApp = 0;
-				(title !== doc.bH) && (_VirtualDom_doc.title = title = doc.bH);
+				(title !== doc.bO) && (_VirtualDom_doc.title = title = doc.bO);
 			});
 		}
 	);
@@ -4053,12 +4053,12 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var onUrlChange = impl.bx;
-	var onUrlRequest = impl.by;
+	var onUrlChange = impl.bE;
+	var onUrlRequest = impl.bF;
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		az: function(sendToApp)
+		aI: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -4074,9 +4074,9 @@ function _Browser_application(impl)
 					var next = $elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.aY === next.aY
-							&& curr.aM === next.aM
-							&& curr.aV.a === next.aV.a
+							&& curr.a3 === next.a3
+							&& curr.aU === next.aU
+							&& curr.a0.a === next.a0.a
 						)
 							? $elm$browser$Browser$Internal(next)
 							: $elm$browser$Browser$External(href)
@@ -4084,13 +4084,13 @@ function _Browser_application(impl)
 				}
 			});
 		},
-		bv: function(flags)
+		bC: function(flags)
 		{
-			return A3(impl.bv, flags, _Browser_getUrl(), key);
+			return A3(impl.bC, flags, _Browser_getUrl(), key);
 		},
-		bK: impl.bK,
-		bJ: impl.bJ,
-		bF: impl.bF
+		bR: impl.bR,
+		bQ: impl.bQ,
+		bM: impl.bM
 	});
 }
 
@@ -4156,17 +4156,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { bt: 'hidden', bk: 'visibilitychange' }
+		? { bA: 'hidden', br: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { bt: 'mozHidden', bk: 'mozvisibilitychange' }
+		? { bA: 'mozHidden', br: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { bt: 'msHidden', bk: 'msvisibilitychange' }
+		? { bA: 'msHidden', br: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { bt: 'webkitHidden', bk: 'webkitvisibilitychange' }
-		: { bt: 'hidden', bk: 'visibilitychange' };
+		? { bA: 'webkitHidden', br: 'webkitvisibilitychange' }
+		: { bA: 'hidden', br: 'visibilitychange' };
 }
 
 
@@ -4247,12 +4247,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		a2: _Browser_getScene(),
-		a9: {
-			bb: _Browser_window.pageXOffset,
-			bc: _Browser_window.pageYOffset,
-			ba: _Browser_doc.documentElement.clientWidth,
-			aL: _Browser_doc.documentElement.clientHeight
+		a9: _Browser_getScene(),
+		bg: {
+			bi: _Browser_window.pageXOffset,
+			bj: _Browser_window.pageYOffset,
+			bh: _Browser_doc.documentElement.clientWidth,
+			aT: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4262,8 +4262,8 @@ function _Browser_getScene()
 	var body = _Browser_doc.body;
 	var elem = _Browser_doc.documentElement;
 	return {
-		ba: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		aL: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		bh: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		aT: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4286,15 +4286,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			a2: {
-				ba: node.scrollWidth,
-				aL: node.scrollHeight
-			},
 			a9: {
-				bb: node.scrollLeft,
-				bc: node.scrollTop,
-				ba: node.clientWidth,
-				aL: node.clientHeight
+				bh: node.scrollWidth,
+				aT: node.scrollHeight
+			},
+			bg: {
+				bi: node.scrollLeft,
+				bj: node.scrollTop,
+				bh: node.clientWidth,
+				aT: node.clientHeight
 			}
 		};
 	});
@@ -4324,18 +4324,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			a2: _Browser_getScene(),
-			a9: {
-				bb: x,
-				bc: y,
-				ba: _Browser_doc.documentElement.clientWidth,
-				aL: _Browser_doc.documentElement.clientHeight
+			a9: _Browser_getScene(),
+			bg: {
+				bi: x,
+				bj: y,
+				bh: _Browser_doc.documentElement.clientWidth,
+				aT: _Browser_doc.documentElement.clientHeight
 			},
-			bo: {
-				bb: x + rect.left,
-				bc: y + rect.top,
-				ba: rect.width,
-				aL: rect.height
+			bv: {
+				bi: x + rect.left,
+				bj: y + rect.top,
+				bh: rect.width,
+				aT: rect.height
 			}
 		};
 	});
@@ -4776,25 +4776,25 @@ var $elm$core$Array$treeFromBuilder = F2(
 	});
 var $elm$core$Array$builderToArray = F2(
 	function (reverseNodeList, builder) {
-		if (!builder.c) {
+		if (!builder.e) {
 			return A4(
 				$elm$core$Array$Array_elm_builtin,
-				$elm$core$Elm$JsArray$length(builder.e),
+				$elm$core$Elm$JsArray$length(builder.g),
 				$elm$core$Array$shiftStep,
 				$elm$core$Elm$JsArray$empty,
-				builder.e);
+				builder.g);
 		} else {
-			var treeLen = builder.c * $elm$core$Array$branchFactor;
+			var treeLen = builder.e * $elm$core$Array$branchFactor;
 			var depth = $elm$core$Basics$floor(
 				A2($elm$core$Basics$logBase, $elm$core$Array$branchFactor, treeLen - 1));
-			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.f) : builder.f;
-			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.c);
+			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.h) : builder.h;
+			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.e);
 			return A4(
 				$elm$core$Array$Array_elm_builtin,
-				$elm$core$Elm$JsArray$length(builder.e) + treeLen,
+				$elm$core$Elm$JsArray$length(builder.g) + treeLen,
 				A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep),
 				tree,
-				builder.e);
+				builder.g);
 		}
 	});
 var $elm$core$Basics$idiv = _Basics_idiv;
@@ -4807,7 +4807,7 @@ var $elm$core$Array$initializeHelp = F5(
 				return A2(
 					$elm$core$Array$builderToArray,
 					false,
-					{f: nodeList, c: (len / $elm$core$Array$branchFactor) | 0, e: tail});
+					{h: nodeList, e: (len / $elm$core$Array$branchFactor) | 0, g: tail});
 			} else {
 				var leaf = $elm$core$Array$Leaf(
 					A3($elm$core$Elm$JsArray$initialize, $elm$core$Array$branchFactor, fromIndex, fn));
@@ -4874,7 +4874,7 @@ var $elm$url$Url$Http = 0;
 var $elm$url$Url$Https = 1;
 var $elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {aJ: fragment, aM: host, aT: path, aV: port_, aY: protocol, aZ: query};
+		return {aR: fragment, aU: host, a_: path, a0: port_, a3: protocol, a4: query};
 	});
 var $elm$core$String$contains = _String_contains;
 var $elm$core$String$length = _String_length;
@@ -5153,7 +5153,9 @@ var $elm$core$Task$perform = F2(
 			A2($elm$core$Task$map, toMessage, task));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Admin$Ascending = 0;
 var $author$project$Admin$ByDate = 1;
+var $author$project$Admin$ByStudentName = 0;
 var $author$project$Admin$Descending = 1;
 var $author$project$Admin$NotAuthenticated = {$: 0};
 var $author$project$Admin$SubmissionsPage = {$: 0};
@@ -5161,7 +5163,7 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Admin$init = function (_v0) {
 	return _Utils_Tuple2(
-		{k: $author$project$Admin$NotAuthenticated, y: $elm$core$Maybe$Nothing, Q: _List_Nil, ad: $elm$core$Maybe$Nothing, S: $elm$core$Maybe$Nothing, A: $elm$core$Maybe$Nothing, b: $elm$core$Maybe$Nothing, an: $elm$core$Maybe$Nothing, ao: $elm$core$Maybe$Nothing, af: '', a: false, K: '', L: '', r: '#000000', u: '', j: '', v: '', W: '', s: $author$project$Admin$SubmissionsPage, ah: 1, Y: 1, ai: _List_Nil, Z: _List_Nil, p: $elm$core$Maybe$Nothing, _: '', aa: ''},
+		{n: $author$project$Admin$NotAuthenticated, y: $elm$core$Maybe$Nothing, U: _List_Nil, W: $elm$core$Maybe$Nothing, X: $elm$core$Maybe$Nothing, aj: $elm$core$Maybe$Nothing, Y: $elm$core$Maybe$Nothing, A: $elm$core$Maybe$Nothing, B: $elm$core$Maybe$Nothing, b: $elm$core$Maybe$Nothing, aw: $elm$core$Maybe$Nothing, ax: $elm$core$Maybe$Nothing, al: '', a: false, O: '', P: '', s: '#000000', u: '', m: '', v: '', aa: '', t: $author$project$Admin$SubmissionsPage, ao: 1, ac: 1, ap: '', aq: 0, ad: 0, ar: _List_Nil, J: _List_Nil, K: _List_Nil, k: $elm$core$Maybe$Nothing, ae: '', af: ''},
 		$elm$core$Platform$Cmd$none);
 };
 var $author$project$Admin$BeltResult = function (a) {
@@ -5169,6 +5171,9 @@ var $author$project$Admin$BeltResult = function (a) {
 };
 var $author$project$Admin$GradeResult = function (a) {
 	return {$: 17, a: a};
+};
+var $author$project$Admin$ReceiveAllStudents = function (a) {
+	return {$: 42, a: a};
 };
 var $author$project$Admin$ReceiveBelts = function (a) {
 	return {$: 29, a: a};
@@ -5188,6 +5193,15 @@ var $author$project$Admin$ReceivedStudentRecord = function (a) {
 var $author$project$Admin$StudentCreated = function (a) {
 	return {$: 26, a: a};
 };
+var $author$project$Admin$StudentDeleted = function (a) {
+	return {$: 54, a: a};
+};
+var $author$project$Admin$StudentUpdated = function (a) {
+	return {$: 53, a: a};
+};
+var $author$project$Admin$SubmissionDeleted = function (a) {
+	return {$: 58, a: a};
+};
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Admin$beltResult = _Platform_incomingPort('beltResult', $elm$json$Json$Decode$string);
@@ -5204,7 +5218,7 @@ var $author$project$Admin$decodeAuthResult = function (value) {
 		$elm$json$Json$Decode$map2,
 		F2(
 			function (success, message) {
-				return {aQ: message, p: success};
+				return {aX: message, k: success};
 			}),
 		A2($elm$json$Json$Decode$field, 'success', $elm$json$Json$Decode$bool),
 		A2($elm$json$Json$Decode$field, 'message', $elm$json$Json$Decode$string));
@@ -5222,7 +5236,7 @@ var $elm$json$Json$Decode$nullable = function (decoder) {
 };
 var $author$project$Admin$User = F3(
 	function (uid, email, displayName) {
-		return {as: displayName, at: email, bI: uid};
+		return {aB: displayName, aC: email, bP: uid};
 	});
 var $elm$json$Json$Decode$map3 = _Json_map3;
 var $author$project$Admin$userDecoder = A4(
@@ -5236,7 +5250,7 @@ var $author$project$Admin$decodeAuthState = function (value) {
 		$elm$json$Json$Decode$map2,
 		F2(
 			function (user, isSignedIn) {
-				return {aN: isSignedIn, a8: user};
+				return {aV: isSignedIn, bf: user};
 			}),
 		A2(
 			$elm$json$Json$Decode$field,
@@ -5247,7 +5261,7 @@ var $author$project$Admin$decodeAuthState = function (value) {
 };
 var $author$project$Admin$Belt = F5(
 	function (id, name, color, order, gameOptions) {
-		return {R: color, V: gameOptions, n: id, o: name, M: order};
+		return {V: color, _: gameOptions, d: id, c: name, Q: order};
 	});
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$list = _Json_decodeList;
@@ -5269,9 +5283,12 @@ var $author$project$Admin$decodeBeltsResponse = function (value) {
 		$elm$json$Json$Decode$list($author$project$Admin$beltDecoder),
 		value);
 };
+var $author$project$Admin$decodeStudentDeletedResponse = function (value) {
+	return A2($elm$json$Json$Decode$decodeValue, $elm$json$Json$Decode$string, value);
+};
 var $author$project$Admin$Student = F4(
 	function (id, name, created, lastActive) {
-		return {aF: created, n: id, aP: lastActive, o: name};
+		return {ai: created, d: id, am: lastActive, c: name};
 	});
 var $elm$json$Json$Decode$map4 = _Json_map4;
 var $author$project$Admin$studentDecoder = A5(
@@ -5309,7 +5326,7 @@ var $author$project$Admin$capitalizeWords = function (str) {
 };
 var $author$project$Admin$Grade = F4(
 	function (score, feedback, gradedBy, gradingDate) {
-		return {ae: feedback, aq: gradedBy, ar: gradingDate, C: score};
+		return {ak: feedback, az: gradedBy, aA: gradingDate, D: score};
 	});
 var $author$project$Admin$gradeDecoder = A5(
 	$elm$json$Json$Decode$map4,
@@ -5342,7 +5359,7 @@ var $author$project$Admin$submissionDecoder = A2(
 			function (grade) {
 				return _Utils_update(
 					submission,
-					{g: grade});
+					{i: grade});
 			},
 			$elm$json$Json$Decode$maybe(
 				A2($elm$json$Json$Decode$field, 'grade', $author$project$Admin$gradeDecoder)));
@@ -5357,13 +5374,13 @@ var $author$project$Admin$submissionDecoder = A2(
 						var studentName = maybeStudentName.a;
 						return _Utils_update(
 							submission,
-							{t: studentName});
+							{q: studentName});
 					} else {
 						return _Utils_update(
 							submission,
 							{
-								t: $author$project$Admin$capitalizeWords(
-									A3($elm$core$String$replace, '-', ' ', submission.D))
+								q: $author$project$Admin$capitalizeWords(
+									A3($elm$core$String$replace, '-', ' ', submission.E))
 							});
 					}
 				},
@@ -5380,11 +5397,11 @@ var $author$project$Admin$submissionDecoder = A2(
 							var studentId = maybeStudentId.a;
 							return _Utils_update(
 								submission,
-								{D: studentId});
+								{E: studentId});
 						} else {
 							return _Utils_update(
 								submission,
-								{D: submission.n});
+								{E: submission.d});
 						}
 					},
 					$elm$json$Json$Decode$maybe(
@@ -5394,7 +5411,7 @@ var $author$project$Admin$submissionDecoder = A2(
 				$elm$json$Json$Decode$map6,
 				F6(
 					function (id, gameBelt, gameName, githubLink, notes, submissionDate) {
-						return {z: gameBelt, U: gameName, ap: githubLink, g: $elm$core$Maybe$Nothing, n: id, aw: notes, D: '', t: 'Unknown', E: submissionDate};
+						return {z: gameBelt, N: gameName, ay: githubLink, i: $elm$core$Maybe$Nothing, d: id, aF: notes, E: '', q: 'Unknown', F: submissionDate};
 					}),
 				A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$string),
 				A2($elm$json$Json$Decode$field, 'beltLevel', $elm$json$Json$Decode$string),
@@ -5407,7 +5424,7 @@ var $author$project$Admin$decodeStudentRecordResponse = function (value) {
 		$elm$json$Json$Decode$map2,
 		F2(
 			function (student, submissions) {
-				return {a4: student, Z: submissions};
+				return {bb: student, K: submissions};
 			}),
 		A2($elm$json$Json$Decode$field, 'student', $author$project$Admin$studentDecoder),
 		A2(
@@ -5419,6 +5436,15 @@ var $author$project$Admin$decodeStudentRecordResponse = function (value) {
 var $author$project$Admin$decodeStudentResponse = function (value) {
 	return A2($elm$json$Json$Decode$decodeValue, $author$project$Admin$studentDecoder, value);
 };
+var $author$project$Admin$decodeStudentsResponse = function (value) {
+	return A2(
+		$elm$json$Json$Decode$decodeValue,
+		$elm$json$Json$Decode$list($author$project$Admin$studentDecoder),
+		value);
+};
+var $author$project$Admin$decodeSubmissionDeletedResponse = function (value) {
+	return A2($elm$json$Json$Decode$decodeValue, $elm$json$Json$Decode$string, value);
+};
 var $author$project$Admin$decodeSubmissionsResponse = function (value) {
 	return A2(
 		$elm$json$Json$Decode$decodeValue,
@@ -5427,12 +5453,16 @@ var $author$project$Admin$decodeSubmissionsResponse = function (value) {
 };
 var $author$project$Admin$gradeResult = _Platform_incomingPort('gradeResult', $elm$json$Json$Decode$string);
 var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $author$project$Admin$receiveAllStudents = _Platform_incomingPort('receiveAllStudents', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveAuthResult = _Platform_incomingPort('receiveAuthResult', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveAuthState = _Platform_incomingPort('receiveAuthState', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveBelts = _Platform_incomingPort('receiveBelts', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveStudentRecord = _Platform_incomingPort('receiveStudentRecord', $elm$json$Json$Decode$value);
 var $author$project$Admin$receiveSubmissions = _Platform_incomingPort('receiveSubmissions', $elm$json$Json$Decode$value);
 var $author$project$Admin$studentCreated = _Platform_incomingPort('studentCreated', $elm$json$Json$Decode$value);
+var $author$project$Admin$studentDeleted = _Platform_incomingPort('studentDeleted', $elm$json$Json$Decode$value);
+var $author$project$Admin$studentUpdated = _Platform_incomingPort('studentUpdated', $elm$json$Json$Decode$value);
+var $author$project$Admin$submissionDeleted = _Platform_incomingPort('submissionDeleted', $elm$json$Json$Decode$value);
 var $author$project$Admin$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
@@ -5449,11 +5479,18 @@ var $author$project$Admin$subscriptions = function (_v0) {
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentResponse, $author$project$Admin$StudentCreated)),
 				$author$project$Admin$receiveBelts(
 				A2($elm$core$Basics$composeR, $author$project$Admin$decodeBeltsResponse, $author$project$Admin$ReceiveBelts)),
+				$author$project$Admin$receiveAllStudents(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentsResponse, $author$project$Admin$ReceiveAllStudents)),
+				$author$project$Admin$studentUpdated(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentResponse, $author$project$Admin$StudentUpdated)),
+				$author$project$Admin$studentDeleted(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeStudentDeletedResponse, $author$project$Admin$StudentDeleted)),
+				$author$project$Admin$submissionDeleted(
+				A2($elm$core$Basics$composeR, $author$project$Admin$decodeSubmissionDeletedResponse, $author$project$Admin$SubmissionDeleted)),
 				$author$project$Admin$gradeResult($author$project$Admin$GradeResult),
 				$author$project$Admin$beltResult($author$project$Admin$BeltResult)
 			]));
 };
-var $author$project$Admin$Ascending = 0;
 var $author$project$Admin$Authenticated = function (a) {
 	return {$: 2, a: a};
 };
@@ -5475,6 +5512,8 @@ var $elm$core$Basics$composeL = F3(
 var $author$project$Admin$createStudent = _Platform_outgoingPort('createStudent', $elm$core$Basics$identity);
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Admin$deleteBelt = _Platform_outgoingPort('deleteBelt', $elm$json$Json$Encode$string);
+var $author$project$Admin$deleteStudent = _Platform_outgoingPort('deleteStudent', $elm$json$Json$Encode$string);
+var $author$project$Admin$deleteSubmission = _Platform_outgoingPort('deleteSubmission', $elm$json$Json$Encode$string);
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -5504,19 +5543,19 @@ var $author$project$Admin$encodeBelt = function (belt) {
 			[
 				_Utils_Tuple2(
 				'id',
-				$elm$json$Json$Encode$string(belt.n)),
+				$elm$json$Json$Encode$string(belt.d)),
 				_Utils_Tuple2(
 				'name',
-				$elm$json$Json$Encode$string(belt.o)),
+				$elm$json$Json$Encode$string(belt.c)),
 				_Utils_Tuple2(
 				'color',
-				$elm$json$Json$Encode$string(belt.R)),
+				$elm$json$Json$Encode$string(belt.V)),
 				_Utils_Tuple2(
 				'order',
-				$elm$json$Json$Encode$int(belt.M)),
+				$elm$json$Json$Encode$int(belt.Q)),
 				_Utils_Tuple2(
 				'gameOptions',
-				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, belt.V))
+				A2($elm$json$Json$Encode$list, $elm$json$Json$Encode$string, belt._))
 			]));
 };
 var $author$project$Admin$encodeCredentials = F2(
@@ -5538,16 +5577,16 @@ var $author$project$Admin$encodeGrade = function (grade) {
 			[
 				_Utils_Tuple2(
 				'score',
-				$elm$json$Json$Encode$int(grade.C)),
+				$elm$json$Json$Encode$int(grade.D)),
 				_Utils_Tuple2(
 				'feedback',
-				$elm$json$Json$Encode$string(grade.ae)),
+				$elm$json$Json$Encode$string(grade.ak)),
 				_Utils_Tuple2(
 				'gradedBy',
-				$elm$json$Json$Encode$string(grade.aq)),
+				$elm$json$Json$Encode$string(grade.az)),
 				_Utils_Tuple2(
 				'gradingDate',
-				$elm$json$Json$Encode$string(grade.ar))
+				$elm$json$Json$Encode$string(grade.aA))
 			]));
 };
 var $author$project$Admin$encodeNewStudent = function (name) {
@@ -5557,6 +5596,18 @@ var $author$project$Admin$encodeNewStudent = function (name) {
 				_Utils_Tuple2(
 				'name',
 				$elm$json$Json$Encode$string(name))
+			]));
+};
+var $author$project$Admin$encodeStudentUpdate = function (student) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$string(student.d)),
+				_Utils_Tuple2(
+				'name',
+				$elm$json$Json$Encode$string(student.c))
 			]));
 };
 var $elm$core$List$filter = F2(
@@ -5571,10 +5622,10 @@ var $elm$core$List$filter = F2(
 			list);
 	});
 var $author$project$Admin$getUserEmail = function (model) {
-	var _v0 = model.k;
+	var _v0 = model.n;
 	if (_v0.$ === 2) {
 		var user = _v0.a;
-		return user.at;
+		return user.aC;
 	} else {
 		return 'unknown@example.com';
 	}
@@ -5627,7 +5678,13 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Admin$requestAllStudents = _Platform_outgoingPort(
+	'requestAllStudents',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
 var $author$project$Admin$requestBelts = _Platform_outgoingPort(
 	'requestBelts',
 	function ($) {
@@ -5649,6 +5706,7 @@ var $author$project$Admin$signOut = _Platform_outgoingPort(
 	});
 var $elm$core$String$toLower = _String_toLower;
 var $elm$core$String$trim = _String_trim;
+var $author$project$Admin$updateStudent = _Platform_outgoingPort('updateStudent', $elm$core$Basics$identity);
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (!maybe.$) {
@@ -5666,17 +5724,17 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{K: email}),
+						{O: email}),
 					$elm$core$Platform$Cmd$none);
 			case 1:
 				var password = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{L: password}),
+						{P: password}),
 					$elm$core$Platform$Cmd$none);
 			case 2:
-				return ($elm$core$String$isEmpty(model.K) || $elm$core$String$isEmpty(model.L)) ? _Utils_Tuple2(
+				return ($elm$core$String$isEmpty(model.O) || $elm$core$String$isEmpty(model.P)) ? _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
@@ -5686,31 +5744,31 @@ var $author$project$Admin$update = F2(
 					_Utils_update(
 						model,
 						{
-							k: A2($author$project$Admin$AuthenticatingWith, model.K, model.L),
+							n: A2($author$project$Admin$AuthenticatingWith, model.O, model.P),
 							y: $elm$core$Maybe$Nothing,
 							a: true
 						}),
 					$author$project$Admin$signIn(
-						A2($author$project$Admin$encodeCredentials, model.K, model.L)));
+						A2($author$project$Admin$encodeCredentials, model.O, model.P)));
 			case 3:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{k: $author$project$Admin$NotAuthenticated, a: true}),
+						{n: $author$project$Admin$NotAuthenticated, a: true}),
 					$author$project$Admin$signOut(0));
 			case 4:
 				var result = msg.a;
 				if (!result.$) {
 					var authState = result.a;
-					if (authState.aN) {
-						var _v2 = authState.a8;
+					if (authState.aV) {
+						var _v2 = authState.bf;
 						if (!_v2.$) {
 							var user = _v2.a;
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
 									{
-										k: $author$project$Admin$Authenticated(user),
+										n: $author$project$Admin$Authenticated(user),
 										y: $elm$core$Maybe$Nothing,
 										a: true
 									}),
@@ -5724,14 +5782,14 @@ var $author$project$Admin$update = F2(
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
-									{k: $author$project$Admin$NotAuthenticated, a: false}),
+									{n: $author$project$Admin$NotAuthenticated, a: false}),
 								$elm$core$Platform$Cmd$none);
 						}
 					} else {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{k: $author$project$Admin$NotAuthenticated, a: false}),
+								{n: $author$project$Admin$NotAuthenticated, a: false}),
 							$elm$core$Platform$Cmd$none);
 					}
 				} else {
@@ -5740,7 +5798,7 @@ var $author$project$Admin$update = F2(
 						_Utils_update(
 							model,
 							{
-								k: $author$project$Admin$NotAuthenticated,
+								n: $author$project$Admin$NotAuthenticated,
 								y: $elm$core$Maybe$Just(
 									$elm$json$Json$Decode$errorToString(error)),
 								a: false
@@ -5751,7 +5809,7 @@ var $author$project$Admin$update = F2(
 				var result = msg.a;
 				if (!result.$) {
 					var authResult = result.a;
-					return authResult.p ? _Utils_Tuple2(
+					return authResult.k ? _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{a: true}),
@@ -5759,8 +5817,8 @@ var $author$project$Admin$update = F2(
 						_Utils_update(
 							model,
 							{
-								k: $author$project$Admin$NotAuthenticated,
-								y: $elm$core$Maybe$Just(authResult.aQ),
+								n: $author$project$Admin$NotAuthenticated,
+								y: $elm$core$Maybe$Just(authResult.aX),
 								a: false
 							}),
 						$elm$core$Platform$Cmd$none);
@@ -5770,7 +5828,7 @@ var $author$project$Admin$update = F2(
 						_Utils_update(
 							model,
 							{
-								k: $author$project$Admin$NotAuthenticated,
+								n: $author$project$Admin$NotAuthenticated,
 								y: $elm$core$Maybe$Just(
 									$elm$json$Json$Decode$errorToString(error)),
 								a: false
@@ -5784,7 +5842,7 @@ var $author$project$Admin$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{a: false, Z: submissions}),
+							{a: false, K: submissions}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var error = result.a;
@@ -5806,39 +5864,39 @@ var $author$project$Admin$update = F2(
 					A2(
 						$elm$core$Maybe$map,
 						function (g) {
-							return $elm$core$String$fromInt(g.C);
+							return $elm$core$String$fromInt(g.D);
 						},
-						submission.g));
+						submission.i));
 				var tempFeedback = A2(
 					$elm$core$Maybe$withDefault,
 					'',
 					A2(
 						$elm$core$Maybe$map,
 						function ($) {
-							return $.ae;
+							return $.ak;
 						},
-						submission.g));
+						submission.i));
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							S: $elm$core$Maybe$Just(submission),
-							_: tempFeedback,
-							aa: tempScore
+							Y: $elm$core$Maybe$Just(submission),
+							ae: tempFeedback,
+							af: tempScore
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 8:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{S: $elm$core$Maybe$Nothing}),
+						{Y: $elm$core$Maybe$Nothing}),
 					$elm$core$Platform$Cmd$none);
 			case 9:
 				var text = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{af: text}),
+						{al: text}),
 					$elm$core$Platform$Cmd$none);
 			case 10:
 				var belt = msg.a;
@@ -5846,7 +5904,7 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{an: filterBelt}),
+						{aw: filterBelt}),
 					$elm$core$Platform$Cmd$none);
 			case 11:
 				var status = msg.a;
@@ -5865,18 +5923,18 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{ao: filterGraded}),
+						{ax: filterGraded}),
 					$elm$core$Platform$Cmd$none);
 			case 12:
 				var sortBy = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{ah: sortBy}),
+						{ao: sortBy}),
 					$elm$core$Platform$Cmd$none);
 			case 13:
 				var newDirection = function () {
-					var _v6 = model.Y;
+					var _v6 = model.ac;
 					if (!_v6) {
 						return 1;
 					} else {
@@ -5886,27 +5944,27 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{Y: newDirection}),
+						{ac: newDirection}),
 					$elm$core$Platform$Cmd$none);
 			case 14:
 				var score = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{aa: score}),
+						{af: score}),
 					$elm$core$Platform$Cmd$none);
 			case 15:
 				var feedback = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{_: feedback}),
+						{ae: feedback}),
 					$elm$core$Platform$Cmd$none);
 			case 16:
-				var _v7 = model.S;
+				var _v7 = model.Y;
 				if (!_v7.$) {
 					var submission = _v7.a;
-					var scoreResult = $elm$core$String$toInt(model.aa);
+					var scoreResult = $elm$core$String$toInt(model.af);
 					if (!scoreResult.$) {
 						var score = scoreResult.a;
 						if ((score < 0) || (score > 100)) {
@@ -5919,17 +5977,17 @@ var $author$project$Admin$update = F2(
 								$elm$core$Platform$Cmd$none);
 						} else {
 							var grade = {
-								ae: model._,
-								aq: $author$project$Admin$getUserEmail(model),
-								ar: '2025-03-03',
-								C: score
+								ak: model.ae,
+								az: $author$project$Admin$getUserEmail(model),
+								aA: '2025-03-03',
+								D: score
 							};
 							var gradeData = $elm$json$Json$Encode$object(
 								_List_fromArray(
 									[
 										_Utils_Tuple2(
 										'submissionId',
-										$elm$json$Json$Encode$string(submission.n)),
+										$elm$json$Json$Encode$string(submission.d)),
 										_Utils_Tuple2(
 										'grade',
 										$author$project$Admin$encodeGrade(grade))
@@ -5937,7 +5995,7 @@ var $author$project$Admin$update = F2(
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
-									{b: $elm$core$Maybe$Nothing, a: true, p: $elm$core$Maybe$Nothing}),
+									{b: $elm$core$Maybe$Nothing, a: true, k: $elm$core$Maybe$Nothing}),
 								$author$project$Admin$saveGrade(gradeData));
 						}
 					} else {
@@ -5960,7 +6018,7 @@ var $author$project$Admin$update = F2(
 						{
 							b: $elm$core$Maybe$Just(result),
 							a: false,
-							p: $elm$core$Maybe$Nothing
+							k: $elm$core$Maybe$Nothing
 						}),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					_Utils_update(
@@ -5968,7 +6026,7 @@ var $author$project$Admin$update = F2(
 						{
 							b: $elm$core$Maybe$Nothing,
 							a: false,
-							p: $elm$core$Maybe$Just('Grade saved successfully')
+							k: $elm$core$Maybe$Just('Grade saved successfully')
 						}),
 					$author$project$Admin$requestSubmissions(0));
 			case 18:
@@ -5982,21 +6040,21 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{a: true, s: $author$project$Admin$SubmissionsPage}),
+						{a: true, t: $author$project$Admin$SubmissionsPage}),
 					$author$project$Admin$requestStudentRecord(studentId));
 			case 20:
 				var result = msg.a;
 				if (!result.$) {
-					var submissions = result.a.Z;
-					var student = result.a.a4;
+					var submissions = result.a.K;
+					var student = result.a.bb;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								ad: $elm$core$Maybe$Just(student),
+								aj: $elm$core$Maybe$Just(student),
 								a: false,
-								s: A2($author$project$Admin$StudentRecordPage, student, submissions),
-								ai: submissions
+								t: A2($author$project$Admin$StudentRecordPage, student, submissions),
+								ar: submissions
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
@@ -6015,29 +6073,23 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{ad: $elm$core$Maybe$Nothing, s: $author$project$Admin$SubmissionsPage, ai: _List_Nil}),
-					$elm$core$Platform$Cmd$none);
-			case 22:
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{W: '', s: $author$project$Admin$CreateStudentPage}),
+						{aj: $elm$core$Maybe$Nothing, t: $author$project$Admin$SubmissionsPage, ar: _List_Nil}),
 					$elm$core$Platform$Cmd$none);
 			case 23:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{s: $author$project$Admin$SubmissionsPage}),
+						{t: $author$project$Admin$SubmissionsPage}),
 					$elm$core$Platform$Cmd$none);
 			case 24:
 				var name = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{W: name}),
+						{aa: name}),
 					$elm$core$Platform$Cmd$none);
 			case 25:
-				var trimmedName = $elm$core$String$trim(model.W);
+				var trimmedName = $elm$core$String$trim(model.aa);
 				return $elm$core$String$isEmpty(trimmedName) ? _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6064,11 +6116,11 @@ var $author$project$Admin$update = F2(
 						_Utils_update(
 							model,
 							{
-								ad: $elm$core$Maybe$Just(student),
+								aj: $elm$core$Maybe$Just(student),
 								a: false,
-								s: A2($author$project$Admin$StudentRecordPage, student, _List_Nil),
-								ai: _List_Nil,
-								p: $elm$core$Maybe$Just('Student record for ' + (student.o + ' created successfully'))
+								t: A2($author$project$Admin$StudentRecordPage, student, _List_Nil),
+								ar: _List_Nil,
+								k: $elm$core$Maybe$Just('Student record for ' + (student.c + ' created successfully'))
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
@@ -6087,13 +6139,13 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{A: $elm$core$Maybe$Nothing, b: $elm$core$Maybe$Nothing, r: '#000000', u: '', j: '', v: '', s: $author$project$Admin$BeltManagementPage, p: $elm$core$Maybe$Nothing}),
+						{A: $elm$core$Maybe$Nothing, b: $elm$core$Maybe$Nothing, s: '#000000', u: '', m: '', v: '', t: $author$project$Admin$BeltManagementPage, k: $elm$core$Maybe$Nothing}),
 					$author$project$Admin$requestBelts(0));
 			case 28:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{s: $author$project$Admin$SubmissionsPage}),
+						{t: $author$project$Admin$SubmissionsPage}),
 					$elm$core$Platform$Cmd$none);
 			case 29:
 				var result = msg.a;
@@ -6102,7 +6154,7 @@ var $author$project$Admin$update = F2(
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{Q: belts, a: false}),
+							{U: belts, a: false}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var error = result.a;
@@ -6121,14 +6173,14 @@ var $author$project$Admin$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{j: name}),
+						{m: name}),
 					$elm$core$Platform$Cmd$none);
 			case 31:
 				var color = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{r: color}),
+						{s: color}),
 					$elm$core$Platform$Cmd$none);
 			case 32:
 				var order = msg.a;
@@ -6145,7 +6197,7 @@ var $author$project$Admin$update = F2(
 						{u: options}),
 					$elm$core$Platform$Cmd$none);
 			case 34:
-				if ($elm$core$String$trim(model.j) === '') {
+				if ($elm$core$String$trim(model.m) === '') {
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -6168,8 +6220,8 @@ var $author$project$Admin$update = F2(
 							$elm$core$String$replace,
 							' ',
 							'-',
-							$elm$core$String$toLower(model.j));
-						var newBelt = {R: model.r, V: gameOptions, n: beltId, o: model.j, M: order};
+							$elm$core$String$toLower(model.m));
+						var newBelt = {V: model.s, _: gameOptions, d: beltId, c: model.m, Q: order};
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -6193,23 +6245,23 @@ var $author$project$Admin$update = F2(
 						model,
 						{
 							A: $elm$core$Maybe$Just(belt),
-							r: belt.R,
-							u: A2($elm$core$String$join, ', ', belt.V),
-							j: belt.o,
-							v: $elm$core$String$fromInt(belt.M)
+							s: belt.V,
+							u: A2($elm$core$String$join, ', ', belt._),
+							m: belt.c,
+							v: $elm$core$String$fromInt(belt.Q)
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 36:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{A: $elm$core$Maybe$Nothing, r: '#000000', u: '', j: '', v: ''}),
+						{A: $elm$core$Maybe$Nothing, s: '#000000', u: '', m: '', v: ''}),
 					$elm$core$Platform$Cmd$none);
 			case 37:
 				var _v13 = model.A;
 				if (!_v13.$) {
 					var belt = _v13.a;
-					if ($elm$core$String$trim(model.j) === '') {
+					if ($elm$core$String$trim(model.m) === '') {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
@@ -6228,7 +6280,7 @@ var $author$project$Admin$update = F2(
 									$elm$core$List$map,
 									$elm$core$String$trim,
 									A2($elm$core$String$split, ',', model.u)));
-							var updatedBelt = {R: model.r, V: gameOptions, n: belt.n, o: model.j, M: order};
+							var updatedBelt = {V: model.s, _: gameOptions, d: belt.d, c: model.m, Q: order};
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
@@ -6263,7 +6315,7 @@ var $author$project$Admin$update = F2(
 						{
 							b: $elm$core$Maybe$Just(result),
 							a: false,
-							p: $elm$core$Maybe$Nothing
+							k: $elm$core$Maybe$Nothing
 						}),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					_Utils_update(
@@ -6272,19 +6324,275 @@ var $author$project$Admin$update = F2(
 							A: $elm$core$Maybe$Nothing,
 							b: $elm$core$Maybe$Nothing,
 							a: false,
-							r: '#000000',
+							s: '#000000',
 							u: '',
-							j: '',
+							m: '',
 							v: '',
-							p: $elm$core$Maybe$Just(result)
+							k: $elm$core$Maybe$Just(result)
 						}),
 					$author$project$Admin$requestBelts(0));
-			default:
+			case 40:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{a: true}),
 					$author$project$Admin$requestBelts(0));
+			case 22:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{aa: '', t: $author$project$Admin$CreateStudentPage}),
+					$author$project$Admin$requestAllStudents(0));
+			case 41:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{a: true}),
+					$author$project$Admin$requestAllStudents(0));
+			case 42:
+				var result = msg.a;
+				if (!result.$) {
+					var students = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{a: false, J: students}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								b: $elm$core$Maybe$Just(
+									$elm$json$Json$Decode$errorToString(error)),
+								a: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 43:
+				var text = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{ap: text}),
+					$elm$core$Platform$Cmd$none);
+			case 44:
+				var sortBy = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{aq: sortBy}),
+					$elm$core$Platform$Cmd$none);
+			case 45:
+				var newDirection = function () {
+					var _v16 = model.ad;
+					if (!_v16) {
+						return 1;
+					} else {
+						return 0;
+					}
+				}();
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{ad: newDirection}),
+					$elm$core$Platform$Cmd$none);
+			case 46:
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							B: $elm$core$Maybe$Just(student)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 48:
+				var name = msg.a;
+				var _v17 = model.B;
+				if (!_v17.$) {
+					var student = _v17.a;
+					var updatedStudent = _Utils_update(
+						student,
+						{c: name});
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								B: $elm$core$Maybe$Just(updatedStudent)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 49:
+				var _v18 = model.B;
+				if (!_v18.$) {
+					var student = _v18.a;
+					return ($elm$core$String$trim(student.c) === '') ? _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								b: $elm$core$Maybe$Just('Please enter a student name')
+							}),
+						$elm$core$Platform$Cmd$none) : ((!$author$project$Admin$isValidNameFormat(student.c)) ? _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								b: $elm$core$Maybe$Just('Please enter the name in the format firstname.lastname')
+							}),
+						$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{B: $elm$core$Maybe$Nothing, b: $elm$core$Maybe$Nothing, a: true}),
+						$author$project$Admin$updateStudent(
+							$author$project$Admin$encodeStudentUpdate(student))));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 50:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{B: $elm$core$Maybe$Nothing, b: $elm$core$Maybe$Nothing}),
+					$elm$core$Platform$Cmd$none);
+			case 47:
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							W: $elm$core$Maybe$Just(student)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 51:
+				var student = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{W: $elm$core$Maybe$Nothing, a: true}),
+					$author$project$Admin$deleteStudent(student.d));
+			case 52:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{W: $elm$core$Maybe$Nothing}),
+					$elm$core$Platform$Cmd$none);
+			case 53:
+				var result = msg.a;
+				if (!result.$) {
+					var student = result.a;
+					var updatedStudents = A2(
+						$elm$core$List$map,
+						function (s) {
+							return _Utils_eq(s.d, student.d) ? student : s;
+						},
+						model.J);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								a: false,
+								J: updatedStudents,
+								k: $elm$core$Maybe$Just('Student ' + (student.c + ' updated successfully'))
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								b: $elm$core$Maybe$Just(
+									'Error updating student: ' + $elm$json$Json$Decode$errorToString(error)),
+								a: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 54:
+				var result = msg.a;
+				if (!result.$) {
+					var studentId = result.a;
+					var updatedStudents = A2(
+						$elm$core$List$filter,
+						function (s) {
+							return !_Utils_eq(s.d, studentId);
+						},
+						model.J);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								a: false,
+								J: updatedStudents,
+								k: $elm$core$Maybe$Just('Student deleted successfully')
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								b: $elm$core$Maybe$Just(
+									'Error deleting student: ' + $elm$json$Json$Decode$errorToString(error)),
+								a: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 55:
+				var submission = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							X: $elm$core$Maybe$Just(submission)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 56:
+				var submission = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{X: $elm$core$Maybe$Nothing, a: true}),
+					$author$project$Admin$deleteSubmission(submission.d));
+			case 57:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{X: $elm$core$Maybe$Nothing}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var result = msg.a;
+				if (!result.$) {
+					var submissionId = result.a;
+					var updatedSubmissions = A2(
+						$elm$core$List$filter,
+						function (s) {
+							return !_Utils_eq(s.d, submissionId);
+						},
+						model.K);
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								a: false,
+								K: updatedSubmissions,
+								k: $elm$core$Maybe$Just('Submission deleted successfully')
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var error = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								b: $elm$core$Maybe$Just(
+									'Error deleting submission: ' + $elm$json$Json$Decode$errorToString(error)),
+								a: false
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -6300,7 +6608,6 @@ var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Admin$PerformSignOut = {$: 3};
-var $author$project$Admin$ShowBeltManagement = {$: 27};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 0, a: a};
@@ -6321,6 +6628,153 @@ var $elm$html$Html$Events$onClick = function (msg) {
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$core$String$toUpper = _String_toUpper;
+var $author$project$Admin$CancelDeleteSubmission = {$: 57};
+var $author$project$Admin$ConfirmDeleteSubmission = function (a) {
+	return {$: 56, a: a};
+};
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Admin$formatDisplayName = function (name) {
+	var parts = A2($elm$core$String$split, '.', name);
+	var lastName = A2(
+		$elm$core$Maybe$withDefault,
+		'',
+		$elm$core$List$head(
+			A2($elm$core$List$drop, 1, parts)));
+	var firstName = A2(
+		$elm$core$Maybe$withDefault,
+		'',
+		$elm$core$List$head(parts));
+	var capitalizedLast = _Utils_ap(
+		$elm$core$String$toUpper(
+			A2($elm$core$String$left, 1, lastName)),
+		A2($elm$core$String$dropLeft, 1, lastName));
+	var capitalizedFirst = _Utils_ap(
+		$elm$core$String$toUpper(
+			A2($elm$core$String$left, 1, firstName)),
+		A2($elm$core$String$dropLeft, 1, firstName));
+	return capitalizedFirst + (' ' + capitalizedLast);
+};
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $author$project$Admin$viewConfirmDeleteSubmissionModal = function (submission) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('px-6 py-4 bg-red-50 border-b border-gray-200')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$h2,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-lg font-medium text-red-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Confirm Delete')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('p-6')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('mb-6 text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										'Are you sure you want to delete the submission for ' + ($author$project$Admin$formatDisplayName(submission.q) + ('\'s ' + (submission.N + '? This action cannot be undone.'))))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex justify-end space-x-3')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$CancelDeleteSubmission),
+												$elm$html$Html$Attributes$class('px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Cancel')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$ConfirmDeleteSubmission(submission)),
+												$elm$html$Html$Attributes$class('px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Delete Submission')
+											]))
+									]))
+							]))
+					]))
+			]));
+};
 var $author$project$Admin$AddNewBelt = {$: 34};
 var $author$project$Admin$CancelEditBelt = {$: 36};
 var $author$project$Admin$CloseBeltManagement = {$: 28};
@@ -6339,7 +6793,6 @@ var $author$project$Admin$UpdateNewBeltOrder = function (a) {
 	return {$: 32, a: a};
 };
 var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
@@ -6404,6 +6857,143 @@ var $author$project$Admin$EditBelt = function (a) {
 var $elm$html$Html$li = _VirtualDom_node('li');
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $author$project$Admin$truncateGamesList = function (games) {
+	var totalGames = $elm$core$List$length(games);
+	var maxGamesToShow = 3;
+	var displayGames = (_Utils_cmp(totalGames, maxGamesToShow) < 1) ? games : _Utils_ap(
+		A2($elm$core$List$take, maxGamesToShow, games),
+		_List_fromArray(
+			[
+				'...' + ($elm$core$String$fromInt(totalGames - maxGamesToShow) + ' more')
+			]));
+	return A2($elm$core$String$join, ', ', displayGames);
+};
 var $author$project$Admin$viewBeltRow = F2(
 	function (model, belt) {
 		return A2(
@@ -6427,7 +7017,7 @@ var $author$project$Admin$viewBeltRow = F2(
 							_List_fromArray(
 								[
 									$elm$html$Html$Attributes$class('w-8 h-8 rounded-full border border-gray-300 flex-shrink-0'),
-									A2($elm$html$Html$Attributes$style, 'background-color', belt.R)
+									A2($elm$html$Html$Attributes$style, 'background-color', belt.V)
 								]),
 							_List_Nil),
 							A2(
@@ -6454,7 +7044,7 @@ var $author$project$Admin$viewBeltRow = F2(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(belt.o)
+													$elm$html$Html$text(belt.c)
 												])),
 											A2(
 											$elm$html$Html$span,
@@ -6465,7 +7055,7 @@ var $author$project$Admin$viewBeltRow = F2(
 											_List_fromArray(
 												[
 													$elm$html$Html$text(
-													'Order: ' + $elm$core$String$fromInt(belt.M))
+													'Order: ' + $elm$core$String$fromInt(belt.Q))
 												]))
 										])),
 									A2(
@@ -6477,7 +7067,7 @@ var $author$project$Admin$viewBeltRow = F2(
 									_List_fromArray(
 										[
 											$elm$html$Html$text(
-											'Games: ' + A2($elm$core$String$join, ', ', belt.V))
+											'Games: ' + $author$project$Admin$truncateGamesList(belt._))
 										]))
 								]))
 						])),
@@ -6485,7 +7075,7 @@ var $author$project$Admin$viewBeltRow = F2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('flex space-x-2')
+							$elm$html$Html$Attributes$class('flex space-x-2 ml-2 flex-shrink-0')
 						]),
 					_List_fromArray(
 						[
@@ -6495,7 +7085,7 @@ var $author$project$Admin$viewBeltRow = F2(
 								[
 									$elm$html$Html$Events$onClick(
 									$author$project$Admin$EditBelt(belt)),
-									$elm$html$Html$Attributes$class('text-indigo-600 hover:text-indigo-900 text-sm font-medium')
+									$elm$html$Html$Attributes$class('px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition')
 								]),
 							_List_fromArray(
 								[
@@ -6506,8 +7096,8 @@ var $author$project$Admin$viewBeltRow = F2(
 							_List_fromArray(
 								[
 									$elm$html$Html$Events$onClick(
-									$author$project$Admin$DeleteBelt(belt.n)),
-									$elm$html$Html$Attributes$class('text-red-600 hover:text-red-900 text-sm font-medium')
+									$author$project$Admin$DeleteBelt(belt.d)),
+									$elm$html$Html$Attributes$class('px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition')
 								]),
 							_List_fromArray(
 								[
@@ -6610,7 +7200,7 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 															var _v0 = model.A;
 															if (!_v0.$) {
 																var belt = _v0.a;
-																return 'Edit Belt: ' + belt.o;
+																return 'Edit Belt: ' + belt.c;
 															} else {
 																return 'Add New Belt';
 															}
@@ -6658,7 +7248,7 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 																	[
 																		$elm$html$Html$Attributes$type_('text'),
 																		$elm$html$Html$Attributes$id('beltName'),
-																		$elm$html$Html$Attributes$value(model.j),
+																		$elm$html$Html$Attributes$value(model.m),
 																		$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltName),
 																		$elm$html$Html$Attributes$placeholder('e.g. White Belt, Yellow Belt'),
 																		$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
@@ -6698,7 +7288,7 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 																			[
 																				$elm$html$Html$Attributes$type_('color'),
 																				$elm$html$Html$Attributes$id('beltColor'),
-																				$elm$html$Html$Attributes$value(model.r),
+																				$elm$html$Html$Attributes$value(model.s),
 																				$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltColor),
 																				$elm$html$Html$Attributes$class('h-8 w-8 border border-gray-300 rounded')
 																			]),
@@ -6708,7 +7298,7 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 																		_List_fromArray(
 																			[
 																				$elm$html$Html$Attributes$type_('text'),
-																				$elm$html$Html$Attributes$value(model.r),
+																				$elm$html$Html$Attributes$value(model.s),
 																				$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewBeltColor),
 																				$elm$html$Html$Attributes$placeholder('#000000'),
 																				$elm$html$Html$Attributes$class('flex-1 mt-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
@@ -6880,7 +7470,7 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 												$elm$html$Html$text('Refresh')
 											]))
 									])),
-								$elm$core$List$isEmpty(model.Q) ? A2(
+								$elm$core$List$isEmpty(model.U) ? A2(
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
@@ -6918,18 +7508,474 @@ var $author$project$Admin$viewBeltManagementPage = function (model) {
 											A2(
 												$elm$core$List$sortBy,
 												function ($) {
-													return $.M;
+													return $.Q;
 												},
-												model.Q)))
+												model.U)))
 									]))
 							]))
 					]))
 			]));
 };
+var $author$project$Admin$ByStudentCreated = 1;
+var $author$project$Admin$ByStudentLastActive = 2;
 var $author$project$Admin$CloseCreateStudentForm = {$: 23};
 var $author$project$Admin$CreateNewStudent = {$: 25};
+var $author$project$Admin$RequestAllStudents = {$: 41};
+var $author$project$Admin$ToggleStudentSortDirection = {$: 45};
 var $author$project$Admin$UpdateNewStudentName = function (a) {
 	return {$: 24, a: a};
+};
+var $author$project$Admin$UpdateStudentFilterText = function (a) {
+	return {$: 43, a: a};
+};
+var $author$project$Admin$UpdateStudentSortBy = function (a) {
+	return {$: 44, a: a};
+};
+var $author$project$Admin$filterStudentByText = F2(
+	function (filterText, student) {
+		if ($elm$core$String$isEmpty(filterText)) {
+			return true;
+		} else {
+			var lowercaseFilter = $elm$core$String$toLower(filterText);
+			var containsFilter = function (text) {
+				return A2(
+					$elm$core$String$contains,
+					lowercaseFilter,
+					$elm$core$String$toLower(text));
+			};
+			return containsFilter(student.c) || containsFilter(student.d);
+		}
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $elm$core$List$sortWith = _List_sortWith;
+var $author$project$Admin$sortStudents = F3(
+	function (sortBy, direction, students) {
+		var sortFunction = function () {
+			switch (sortBy) {
+				case 0:
+					return F2(
+						function (a, b) {
+							return A2($elm$core$Basics$compare, a.c, b.c);
+						});
+				case 1:
+					return F2(
+						function (a, b) {
+							return A2($elm$core$Basics$compare, a.ai, b.ai);
+						});
+				default:
+					return F2(
+						function (a, b) {
+							return A2($elm$core$Basics$compare, a.am, b.am);
+						});
+			}
+		}();
+		var sortedList = A2($elm$core$List$sortWith, sortFunction, students);
+		if (!direction) {
+			return sortedList;
+		} else {
+			return $elm$core$List$reverse(sortedList);
+		}
+	});
+var $author$project$Admin$applyStudentFilters = function (model) {
+	return A3(
+		$author$project$Admin$sortStudents,
+		model.aq,
+		model.ad,
+		A2(
+			$elm$core$List$filter,
+			$author$project$Admin$filterStudentByText(model.ap),
+			model.J));
+};
+var $author$project$Admin$getStudentSortButtonClass = F2(
+	function (model, sortType) {
+		var baseClass = 'px-3 py-1 rounded text-sm';
+		return _Utils_eq(model.aq, sortType) ? (baseClass + ' bg-blue-100 text-blue-800 font-medium') : (baseClass + ' text-gray-600 hover:bg-gray-100');
+	});
+var $elm$html$Html$table = _VirtualDom_node('table');
+var $elm$html$Html$tbody = _VirtualDom_node('tbody');
+var $elm$html$Html$th = _VirtualDom_node('th');
+var $elm$html$Html$thead = _VirtualDom_node('thead');
+var $elm$html$Html$tr = _VirtualDom_node('tr');
+var $author$project$Admin$CancelDeleteStudent = {$: 52};
+var $author$project$Admin$ConfirmDeleteStudent = function (a) {
+	return {$: 51, a: a};
+};
+var $author$project$Admin$viewConfirmDeleteModal = function (student) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('px-6 py-4 bg-red-50 border-b border-gray-200')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$h2,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-lg font-medium text-red-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Confirm Delete')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('p-6')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('mb-4 text-gray-700')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										'Are you sure you want to delete the student record for ' + ($author$project$Admin$formatDisplayName(student.c) + '?'))
+									])),
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('mb-6 text-red-600 font-medium')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('This will permanently delete the student AND all their game submissions. This action cannot be undone.')
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex justify-end space-x-3')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$CancelDeleteStudent),
+												$elm$html$Html$Attributes$class('px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Cancel')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$ConfirmDeleteStudent(student)),
+												$elm$html$Html$Attributes$class('px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Delete Student & Submissions')
+											]))
+									]))
+							]))
+					]))
+			]));
+};
+var $author$project$Admin$CancelStudentEdit = {$: 50};
+var $author$project$Admin$SaveStudentEdit = {$: 49};
+var $author$project$Admin$UpdateEditingStudentName = function (a) {
+	return {$: 48, a: a};
+};
+var $author$project$Admin$viewEditStudentModal = F2(
+	function (model, student) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('px-6 py-4 bg-gray-50 border-b border-gray-200')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h2,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Edit Student')
+										]))
+								])),
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('p-6')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('space-y-4')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$div,
+											_List_Nil,
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$label,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$for('editStudentName'),
+															$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Student Name:')
+														])),
+													A2(
+													$elm$html$Html$input,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$type_('text'),
+															$elm$html$Html$Attributes$id('editStudentName'),
+															$elm$html$Html$Attributes$value(student.c),
+															$elm$html$Html$Events$onInput($author$project$Admin$UpdateEditingStudentName),
+															$elm$html$Html$Attributes$placeholder('firstname.lastname'),
+															$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+														]),
+													_List_Nil),
+													A2(
+													$elm$html$Html$p,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$class('text-sm text-gray-500 mt-1')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Name must be in format: firstname.lastname')
+														]))
+												])),
+											A2(
+											$elm$html$Html$div,
+											_List_fromArray(
+												[
+													$elm$html$Html$Attributes$class('pt-2 flex justify-end space-x-3')
+												]),
+											_List_fromArray(
+												[
+													A2(
+													$elm$html$Html$button,
+													_List_fromArray(
+														[
+															$elm$html$Html$Events$onClick($author$project$Admin$CancelStudentEdit),
+															$elm$html$Html$Attributes$class('px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Cancel')
+														])),
+													A2(
+													$elm$html$Html$button,
+													_List_fromArray(
+														[
+															$elm$html$Html$Events$onClick($author$project$Admin$SaveStudentEdit),
+															$elm$html$Html$Attributes$class('px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Save Changes')
+														]))
+												]))
+										]))
+								]))
+						]))
+				]));
+	});
+var $author$project$Admin$DeleteStudent = function (a) {
+	return {$: 47, a: a};
+};
+var $author$project$Admin$EditStudent = function (a) {
+	return {$: 46, a: a};
+};
+var $author$project$Admin$ViewStudentRecord = function (a) {
+	return {$: 19, a: a};
+};
+var $elm$html$Html$td = _VirtualDom_node('td');
+var $author$project$Admin$viewStudentRow = function (student) {
+	return A2(
+		$elm$html$Html$tr,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('hover:bg-gray-50')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm font-medium text-gray-900')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$author$project$Admin$formatDisplayName(student.c))
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(student.d)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(student.ai)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-sm text-gray-500')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(student.am)
+							]))
+					])),
+				A2(
+				$elm$html$Html$td,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$ViewStudentRecord(student.d)),
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('View Records')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$EditStudent(student)),
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Edit')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$DeleteStudent(student)),
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Delete')
+							]))
+					]))
+			]));
 };
 var $author$project$Admin$viewCreateStudentPage = function (model) {
 	return A2(
@@ -6964,7 +8010,7 @@ var $author$project$Admin$viewCreateStudentPage = function (model) {
 									]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text('Create New Student Record')
+										$elm$html$Html$text('Student Management')
 									])),
 								A2(
 								$elm$html$Html$button,
@@ -7005,6 +8051,16 @@ var $author$project$Admin$viewCreateStudentPage = function (model) {
 								_List_fromArray(
 									[
 										A2(
+										$elm$html$Html$h3,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900 mb-3')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Create New Student')
+											])),
+										A2(
 										$elm$html$Html$label,
 										_List_fromArray(
 											[
@@ -7021,7 +8077,7 @@ var $author$project$Admin$viewCreateStudentPage = function (model) {
 											[
 												$elm$html$Html$Attributes$type_('text'),
 												$elm$html$Html$Attributes$id('studentName'),
-												$elm$html$Html$Attributes$value(model.W),
+												$elm$html$Html$Attributes$value(model.aa),
 												$elm$html$Html$Events$onInput($author$project$Admin$UpdateNewStudentName),
 												$elm$html$Html$Attributes$placeholder('firstname.lastname (e.g., tyler.smith)'),
 												$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
@@ -7059,13 +8115,331 @@ var $author$project$Admin$viewCreateStudentPage = function (model) {
 											]))
 									]))
 							]))
-					]))
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('bg-white shadow rounded-lg p-6 mt-6')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$h3,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-lg font-medium text-gray-900 mb-4')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Student Directory')
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('mb-4')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex items-center justify-between mb-4')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('flex-1 max-w-md')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$label,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$for('studentFilterText'),
+														$elm$html$Html$Attributes$class('block text-sm font-medium text-gray-700 mb-1')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Search Students')
+													])),
+												A2(
+												$elm$html$Html$input,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$type_('text'),
+														$elm$html$Html$Attributes$id('studentFilterText'),
+														$elm$html$Html$Attributes$placeholder('Search by name or ID'),
+														$elm$html$Html$Attributes$value(model.ap),
+														$elm$html$Html$Events$onInput($author$project$Admin$UpdateStudentFilterText),
+														$elm$html$Html$Attributes$class('w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
+													]),
+												_List_Nil)
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('flex items-center ml-4 self-end')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$button,
+												_List_fromArray(
+													[
+														$elm$html$Html$Events$onClick($author$project$Admin$RequestAllStudents),
+														$elm$html$Html$Attributes$class('flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Refresh')
+													]))
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex items-center mt-2')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-sm text-gray-500 mr-2')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Sort by:')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$UpdateStudentSortBy(0)),
+												$elm$html$Html$Attributes$class(
+												A2($author$project$Admin$getStudentSortButtonClass, model, 0))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Name')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$UpdateStudentSortBy(1)),
+												$elm$html$Html$Attributes$class(
+												A2($author$project$Admin$getStudentSortButtonClass, model, 1))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Created')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick(
+												$author$project$Admin$UpdateStudentSortBy(2)),
+												$elm$html$Html$Attributes$class(
+												A2($author$project$Admin$getStudentSortButtonClass, model, 2))
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Last Active')
+											])),
+										A2(
+										$elm$html$Html$button,
+										_List_fromArray(
+											[
+												$elm$html$Html$Events$onClick($author$project$Admin$ToggleStudentSortDirection),
+												$elm$html$Html$Attributes$class('ml-2 px-2 py-1 rounded text-gray-600 hover:bg-gray-100')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												(!model.ad) ? '↑' : '↓')
+											])),
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('ml-4 text-sm text-gray-500')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												'Total: ' + ($elm$core$String$fromInt(
+													$elm$core$List$length(
+														$author$project$Admin$applyStudentFilters(model))) + ' students'))
+											]))
+									]))
+							])),
+						model.a ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('flex justify-center my-12')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500')
+									]),
+								_List_Nil)
+							])) : ($elm$core$List$isEmpty(
+						$author$project$Admin$applyStudentFilters(model)) ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('text-center py-12 bg-gray-50 rounded-lg')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('text-gray-500')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('No students found matching your filters.')
+									]))
+							])) : A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('overflow-x-auto bg-white')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$table,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('min-w-full divide-y divide-gray-200')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$thead,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('bg-gray-50')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$tr,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Name')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Student ID')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Created')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Last Active')
+															])),
+														A2(
+														$elm$html$Html$th,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Actions')
+															]))
+													]))
+											])),
+										A2(
+										$elm$html$Html$tbody,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('bg-white divide-y divide-gray-200')
+											]),
+										A2(
+											$elm$core$List$map,
+											$author$project$Admin$viewStudentRow,
+											$author$project$Admin$applyStudentFilters(model)))
+									]))
+							])))
+					])),
+				function () {
+				var _v0 = model.B;
+				if (!_v0.$) {
+					var student = _v0.a;
+					return A2($author$project$Admin$viewEditStudentModal, model, student);
+				} else {
+					return $elm$html$Html$text('');
+				}
+			}(),
+				function () {
+				var _v1 = model.W;
+				if (!_v1.$) {
+					var student = _v1.a;
+					return $author$project$Admin$viewConfirmDeleteModal(student);
+				} else {
+					return $elm$html$Html$text('');
+				}
+			}()
 			]));
 };
 var $author$project$Admin$ByBelt = 2;
 var $author$project$Admin$ByGradeStatus = 3;
 var $author$project$Admin$ByName = 0;
 var $author$project$Admin$RefreshSubmissions = {$: 18};
+var $author$project$Admin$ShowBeltManagement = {$: 27};
 var $author$project$Admin$ShowCreateStudentForm = {$: 22};
 var $author$project$Admin$ToggleSortDirection = {$: 13};
 var $author$project$Admin$UpdateFilterBelt = function (a) {
@@ -7093,7 +8467,7 @@ var $author$project$Admin$filterByGraded = F2(
 	function (maybeGraded, submission) {
 		if (!maybeGraded.$) {
 			var isGraded = maybeGraded.a;
-			var _v1 = submission.g;
+			var _v1 = submission.i;
 			if (!_v1.$) {
 				return isGraded;
 			} else {
@@ -7115,11 +8489,9 @@ var $author$project$Admin$filterByText = F2(
 					lowercaseFilter,
 					$elm$core$String$toLower(text));
 			};
-			return containsFilter(submission.t) || (containsFilter(submission.U) || containsFilter(submission.z));
+			return containsFilter(submission.q) || (containsFilter(submission.N) || containsFilter(submission.z));
 		}
 	});
-var $elm$core$Basics$compare = _Utils_compare;
-var $elm$core$List$sortWith = _List_sortWith;
 var $author$project$Admin$sortSubmissions = F3(
 	function (sortBy, direction, submissions) {
 		var sortFunction = function () {
@@ -7127,12 +8499,12 @@ var $author$project$Admin$sortSubmissions = F3(
 				case 0:
 					return F2(
 						function (a, b) {
-							return A2($elm$core$Basics$compare, a.t, b.t);
+							return A2($elm$core$Basics$compare, a.q, b.q);
 						});
 				case 1:
 					return F2(
 						function (a, b) {
-							return A2($elm$core$Basics$compare, a.E, b.E);
+							return A2($elm$core$Basics$compare, a.F, b.F);
 						});
 				case 2:
 					return F2(
@@ -7142,7 +8514,7 @@ var $author$project$Admin$sortSubmissions = F3(
 				default:
 					return F2(
 						function (a, b) {
-							var _v2 = _Utils_Tuple2(a.g, b.g);
+							var _v2 = _Utils_Tuple2(a.i, b.i);
 							_v2$2:
 							while (true) {
 								if (!_v2.a.$) {
@@ -7161,7 +8533,7 @@ var $author$project$Admin$sortSubmissions = F3(
 									}
 								}
 							}
-							return A2($elm$core$Basics$compare, a.E, b.E);
+							return A2($elm$core$Basics$compare, a.F, b.F);
 						});
 			}
 		}();
@@ -7175,23 +8547,23 @@ var $author$project$Admin$sortSubmissions = F3(
 var $author$project$Admin$applyFilters = function (model) {
 	return A3(
 		$author$project$Admin$sortSubmissions,
-		model.ah,
-		model.Y,
+		model.ao,
+		model.ac,
 		A2(
 			$elm$core$List$filter,
-			$author$project$Admin$filterByGraded(model.ao),
+			$author$project$Admin$filterByGraded(model.ax),
 			A2(
 				$elm$core$List$filter,
-				$author$project$Admin$filterByBelt(model.an),
+				$author$project$Admin$filterByBelt(model.aw),
 				A2(
 					$elm$core$List$filter,
-					$author$project$Admin$filterByText(model.af),
-					model.Z))));
+					$author$project$Admin$filterByText(model.al),
+					model.K))));
 };
 var $author$project$Admin$getSortButtonClass = F2(
 	function (model, sortType) {
 		var baseClass = 'px-3 py-1 rounded text-sm';
-		return _Utils_eq(model.ah, sortType) ? (baseClass + ' bg-blue-100 text-blue-800 font-medium') : (baseClass + ' text-gray-600 hover:bg-gray-100');
+		return _Utils_eq(model.ao, sortType) ? (baseClass + ' bg-blue-100 text-blue-800 font-medium') : (baseClass + ' text-gray-600 hover:bg-gray-100');
 	});
 var $elm$html$Html$option = _VirtualDom_node('option');
 var $elm$html$Html$select = _VirtualDom_node('select');
@@ -7223,15 +8595,35 @@ var $author$project$Admin$viewFilters = function (model) {
 								$elm$html$Html$text('Game Submissions')
 							])),
 						A2(
-						$elm$html$Html$button,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick($author$project$Admin$ShowCreateStudentForm),
-								$elm$html$Html$Attributes$class('ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500')
+								$elm$html$Html$Attributes$class('flex space-x-2')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Create New Student')
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Admin$ShowCreateStudentForm),
+										$elm$html$Html$Attributes$class('ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Manage Students')
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Admin$ShowBeltManagement),
+										$elm$html$Html$Attributes$class('inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Manage Belts')
+									]))
 							]))
 					])),
 				A2(
@@ -7268,7 +8660,7 @@ var $author$project$Admin$viewFilters = function (model) {
 										$elm$html$Html$Attributes$type_('text'),
 										$elm$html$Html$Attributes$id('filterText'),
 										$elm$html$Html$Attributes$placeholder('Search by name or game'),
-										$elm$html$Html$Attributes$value(model.af),
+										$elm$html$Html$Attributes$value(model.al),
 										$elm$html$Html$Events$onInput($author$project$Admin$UpdateFilterText),
 										$elm$html$Html$Attributes$class('w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 									]),
@@ -7330,14 +8722,14 @@ var $author$project$Admin$viewFilters = function (model) {
 														$elm$html$Html$option,
 														_List_fromArray(
 															[
-																$elm$html$Html$Attributes$value(belt.o)
+																$elm$html$Html$Attributes$value(belt.c)
 															]),
 														_List_fromArray(
 															[
-																$elm$html$Html$text(belt.o)
+																$elm$html$Html$text(belt.c)
 															]));
 												},
-												model.Q)))
+												model.U)))
 									])),
 								A2(
 								$elm$html$Html$div,
@@ -7490,7 +8882,7 @@ var $author$project$Admin$viewFilters = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$text(
-										(!model.Y) ? '↑' : '↓')
+										(!model.ac) ? '↑' : '↓')
 									]))
 							])),
 						A2(
@@ -7530,71 +8922,17 @@ var $author$project$Admin$viewFilters = function (model) {
 			]));
 };
 var $author$project$Admin$CloseStudentRecord = {$: 21};
-var $elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
+var $author$project$Admin$DeleteSubmission = function (a) {
+	return {$: 55, a: a};
 };
-var $author$project$Admin$formatDisplayName = function (name) {
-	var parts = A2($elm$core$String$split, '.', name);
-	var lastName = A2(
-		$elm$core$Maybe$withDefault,
-		'',
-		$elm$core$List$head(
-			A2($elm$core$List$drop, 1, parts)));
-	var firstName = A2(
-		$elm$core$Maybe$withDefault,
-		'',
-		$elm$core$List$head(parts));
-	var capitalizedLast = _Utils_ap(
-		$elm$core$String$toUpper(
-			A2($elm$core$String$left, 1, lastName)),
-		A2($elm$core$String$dropLeft, 1, lastName));
-	var capitalizedFirst = _Utils_ap(
-		$elm$core$String$toUpper(
-			A2($elm$core$String$left, 1, firstName)),
-		A2($elm$core$String$dropLeft, 1, firstName));
-	return capitalizedFirst + (' ' + capitalizedLast);
-};
-var $elm$html$Html$table = _VirtualDom_node('table');
-var $elm$html$Html$tbody = _VirtualDom_node('tbody');
-var $elm$html$Html$th = _VirtualDom_node('th');
-var $elm$html$Html$thead = _VirtualDom_node('thead');
-var $elm$html$Html$tr = _VirtualDom_node('tr');
 var $author$project$Admin$SelectSubmission = function (a) {
 	return {$: 7, a: a};
 };
-var $elm$html$Html$td = _VirtualDom_node('td');
 var $elm$core$Basics$ge = _Utils_ge;
 var $author$project$Admin$viewGradeBadge = function (maybeGrade) {
 	if (!maybeGrade.$) {
 		var grade = maybeGrade.a;
-		var _v1 = (grade.C >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.C >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.C >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
+		var _v1 = (grade.D >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.D >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.D >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
 		var bgColor = _v1.a;
 		var textColor = _v1.b;
 		return A2(
@@ -7606,7 +8944,7 @@ var $author$project$Admin$viewGradeBadge = function (maybeGrade) {
 			_List_fromArray(
 				[
 					$elm$html$Html$text(
-					$elm$core$String$fromInt(grade.C) + '/100')
+					$elm$core$String$fromInt(grade.D) + '/100')
 				]));
 	} else {
 		return A2(
@@ -7646,7 +8984,7 @@ var $author$project$Admin$viewStudentSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(submission.U)
+								$elm$html$Html$text(submission.N)
 							]))
 					])),
 				A2(
@@ -7684,7 +9022,7 @@ var $author$project$Admin$viewStudentSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(submission.E)
+								$elm$html$Html$text(submission.F)
 							]))
 					])),
 				A2(
@@ -7695,13 +9033,13 @@ var $author$project$Admin$viewStudentSubmissionRow = function (submission) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Admin$viewGradeBadge(submission.g)
+						$author$project$Admin$viewGradeBadge(submission.i)
 					])),
 				A2(
 				$elm$html$Html$td,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-right text-sm font-medium')
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2')
 					]),
 				_List_fromArray(
 					[
@@ -7711,12 +9049,24 @@ var $author$project$Admin$viewStudentSubmissionRow = function (submission) {
 							[
 								$elm$html$Html$Events$onClick(
 								$author$project$Admin$SelectSubmission(submission)),
-								$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-900')
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center')
 							]),
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								_Utils_eq(submission.g, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
+								_Utils_eq(submission.i, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$DeleteSubmission(submission)),
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Delete')
 							]))
 					]))
 			]));
@@ -7756,7 +9106,7 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 									_List_fromArray(
 										[
 											$elm$html$Html$text(
-											'Student Record: ' + $author$project$Admin$formatDisplayName(student.o))
+											'Student Record: ' + $author$project$Admin$formatDisplayName(student.c))
 										])),
 									A2(
 									$elm$html$Html$button,
@@ -7814,7 +9164,7 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(student.n)
+													$elm$html$Html$text(student.d)
 												]))
 										])),
 									A2(
@@ -7843,7 +9193,7 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(student.aF)
+													$elm$html$Html$text(student.ai)
 												]))
 										])),
 									A2(
@@ -7872,7 +9222,7 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(student.aP)
+													$elm$html$Html$text(student.am)
 												]))
 										]))
 								]))
@@ -8017,9 +9367,6 @@ var $author$project$Admin$viewStudentRecordPage = F3(
 						]))
 				]));
 	});
-var $author$project$Admin$ViewStudentRecord = function (a) {
-	return {$: 19, a: a};
-};
 var $author$project$Admin$viewSubmissionRow = function (submission) {
 	return A2(
 		$elm$html$Html$tr,
@@ -8046,7 +9393,7 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								$author$project$Admin$formatDisplayName(submission.t))
+								$author$project$Admin$formatDisplayName(submission.q))
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -8056,7 +9403,7 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('ID: ' + submission.D)
+								$elm$html$Html$text('ID: ' + submission.E)
 							]))
 					])),
 				A2(
@@ -8075,7 +9422,7 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(submission.U)
+								$elm$html$Html$text(submission.N)
 							]))
 					])),
 				A2(
@@ -8113,7 +9460,7 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(submission.E)
+								$elm$html$Html$text(submission.F)
 							]))
 					])),
 				A2(
@@ -8124,13 +9471,13 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Admin$viewGradeBadge(submission.g)
+						$author$project$Admin$viewGradeBadge(submission.i)
 					])),
 				A2(
 				$elm$html$Html$td,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-3')
+						$elm$html$Html$Attributes$class('px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2')
 					]),
 				_List_fromArray(
 					[
@@ -8140,24 +9487,36 @@ var $author$project$Admin$viewSubmissionRow = function (submission) {
 							[
 								$elm$html$Html$Events$onClick(
 								$author$project$Admin$SelectSubmission(submission)),
-								$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-900')
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center')
 							]),
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								_Utils_eq(submission.g, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
+								_Utils_eq(submission.i, $elm$core$Maybe$Nothing) ? 'Grade' : 'View/Edit')
 							])),
 						A2(
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
 								$elm$html$Html$Events$onClick(
-								$author$project$Admin$ViewStudentRecord(submission.D)),
-								$elm$html$Html$Attributes$class('text-green-600 hover:text-green-900')
+								$author$project$Admin$ViewStudentRecord(submission.E)),
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Student Record')
+								$elm$html$Html$text('Student')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Admin$DeleteSubmission(submission)),
+								$elm$html$Html$Attributes$class('w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Delete')
 							]))
 					]))
 			]));
@@ -8284,7 +9643,7 @@ var $author$project$Admin$viewSubmissionList = function (model) {
 			]));
 };
 var $author$project$Admin$viewCurrentPage = function (model) {
-	var _v0 = model.s;
+	var _v0 = model.t;
 	switch (_v0.$) {
 		case 0:
 			return A2(
@@ -8424,7 +9783,7 @@ var $author$project$Admin$viewLoginForm = function (model) {
 										$elm$html$Html$Attributes$type_('email'),
 										$elm$html$Html$Attributes$id('email'),
 										$elm$html$Html$Attributes$placeholder('admin@example.com'),
-										$elm$html$Html$Attributes$value(model.K),
+										$elm$html$Html$Attributes$value(model.O),
 										$elm$html$Html$Events$onInput($author$project$Admin$UpdateLoginEmail),
 										$elm$html$Html$Attributes$class('w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 									]),
@@ -8453,7 +9812,7 @@ var $author$project$Admin$viewLoginForm = function (model) {
 										$elm$html$Html$Attributes$type_('password'),
 										$elm$html$Html$Attributes$id('password'),
 										$elm$html$Html$Attributes$placeholder('••••••••'),
-										$elm$html$Html$Attributes$value(model.L),
+										$elm$html$Html$Attributes$value(model.P),
 										$elm$html$Html$Events$onInput($author$project$Admin$UpdateLoginPassword),
 										$elm$html$Html$Attributes$class('w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 									]),
@@ -8535,7 +9894,7 @@ var $author$project$Admin$viewMessages = function (model) {
 				}
 			}(),
 				function () {
-				var _v1 = model.p;
+				var _v1 = model.k;
 				if (!_v1.$) {
 					var successMsg = _v1.a;
 					return A2(
@@ -8615,7 +9974,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text(submission.t + '\'s Submission')
+											$elm$html$Html$text(submission.q + '\'s Submission')
 										])),
 									A2(
 									$elm$html$Html$button,
@@ -8642,12 +10001,12 @@ var $author$project$Admin$viewSubmissionModal = F2(
 									_List_fromArray(
 										[
 											$elm$html$Html$Events$onClick(
-											$author$project$Admin$ViewStudentRecord(submission.D)),
+											$author$project$Admin$ViewStudentRecord(submission.E)),
 											$elm$html$Html$Attributes$class('text-sm text-blue-600 hover:text-blue-800')
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text('View all submissions for ' + submission.t)
+											$elm$html$Html$text('View all submissions for ' + submission.q)
 										]))
 								])),
 							A2(
@@ -8720,7 +10079,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text(submission.t)
+																					$elm$html$Html$text(submission.q)
 																				]))
 																		])),
 																	A2(
@@ -8746,7 +10105,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text(submission.D)
+																					$elm$html$Html$text(submission.E)
 																				]))
 																		])),
 																	A2(
@@ -8798,7 +10157,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text(submission.U)
+																					$elm$html$Html$text(submission.N)
 																				]))
 																		])),
 																	A2(
@@ -8824,7 +10183,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text(submission.E)
+																					$elm$html$Html$text(submission.F)
 																				]))
 																		])),
 																	A2(
@@ -8854,13 +10213,13 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																					$elm$html$Html$a,
 																					_List_fromArray(
 																						[
-																							$elm$html$Html$Attributes$href(submission.ap),
+																							$elm$html$Html$Attributes$href(submission.ay),
 																							$elm$html$Html$Attributes$target('_blank'),
 																							$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-800 hover:underline')
 																						]),
 																					_List_fromArray(
 																						[
-																							$elm$html$Html$text(submission.ap)
+																							$elm$html$Html$text(submission.ay)
 																						]))
 																				]))
 																		])),
@@ -8887,7 +10246,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																				]),
 																			_List_fromArray(
 																				[
-																					$elm$html$Html$text(submission.aw)
+																					$elm$html$Html$text(submission.aF)
 																				]))
 																		]))
 																]))
@@ -8908,7 +10267,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																	$elm$html$Html$text('Current Grade')
 																])),
 															function () {
-															var _v0 = submission.g;
+															var _v0 = submission.i;
 															if (!_v0.$) {
 																var grade = _v0.a;
 																return A2(
@@ -8943,7 +10302,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																					_List_fromArray(
 																						[
 																							$elm$html$Html$text(
-																							$elm$core$String$fromInt(grade.C) + '/100')
+																							$elm$core$String$fromInt(grade.D) + '/100')
 																						]))
 																				])),
 																			A2(
@@ -8969,7 +10328,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																						]),
 																					_List_fromArray(
 																						[
-																							$elm$html$Html$text(grade.ae)
+																							$elm$html$Html$text(grade.ak)
 																						]))
 																				])),
 																			A2(
@@ -8995,7 +10354,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																						]),
 																					_List_fromArray(
 																						[
-																							$elm$html$Html$text(grade.aq)
+																							$elm$html$Html$text(grade.az)
 																						]))
 																				])),
 																			A2(
@@ -9021,7 +10380,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																						]),
 																					_List_fromArray(
 																						[
-																							$elm$html$Html$text(grade.ar)
+																							$elm$html$Html$text(grade.aA)
 																						]))
 																				]))
 																		]));
@@ -9071,7 +10430,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 															_List_fromArray(
 																[
 																	$elm$html$Html$text(
-																	_Utils_eq(submission.g, $elm$core$Maybe$Nothing) ? 'Add Grade' : 'Update Grade')
+																	_Utils_eq(submission.i, $elm$core$Maybe$Nothing) ? 'Add Grade' : 'Update Grade')
 																])),
 															A2(
 															$elm$html$Html$div,
@@ -9105,7 +10464,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																					$elm$html$Html$Attributes$id('scoreInput'),
 																					$elm$html$Html$Attributes$min('0'),
 																					$elm$html$Html$Attributes$max('100'),
-																					$elm$html$Html$Attributes$value(model.aa),
+																					$elm$html$Html$Attributes$value(model.af),
 																					$elm$html$Html$Events$onInput($author$project$Admin$UpdateTempScore),
 																					$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 																				]),
@@ -9132,7 +10491,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																			_List_fromArray(
 																				[
 																					$elm$html$Html$Attributes$id('feedbackInput'),
-																					$elm$html$Html$Attributes$value(model._),
+																					$elm$html$Html$Attributes$value(model.ae),
 																					$elm$html$Html$Events$onInput($author$project$Admin$UpdateTempFeedback),
 																					$elm$html$Html$Attributes$rows(6),
 																					$elm$html$Html$Attributes$placeholder('Provide feedback on the game submission...'),
@@ -9150,7 +10509,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 																	_List_fromArray(
 																		[
 																			$elm$html$Html$text(
-																			_Utils_eq(submission.g, $elm$core$Maybe$Nothing) ? 'Submit Grade' : 'Update Grade')
+																			_Utils_eq(submission.i, $elm$core$Maybe$Nothing) ? 'Submit Grade' : 'Update Grade')
 																		]))
 																]))
 														]))
@@ -9181,7 +10540,7 @@ var $author$project$Admin$viewSubmissionModal = F2(
 				]));
 	});
 var $author$project$Admin$viewContent = function (model) {
-	var _v0 = model.k;
+	var _v0 = model.n;
 	switch (_v0.$) {
 		case 0:
 			return $author$project$Admin$viewLoginForm(model);
@@ -9220,7 +10579,7 @@ var $author$project$Admin$viewContent = function (model) {
 											[
 												$elm$html$Html$text(
 												$elm$core$String$toUpper(
-													A2($elm$core$String$left, 1, user.as)))
+													A2($elm$core$String$left, 1, user.aB)))
 											])),
 										A2(
 										$elm$html$Html$div,
@@ -9235,7 +10594,7 @@ var $author$project$Admin$viewContent = function (model) {
 													]),
 												_List_fromArray(
 													[
-														$elm$html$Html$text(user.as)
+														$elm$html$Html$text(user.aB)
 													])),
 												A2(
 												$elm$html$Html$p,
@@ -9245,7 +10604,7 @@ var $author$project$Admin$viewContent = function (model) {
 													]),
 												_List_fromArray(
 													[
-														$elm$html$Html$text(user.at)
+														$elm$html$Html$text(user.aC)
 													]))
 											]))
 									])),
@@ -9257,17 +10616,6 @@ var $author$project$Admin$viewContent = function (model) {
 									]),
 								_List_fromArray(
 									[
-										A2(
-										$elm$html$Html$button,
-										_List_fromArray(
-											[
-												$elm$html$Html$Events$onClick($author$project$Admin$ShowBeltManagement),
-												$elm$html$Html$Attributes$class('px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text('Manage Belts')
-											])),
 										A2(
 										$elm$html$Html$button,
 										_List_fromArray(
@@ -9305,10 +10653,19 @@ var $author$project$Admin$viewContent = function (model) {
 								$author$project$Admin$viewCurrentPage(model)
 							])),
 						function () {
-						var _v1 = model.S;
+						var _v1 = model.Y;
 						if (!_v1.$) {
 							var submission = _v1.a;
 							return A2($author$project$Admin$viewSubmissionModal, model, submission);
+						} else {
+							return $elm$html$Html$text('');
+						}
+					}(),
+						function () {
+						var _v2 = model.X;
+						if (!_v2.$) {
+							var submission = _v2.a;
+							return $author$project$Admin$viewConfirmDeleteSubmissionModal(submission);
 						} else {
 							return $elm$html$Html$text('');
 						}
@@ -9348,6 +10705,6 @@ var $author$project$Admin$view = function (model) {
 			]));
 };
 var $author$project$Admin$main = $elm$browser$Browser$element(
-	{bv: $author$project$Admin$init, bF: $author$project$Admin$subscriptions, bJ: $author$project$Admin$update, bK: $author$project$Admin$view});
+	{bC: $author$project$Admin$init, bM: $author$project$Admin$subscriptions, bQ: $author$project$Admin$update, bR: $author$project$Admin$view});
 _Platform_export({'Admin':{'init':$author$project$Admin$main(
 	$elm$json$Json$Decode$succeed(0))(0)}});}(this));

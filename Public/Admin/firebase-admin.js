@@ -5,7 +5,8 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   onAuthStateChanged,
-  signOut
+  signOut,
+  createUserWithEmailAndPassword
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Your web app's Firebase configuration
@@ -189,6 +190,198 @@ export function initializeFirebase(elmApp) {
       elmApp.ports.beltResult.send("Error: Not authenticated");
     }
   });
+
+  // Handle submission deletion requests
+  elmApp.ports.deleteSubmission.subscribe(function(submissionId) {
+    if (auth.currentUser) {
+      deleteSubmissionRecord(submissionId, elmApp);
+    } else {
+      console.warn("Cannot delete submission: User not authenticated");
+      elmApp.ports.submissionDeleted.send("Error: Not authenticated");
+    }
+  });
+
+  // Handle student listing requests
+  elmApp.ports.requestAllStudents.subscribe(function() {
+    if (auth.currentUser) {
+      fetchAllStudents(elmApp);
+    } else {
+      console.warn("Cannot fetch students: User not authenticated");
+      elmApp.ports.receiveAllStudents.send([]);
+    }
+  });
+
+  // Handle student deletion (including all submissions)
+  elmApp.ports.deleteStudent.subscribe(function(studentId) {
+    if (auth.currentUser) {
+      deleteStudentAndSubmissions(studentId, elmApp);
+    } else {
+      console.warn("Cannot delete student: User not authenticated");
+      elmApp.ports.studentDeleted.send("Error: Not authenticated");
+    }
+  });
+
+
+  elmApp.ports.createAdminUser.subscribe(function(userData) {
+    if (auth.currentUser) {
+      createAdminUserAccount(userData, elmApp);
+    } else {
+      console.warn("Cannot create admin user: User not authenticated");
+      elmApp.ports.adminUserCreated.send({
+        success: false,
+        message: "Not authenticated. Please sign in first."
+      });
+    }
+  });
+}
+
+
+/**
+ * Create a new admin user account
+ * @param {Object} userData - The user data {email, password, displayName}
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function createAdminUserAccount(userData, elmApp) {
+  try {
+    const { email, password, displayName } = userData;
+
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can create new admin accounts");
+    }
+
+    // Create the user with Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Save admin record to database
+    const adminRef = ref(database, `admins/${user.uid}`);
+    await set(adminRef, {
+      email: email,
+      displayName: displayName || email,
+      role: "admin",
+      createdBy: auth.currentUser.email,
+      createdAt: new Date().toISOString()
+    });
+
+    // Return success to Elm
+    elmApp.ports.adminUserCreated.send({
+      success: true,
+      message: "Admin user created successfully"
+    });
+  } catch (error) {
+    console.error("Error creating admin user:", error);
+    elmApp.ports.adminUserCreated.send({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+/**
+ * Delete a student and all their submissions from Firebase
+ * @param {string} studentId - The student ID to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function deleteStudentAndSubmissions(studentId, elmApp) {
+  try {
+    // First fetch all submissions to find those belonging to this student
+    const submissionsRef = ref(database, 'submissions');
+    const submissionsSnapshot = await get(submissionsRef);
+
+    const deletionPromises = [];
+
+    // Delete all submissions for this student
+    if (submissionsSnapshot.exists()) {
+      const submissionsData = submissionsSnapshot.val();
+
+      // Find all submissions for this student and delete them
+      for (const submissionId in submissionsData) {
+        const submission = submissionsData[submissionId];
+        if (submission.studentId === studentId) {
+          // Add to deletion promises
+          const submissionRef = ref(database, `submissions/${submissionId}`);
+          deletionPromises.push(remove(submissionRef));
+          console.log(`Deleting submission: ${submissionId}`);
+        }
+      }
+    }
+
+    // Wait for all submission deletions to complete
+    await Promise.all(deletionPromises);
+
+    // Finally delete the student record
+    const studentRef = ref(database, `students/${studentId}`);
+    await remove(studentRef);
+
+    // Send success message back to Elm
+    elmApp.ports.studentDeleted.send(studentId);
+    console.log(`Student ${studentId} and all their submissions deleted successfully`);
+  } catch (error) {
+    console.error("Error deleting student and submissions:", error);
+    elmApp.ports.studentDeleted.send("Error: " + error.message);
+  }
+}
+
+/**
+ * Delete a submission from Firebase
+ * @param {string} submissionId - The submission ID to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function deleteSubmissionRecord(submissionId, elmApp) {
+  try {
+    const submissionRef = ref(database, `submissions/${submissionId}`);
+
+    // First check if the submission exists
+    const snapshot = await get(submissionRef);
+    if (!snapshot.exists()) {
+      throw new Error("Submission not found");
+    }
+
+    // Delete the submission
+    await remove(submissionRef);
+
+    // Send success message back to Elm
+    elmApp.ports.submissionDeleted.send(submissionId);
+    console.log("Submission deleted successfully");
+  } catch (error) {
+    console.error("Error deleting submission:", error);
+    elmApp.ports.submissionDeleted.send("Error: " + error.message);
+  }
+}
+
+/**
+ * Fetch all students from Firebase
+ * @param {Object} elmApp - The Elm application instance
+ */
+function fetchAllStudents(elmApp) {
+  const studentsRef = ref(database, 'students');
+
+  get(studentsRef)
+    .then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        // Convert Firebase object to array of students with IDs
+        const students = Object.entries(data).map(([id, student]) => {
+          return {
+            id,
+            ...student
+          };
+        });
+
+        elmApp.ports.receiveAllStudents.send(students);
+      } else {
+        // Return empty array if no students
+        elmApp.ports.receiveAllStudents.send([]);
+      }
+    })
+    .catch((error) => {
+      console.error("Error fetching students:", error);
+      elmApp.ports.receiveAllStudents.send([]);
+    });
 }
 
 /**

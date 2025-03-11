@@ -77,7 +77,7 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
   return fun.a === 9 ? fun.f(a, b, c, d, e, f, g, h, i) : fun(a)(b)(c)(d)(e)(f)(g)(h)(i);
 }
 
-console.warn('Compiled in DEV mode. Follow the advice at https://elm-lang.org/0.19.1/optimize for better performance and smaller assets.');
+
 
 
 // EQUALITY
@@ -113,7 +113,7 @@ function _Utils_eqHelp(x, y, depth, stack)
 		return true;
 	}
 
-	/**/
+	/**_UNUSED/
 	if (x.$ === 'Set_elm_builtin')
 	{
 		x = $elm$core$Set$toList(x);
@@ -126,7 +126,7 @@ function _Utils_eqHelp(x, y, depth, stack)
 	}
 	//*/
 
-	/**_UNUSED/
+	/**/
 	if (x.$ < 0)
 	{
 		x = $elm$core$Dict$toList(x);
@@ -161,7 +161,7 @@ function _Utils_cmp(x, y, ord)
 		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
 	}
 
-	/**/
+	/**_UNUSED/
 	if (x instanceof String)
 	{
 		var a = x.valueOf();
@@ -170,10 +170,10 @@ function _Utils_cmp(x, y, ord)
 	}
 	//*/
 
-	/**_UNUSED/
+	/**/
 	if (typeof x.$ === 'undefined')
 	//*/
-	/**/
+	/**_UNUSED/
 	if (x.$[0] === '#')
 	//*/
 	{
@@ -203,17 +203,17 @@ var _Utils_compare = F2(function(x, y)
 
 // COMMON VALUES
 
-var _Utils_Tuple0_UNUSED = 0;
-var _Utils_Tuple0 = { $: '#0' };
+var _Utils_Tuple0 = 0;
+var _Utils_Tuple0_UNUSED = { $: '#0' };
 
-function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
+function _Utils_Tuple2(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2_UNUSED(a, b) { return { $: '#2', a: a, b: b }; }
 
-function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+function _Utils_Tuple3(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3_UNUSED(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
 
-function _Utils_chr_UNUSED(c) { return c; }
-function _Utils_chr(c) { return new String(c); }
+function _Utils_chr(c) { return c; }
+function _Utils_chr_UNUSED(c) { return new String(c); }
 
 
 // RECORDS
@@ -264,11 +264,11 @@ function _Utils_ap(xs, ys)
 
 
 
-var _List_Nil_UNUSED = { $: 0 };
-var _List_Nil = { $: '[]' };
+var _List_Nil = { $: 0 };
+var _List_Nil_UNUSED = { $: '[]' };
 
-function _List_Cons_UNUSED(hd, tl) { return { $: 1, a: hd, b: tl }; }
-function _List_Cons(hd, tl) { return { $: '::', a: hd, b: tl }; }
+function _List_Cons(hd, tl) { return { $: 1, a: hd, b: tl }; }
+function _List_Cons_UNUSED(hd, tl) { return { $: '::', a: hd, b: tl }; }
 
 
 var _List_cons = F2(_List_Cons);
@@ -499,12 +499,12 @@ var _JsArray_appendN = F3(function(n, dest, source)
 
 // LOG
 
-var _Debug_log_UNUSED = F2(function(tag, value)
+var _Debug_log = F2(function(tag, value)
 {
 	return value;
 });
 
-var _Debug_log = F2(function(tag, value)
+var _Debug_log_UNUSED = F2(function(tag, value)
 {
 	console.log(tag + ': ' + _Debug_toString(value));
 	return value;
@@ -530,12 +530,12 @@ function _Debug_todoCase(moduleName, region, value)
 
 // TO STRING
 
-function _Debug_toString_UNUSED(value)
+function _Debug_toString(value)
 {
 	return '<internals>';
 }
 
-function _Debug_toString(value)
+function _Debug_toString_UNUSED(value)
 {
 	return _Debug_toAnsiString(false, value);
 }
@@ -720,13 +720,13 @@ function _Debug_toHexDigit(n)
 // CRASH
 
 
-function _Debug_crash_UNUSED(identifier)
+function _Debug_crash(identifier)
 {
 	throw new Error('https://github.com/elm/core/blob/1.0.0/hints/' + identifier + '.md');
 }
 
 
-function _Debug_crash(identifier, fact1, fact2, fact3, fact4)
+function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 {
 	switch(identifier)
 	{
@@ -784,11 +784,11 @@ function _Debug_crash(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.start.line === region.end.line)
+	if (region.Z.J === region.ah.J)
 	{
-		return 'on line ' + region.start.line;
+		return 'on line ' + region.Z.J;
 	}
-	return 'on lines ' + region.start.line + ' through ' + region.end.line;
+	return 'on lines ' + region.Z.J + ' through ' + region.ah.J;
 }
 
 
@@ -1212,7 +1212,7 @@ function _Char_toLocaleLower(char)
 
 
 
-/**/
+/**_UNUSED/
 function _Json_errorToString(error)
 {
 	return $elm$json$Json$Decode$errorToString(error);
@@ -1616,11 +1616,11 @@ var _Json_encode = F2(function(indentLevel, value)
 	return JSON.stringify(_Json_unwrap(value), null, indentLevel) + '';
 });
 
-function _Json_wrap(value) { return { $: 0, a: value }; }
-function _Json_unwrap(value) { return value.a; }
+function _Json_wrap_UNUSED(value) { return { $: 0, a: value }; }
+function _Json_unwrap_UNUSED(value) { return value.a; }
 
-function _Json_wrap_UNUSED(value) { return value; }
-function _Json_unwrap_UNUSED(value) { return value; }
+function _Json_wrap(value) { return value; }
+function _Json_unwrap(value) { return value; }
 
 function _Json_emptyArray() { return []; }
 function _Json_emptyObject() { return {}; }
@@ -1857,9 +1857,9 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.init,
-		impl.update,
-		impl.subscriptions,
+		impl.a5,
+		impl.bi,
+		impl.bf,
 		function() { return function() {} }
 	);
 });
@@ -1872,7 +1872,7 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 function _Platform_initialize(flagDecoder, args, init, update, subscriptions, stepperBuilder)
 {
 	var result = A2(_Json_run, flagDecoder, _Json_wrap(args ? args['flags'] : undefined));
-	$elm$core$Result$isOk(result) || _Debug_crash(2 /**/, _Json_errorToString(result.a) /**/);
+	$elm$core$Result$isOk(result) || _Debug_crash(2 /**_UNUSED/, _Json_errorToString(result.a) /**/);
 	var managers = {};
 	var initPair = init(result.a);
 	var model = initPair.a;
@@ -2316,7 +2316,7 @@ function _Platform_setupIncomingPort(name, sendToApp)
 //
 
 
-function _Platform_export_UNUSED(exports)
+function _Platform_export(exports)
 {
 	scope['Elm']
 		? _Platform_mergeExportsProd(scope['Elm'], exports)
@@ -2337,7 +2337,7 @@ function _Platform_mergeExportsProd(obj, exports)
 }
 
 
-function _Platform_export(exports)
+function _Platform_export_UNUSED(exports)
 {
 	scope['Elm']
 		? _Platform_mergeExportsDebug('Elm', scope['Elm'], exports)
@@ -2377,10 +2377,10 @@ var _VirtualDom_init = F4(function(virtualNode, flagDecoder, debugMetadata, args
 {
 	// NOTE: this function needs _Platform_export available to work
 
-	/**_UNUSED/
+	/**/
 	var node = args['node'];
 	//*/
-	/**/
+	/**_UNUSED/
 	var node = args && args['node'] ? args['node'] : _Debug_crash(0);
 	//*/
 
@@ -2655,14 +2655,14 @@ function _VirtualDom_noInnerHtmlOrFormAction(key)
 function _VirtualDom_noJavaScriptUri(value)
 {
 	return _VirtualDom_RE_js.test(value)
-		? /**_UNUSED/''//*//**/'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'//*/
+		? /**/''//*//**_UNUSED/'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'//*/
 		: value;
 }
 
 function _VirtualDom_noJavaScriptOrHtmlUri(value)
 {
 	return _VirtualDom_RE_js_html.test(value)
-		? /**_UNUSED/''//*//**/'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'//*/
+		? /**/''//*//**_UNUSED/'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'//*/
 		: value;
 }
 
@@ -2670,7 +2670,7 @@ function _VirtualDom_noJavaScriptOrHtmlJson(value)
 {
 	return (typeof _Json_unwrap(value) === 'string' && _VirtualDom_RE_js_html.test(_Json_unwrap(value)))
 		? _Json_wrap(
-			/**_UNUSED/''//*//**/'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'//*/
+			/**/''//*//**_UNUSED/'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'//*/
 		) : value;
 }
 
@@ -2719,9 +2719,9 @@ var _VirtualDom_mapEventTuple = F2(function(func, tuple)
 var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
-		message: func(record.message),
-		stopPropagation: record.stopPropagation,
-		preventDefault: record.preventDefault
+		x: func(record.x),
+		_: record._,
+		X: record.X
 	}
 });
 
@@ -2989,11 +2989,11 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		// 3 = Custom
 
 		var value = result.a;
-		var message = !tag ? value : tag < 3 ? value.a : value.message;
-		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.stopPropagation;
+		var message = !tag ? value : tag < 3 ? value.a : value.x;
+		var stopPropagation = tag == 1 ? value.b : tag == 3 && value._;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.preventDefault) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.X) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3943,15 +3943,15 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.init,
-		impl.update,
-		impl.subscriptions,
+		impl.a5,
+		impl.bi,
+		impl.bf,
 		function(sendToApp, initialModel) {
-			var view = impl.view;
-			/**_UNUSED/
+			var view = impl.bj;
+			/**/
 			var domNode = args['node'];
 			//*/
-			/**/
+			/**_UNUSED/
 			var domNode = args && args['node'] ? args['node'] : _Debug_crash(0);
 			//*/
 			var currNode = _VirtualDom_virtualize(domNode);
@@ -3979,12 +3979,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.init,
-		impl.update,
-		impl.subscriptions,
+		impl.a5,
+		impl.bi,
+		impl.bf,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.setup && impl.setup(sendToApp)
-			var view = impl.view;
+			var divertHrefToApp = impl.Y && impl.Y(sendToApp)
+			var view = impl.bj;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -3992,12 +3992,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 			{
 				_VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
-				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.body);
+				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.aR);
 				var patches = _VirtualDom_diff(currNode, nextNode);
 				bodyNode = _VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
 				_VirtualDom_divertHrefToApp = 0;
-				(title !== doc.title) && (_VirtualDom_doc.title = title = doc.title);
+				(title !== doc.bh) && (_VirtualDom_doc.title = title = doc.bh);
 			});
 		}
 	);
@@ -4053,12 +4053,12 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var onUrlChange = impl.onUrlChange;
-	var onUrlRequest = impl.onUrlRequest;
+	var onUrlChange = impl.a7;
+	var onUrlRequest = impl.a8;
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		setup: function(sendToApp)
+		Y: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -4074,9 +4074,9 @@ function _Browser_application(impl)
 					var next = $elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.protocol === next.protocol
-							&& curr.host === next.host
-							&& curr.port_.a === next.port_.a
+							&& curr.ax === next.ax
+							&& curr.an === next.an
+							&& curr.au.a === next.au.a
 						)
 							? $elm$browser$Browser$Internal(next)
 							: $elm$browser$Browser$External(href)
@@ -4084,13 +4084,13 @@ function _Browser_application(impl)
 				}
 			});
 		},
-		init: function(flags)
+		a5: function(flags)
 		{
-			return A3(impl.init, flags, _Browser_getUrl(), key);
+			return A3(impl.a5, flags, _Browser_getUrl(), key);
 		},
-		view: impl.view,
-		update: impl.update,
-		subscriptions: impl.subscriptions
+		bj: impl.bj,
+		bi: impl.bi,
+		bf: impl.bf
 	});
 }
 
@@ -4156,17 +4156,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { hidden: 'hidden', change: 'visibilitychange' }
+		? { a3: 'hidden', aT: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { hidden: 'mozHidden', change: 'mozvisibilitychange' }
+		? { a3: 'mozHidden', aT: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { hidden: 'msHidden', change: 'msvisibilitychange' }
+		? { a3: 'msHidden', aT: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { hidden: 'webkitHidden', change: 'webkitvisibilitychange' }
-		: { hidden: 'hidden', change: 'visibilitychange' };
+		? { a3: 'webkitHidden', aT: 'webkitvisibilitychange' }
+		: { a3: 'hidden', aT: 'visibilitychange' };
 }
 
 
@@ -4247,12 +4247,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		scene: _Browser_getScene(),
-		viewport: {
-			x: _Browser_window.pageXOffset,
-			y: _Browser_window.pageYOffset,
-			width: _Browser_doc.documentElement.clientWidth,
-			height: _Browser_doc.documentElement.clientHeight
+		aD: _Browser_getScene(),
+		aI: {
+			aK: _Browser_window.pageXOffset,
+			aL: _Browser_window.pageYOffset,
+			aJ: _Browser_doc.documentElement.clientWidth,
+			am: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4262,8 +4262,8 @@ function _Browser_getScene()
 	var body = _Browser_doc.body;
 	var elem = _Browser_doc.documentElement;
 	return {
-		width: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		height: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		aJ: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		am: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4286,15 +4286,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			scene: {
-				width: node.scrollWidth,
-				height: node.scrollHeight
+			aD: {
+				aJ: node.scrollWidth,
+				am: node.scrollHeight
 			},
-			viewport: {
-				x: node.scrollLeft,
-				y: node.scrollTop,
-				width: node.clientWidth,
-				height: node.clientHeight
+			aI: {
+				aK: node.scrollLeft,
+				aL: node.scrollTop,
+				aJ: node.clientWidth,
+				am: node.clientHeight
 			}
 		};
 	});
@@ -4324,18 +4324,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			scene: _Browser_getScene(),
-			viewport: {
-				x: x,
-				y: y,
-				width: _Browser_doc.documentElement.clientWidth,
-				height: _Browser_doc.documentElement.clientHeight
+			aD: _Browser_getScene(),
+			aI: {
+				aK: x,
+				aL: y,
+				aJ: _Browser_doc.documentElement.clientWidth,
+				am: _Browser_doc.documentElement.clientHeight
 			},
-			element: {
-				x: x + rect.left,
-				y: y + rect.top,
-				width: rect.width,
-				height: rect.height
+			aX: {
+				aK: x + rect.left,
+				aL: y + rect.top,
+				aJ: rect.width,
+				am: rect.height
 			}
 		};
 	});
@@ -4370,15 +4370,15 @@ function _Browser_load(url)
 		}
 	}));
 }
-var $elm$core$Basics$EQ = {$: 'EQ'};
-var $elm$core$Basics$GT = {$: 'GT'};
-var $elm$core$Basics$LT = {$: 'LT'};
+var $elm$core$Basics$EQ = 1;
+var $elm$core$Basics$GT = 2;
+var $elm$core$Basics$LT = 0;
 var $elm$core$List$cons = _List_cons;
 var $elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
 		while (true) {
-			if (t.$ === 'RBEmpty_elm_builtin') {
+			if (t.$ === -2) {
 				return acc;
 			} else {
 				var key = t.b;
@@ -4423,7 +4423,7 @@ var $elm$core$Dict$keys = function (dict) {
 		dict);
 };
 var $elm$core$Set$toList = function (_v0) {
-	var dict = _v0.a;
+	var dict = _v0;
 	return $elm$core$Dict$keys(dict);
 };
 var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
@@ -4433,7 +4433,7 @@ var $elm$core$Array$foldr = F3(
 		var tail = _v0.d;
 		var helper = F2(
 			function (node, acc) {
-				if (node.$ === 'SubTree') {
+				if (!node.$) {
 					var subTree = node.a;
 					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
 				} else {
@@ -4451,32 +4451,32 @@ var $elm$core$Array$toList = function (array) {
 	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
 };
 var $elm$core$Result$Err = function (a) {
-	return {$: 'Err', a: a};
+	return {$: 1, a: a};
 };
 var $elm$json$Json$Decode$Failure = F2(
 	function (a, b) {
-		return {$: 'Failure', a: a, b: b};
+		return {$: 3, a: a, b: b};
 	});
 var $elm$json$Json$Decode$Field = F2(
 	function (a, b) {
-		return {$: 'Field', a: a, b: b};
+		return {$: 0, a: a, b: b};
 	});
 var $elm$json$Json$Decode$Index = F2(
 	function (a, b) {
-		return {$: 'Index', a: a, b: b};
+		return {$: 1, a: a, b: b};
 	});
 var $elm$core$Result$Ok = function (a) {
-	return {$: 'Ok', a: a};
+	return {$: 0, a: a};
 };
 var $elm$json$Json$Decode$OneOf = function (a) {
-	return {$: 'OneOf', a: a};
+	return {$: 2, a: a};
 };
-var $elm$core$Basics$False = {$: 'False'};
+var $elm$core$Basics$False = 1;
 var $elm$core$Basics$add = _Basics_add;
 var $elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
+	return {$: 0, a: a};
 };
-var $elm$core$Maybe$Nothing = {$: 'Nothing'};
+var $elm$core$Maybe$Nothing = {$: 1};
 var $elm$core$String$all = _String_all;
 var $elm$core$Basics$and = _Basics_and;
 var $elm$core$Basics$append = _Utils_append;
@@ -4601,12 +4601,12 @@ var $elm$json$Json$Decode$errorToStringHelp = F2(
 		errorToStringHelp:
 		while (true) {
 			switch (error.$) {
-				case 'Field':
+				case 0:
 					var f = error.a;
 					var err = error.b;
 					var isSimple = function () {
 						var _v1 = $elm$core$String$uncons(f);
-						if (_v1.$ === 'Nothing') {
+						if (_v1.$ === 1) {
 							return false;
 						} else {
 							var _v2 = _v1.a;
@@ -4621,7 +4621,7 @@ var $elm$json$Json$Decode$errorToStringHelp = F2(
 					error = $temp$error;
 					context = $temp$context;
 					continue errorToStringHelp;
-				case 'Index':
+				case 1:
 					var i = error.a;
 					var err = error.b;
 					var indexName = '[' + ($elm$core$String$fromInt(i) + ']');
@@ -4630,7 +4630,7 @@ var $elm$json$Json$Decode$errorToStringHelp = F2(
 					error = $temp$error;
 					context = $temp$context;
 					continue errorToStringHelp;
-				case 'OneOf':
+				case 2:
 					var errors = error.a;
 					if (!errors.b) {
 						return 'Ran into a Json.Decode.oneOf with no possibilities' + function () {
@@ -4694,7 +4694,7 @@ var $elm$json$Json$Decode$errorToStringHelp = F2(
 var $elm$core$Array$branchFactor = 32;
 var $elm$core$Array$Array_elm_builtin = F4(
 	function (a, b, c, d) {
-		return {$: 'Array_elm_builtin', a: a, b: b, c: c, d: d};
+		return {$: 0, a: a, b: b, c: c, d: d};
 	});
 var $elm$core$Elm$JsArray$empty = _JsArray_empty;
 var $elm$core$Basics$ceiling = _Basics_ceiling;
@@ -4709,7 +4709,7 @@ var $elm$core$Array$shiftStep = $elm$core$Basics$ceiling(
 var $elm$core$Array$empty = A4($elm$core$Array$Array_elm_builtin, 0, $elm$core$Array$shiftStep, $elm$core$Elm$JsArray$empty, $elm$core$Elm$JsArray$empty);
 var $elm$core$Elm$JsArray$initialize = _JsArray_initialize;
 var $elm$core$Array$Leaf = function (a) {
-	return {$: 'Leaf', a: a};
+	return {$: 1, a: a};
 };
 var $elm$core$Basics$apL = F2(
 	function (f, x) {
@@ -4729,7 +4729,7 @@ var $elm$core$Basics$max = F2(
 	});
 var $elm$core$Basics$mul = _Basics_mul;
 var $elm$core$Array$SubTree = function (a) {
-	return {$: 'SubTree', a: a};
+	return {$: 0, a: a};
 };
 var $elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
 var $elm$core$Array$compressNodes = F2(
@@ -4776,25 +4776,25 @@ var $elm$core$Array$treeFromBuilder = F2(
 	});
 var $elm$core$Array$builderToArray = F2(
 	function (reverseNodeList, builder) {
-		if (!builder.nodeListSize) {
+		if (!builder.b) {
 			return A4(
 				$elm$core$Array$Array_elm_builtin,
-				$elm$core$Elm$JsArray$length(builder.tail),
+				$elm$core$Elm$JsArray$length(builder.d),
 				$elm$core$Array$shiftStep,
 				$elm$core$Elm$JsArray$empty,
-				builder.tail);
+				builder.d);
 		} else {
-			var treeLen = builder.nodeListSize * $elm$core$Array$branchFactor;
+			var treeLen = builder.b * $elm$core$Array$branchFactor;
 			var depth = $elm$core$Basics$floor(
 				A2($elm$core$Basics$logBase, $elm$core$Array$branchFactor, treeLen - 1));
-			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.nodeList) : builder.nodeList;
-			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.nodeListSize);
+			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.e) : builder.e;
+			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.b);
 			return A4(
 				$elm$core$Array$Array_elm_builtin,
-				$elm$core$Elm$JsArray$length(builder.tail) + treeLen,
+				$elm$core$Elm$JsArray$length(builder.d) + treeLen,
 				A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep),
 				tree,
-				builder.tail);
+				builder.d);
 		}
 	});
 var $elm$core$Basics$idiv = _Basics_idiv;
@@ -4807,7 +4807,7 @@ var $elm$core$Array$initializeHelp = F5(
 				return A2(
 					$elm$core$Array$builderToArray,
 					false,
-					{nodeList: nodeList, nodeListSize: (len / $elm$core$Array$branchFactor) | 0, tail: tail});
+					{e: nodeList, b: (len / $elm$core$Array$branchFactor) | 0, d: tail});
 			} else {
 				var leaf = $elm$core$Array$Leaf(
 					A3($elm$core$Elm$JsArray$initialize, $elm$core$Array$branchFactor, fromIndex, fn));
@@ -4837,9 +4837,9 @@ var $elm$core$Array$initialize = F2(
 			return A5($elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
 		}
 	});
-var $elm$core$Basics$True = {$: 'True'};
+var $elm$core$Basics$True = 0;
 var $elm$core$Result$isOk = function (result) {
-	if (result.$ === 'Ok') {
+	if (!result.$) {
 		return true;
 	} else {
 		return false;
@@ -4850,33 +4850,31 @@ var $elm$json$Json$Decode$map2 = _Json_map2;
 var $elm$json$Json$Decode$succeed = _Json_succeed;
 var $elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
-		case 'Normal':
+		case 0:
 			return 0;
-		case 'MayStopPropagation':
+		case 1:
 			return 1;
-		case 'MayPreventDefault':
+		case 2:
 			return 2;
 		default:
 			return 3;
 	}
 };
 var $elm$browser$Browser$External = function (a) {
-	return {$: 'External', a: a};
+	return {$: 1, a: a};
 };
 var $elm$browser$Browser$Internal = function (a) {
-	return {$: 'Internal', a: a};
+	return {$: 0, a: a};
 };
 var $elm$core$Basics$identity = function (x) {
 	return x;
 };
-var $elm$browser$Browser$Dom$NotFound = function (a) {
-	return {$: 'NotFound', a: a};
-};
-var $elm$url$Url$Http = {$: 'Http'};
-var $elm$url$Url$Https = {$: 'Https'};
+var $elm$browser$Browser$Dom$NotFound = $elm$core$Basics$identity;
+var $elm$url$Url$Http = 0;
+var $elm$url$Url$Https = 1;
 var $elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
+		return {aj: fragment, an: host, as: path, au: port_, ax: protocol, ay: query};
 	});
 var $elm$core$String$contains = _String_contains;
 var $elm$core$String$length = _String_length;
@@ -4912,7 +4910,7 @@ var $elm$url$Url$chompBeforePath = F5(
 					var i = _v0.a;
 					var _v1 = $elm$core$String$toInt(
 						A2($elm$core$String$dropLeft, i + 1, str));
-					if (_v1.$ === 'Nothing') {
+					if (_v1.$ === 1) {
 						return $elm$core$Maybe$Nothing;
 					} else {
 						var port_ = _v1;
@@ -4995,26 +4993,24 @@ var $elm$core$String$startsWith = _String_startsWith;
 var $elm$url$Url$fromString = function (str) {
 	return A2($elm$core$String$startsWith, 'http://', str) ? A2(
 		$elm$url$Url$chompAfterProtocol,
-		$elm$url$Url$Http,
+		0,
 		A2($elm$core$String$dropLeft, 7, str)) : (A2($elm$core$String$startsWith, 'https://', str) ? A2(
 		$elm$url$Url$chompAfterProtocol,
-		$elm$url$Url$Https,
+		1,
 		A2($elm$core$String$dropLeft, 8, str)) : $elm$core$Maybe$Nothing);
 };
 var $elm$core$Basics$never = function (_v0) {
 	never:
 	while (true) {
-		var nvr = _v0.a;
+		var nvr = _v0;
 		var $temp$_v0 = nvr;
 		_v0 = $temp$_v0;
 		continue never;
 	}
 };
-var $elm$core$Task$Perform = function (a) {
-	return {$: 'Perform', a: a};
-};
+var $elm$core$Task$Perform = $elm$core$Basics$identity;
 var $elm$core$Task$succeed = _Scheduler_succeed;
-var $elm$core$Task$init = $elm$core$Task$succeed(_Utils_Tuple0);
+var $elm$core$Task$init = $elm$core$Task$succeed(0);
 var $elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -5120,7 +5116,7 @@ var $elm$core$Task$sequence = function (tasks) {
 var $elm$core$Platform$sendToApp = _Platform_sendToApp;
 var $elm$core$Task$spawnCmd = F2(
 	function (router, _v0) {
-		var task = _v0.a;
+		var task = _v0;
 		return _Scheduler_spawn(
 			A2(
 				$elm$core$Task$andThen,
@@ -5132,7 +5128,7 @@ var $elm$core$Task$onEffects = F3(
 		return A2(
 			$elm$core$Task$map,
 			function (_v0) {
-				return _Utils_Tuple0;
+				return 0;
 			},
 			$elm$core$Task$sequence(
 				A2(
@@ -5142,24 +5138,22 @@ var $elm$core$Task$onEffects = F3(
 	});
 var $elm$core$Task$onSelfMsg = F3(
 	function (_v0, _v1, _v2) {
-		return $elm$core$Task$succeed(_Utils_Tuple0);
+		return $elm$core$Task$succeed(0);
 	});
 var $elm$core$Task$cmdMap = F2(
 	function (tagger, _v0) {
-		var task = _v0.a;
-		return $elm$core$Task$Perform(
-			A2($elm$core$Task$map, tagger, task));
+		var task = _v0;
+		return A2($elm$core$Task$map, tagger, task);
 	});
 _Platform_effectManagers['Task'] = _Platform_createManager($elm$core$Task$init, $elm$core$Task$onEffects, $elm$core$Task$onSelfMsg, $elm$core$Task$cmdMap);
 var $elm$core$Task$command = _Platform_leaf('Task');
 var $elm$core$Task$perform = F2(
 	function (toMessage, task) {
 		return $elm$core$Task$command(
-			$elm$core$Task$Perform(
-				A2($elm$core$Task$map, toMessage, task)));
+			A2($elm$core$Task$map, toMessage, task));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Student$NamePage = {$: 'NamePage'};
+var $author$project$Student$NamePage = {$: 0};
 var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $author$project$Student$requestBelts = _Platform_outgoingPort(
 	'requestBelts',
@@ -5168,17 +5162,17 @@ var $author$project$Student$requestBelts = _Platform_outgoingPort(
 	});
 var $author$project$Student$init = function (_v0) {
 	return _Utils_Tuple2(
-		{beltLevel: '', belts: _List_Nil, errorMessage: $elm$core$Maybe$Nothing, gameName: '', githubLink: '', notes: '', page: $author$project$Student$NamePage, searchName: '', successMessage: $elm$core$Maybe$Nothing},
-		$author$project$Student$requestBelts(_Utils_Tuple0));
+		{a: '', t: _List_Nil, g: $elm$core$Maybe$Nothing, j: '', n: '', q: '', i: $author$project$Student$NamePage, F: '', ab: $elm$core$Maybe$Nothing},
+		$author$project$Student$requestBelts(0));
 };
 var $author$project$Student$BeltsReceived = function (a) {
-	return {$: 'BeltsReceived', a: a};
+	return {$: 13, a: a};
 };
 var $author$project$Student$StudentFoundResult = function (a) {
-	return {$: 'StudentFoundResult', a: a};
+	return {$: 2, a: a};
 };
 var $author$project$Student$SubmissionSaved = function (a) {
-	return {$: 'SubmissionSaved', a: a};
+	return {$: 9, a: a};
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Basics$composeR = F3(
@@ -5188,7 +5182,7 @@ var $elm$core$Basics$composeR = F3(
 	});
 var $author$project$Student$Belt = F5(
 	function (id, name, color, order, gameOptions) {
-		return {color: color, gameOptions: gameOptions, id: id, name: name, order: order};
+		return {R: color, ak: gameOptions, h: id, p: name, W: order};
 	});
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
@@ -5225,15 +5219,15 @@ var $elm$json$Json$Decode$nullable = function (decoder) {
 };
 var $author$project$Student$Student = F5(
 	function (id, name, created, lastActive, submissions) {
-		return {created: created, id: id, lastActive: lastActive, name: name, submissions: submissions};
+		return {af: created, h: id, ap: lastActive, p: name, Q: submissions};
 	});
 var $author$project$Student$Submission = F8(
 	function (id, studentId, beltLevel, gameName, githubLink, notes, submissionDate, grade) {
-		return {beltLevel: beltLevel, gameName: gameName, githubLink: githubLink, grade: grade, id: id, notes: notes, studentId: studentId, submissionDate: submissionDate};
+		return {a: beltLevel, j: gameName, n: githubLink, T: grade, h: id, q: notes, aa: studentId, P: submissionDate};
 	});
 var $author$project$Student$Grade = F4(
 	function (score, feedback, gradedBy, gradingDate) {
-		return {feedback: feedback, gradedBy: gradedBy, gradingDate: gradingDate, score: score};
+		return {a_: feedback, a0: gradedBy, a1: gradingDate, K: score};
 	});
 var $elm$json$Json$Decode$map4 = _Json_map4;
 var $author$project$Student$gradeDecoder = A5(
@@ -5297,13 +5291,13 @@ var $author$project$Student$subscriptions = function (_v0) {
 			]));
 };
 var $author$project$Student$LoadingPage = function (a) {
-	return {$: 'LoadingPage', a: a};
+	return {$: 4, a: a};
 };
 var $author$project$Student$StudentProfilePage = function (a) {
-	return {$: 'StudentProfilePage', a: a};
+	return {$: 1, a: a};
 };
 var $author$project$Student$SubmissionFormPage = function (a) {
-	return {$: 'SubmissionFormPage', a: a};
+	return {$: 2, a: a};
 };
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
@@ -5315,7 +5309,7 @@ var $elm$json$Json$Encode$object = function (pairs) {
 					var v = _v0.b;
 					return A3(_Json_addField, k, v, obj);
 				}),
-			_Json_emptyObject(_Utils_Tuple0),
+			_Json_emptyObject(0),
 			pairs));
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
@@ -5325,25 +5319,25 @@ var $author$project$Student$encodeSubmission = function (submission) {
 			[
 				_Utils_Tuple2(
 				'id',
-				$elm$json$Json$Encode$string(submission.id)),
+				$elm$json$Json$Encode$string(submission.h)),
 				_Utils_Tuple2(
 				'studentId',
-				$elm$json$Json$Encode$string(submission.studentId)),
+				$elm$json$Json$Encode$string(submission.aa)),
 				_Utils_Tuple2(
 				'beltLevel',
-				$elm$json$Json$Encode$string(submission.beltLevel)),
+				$elm$json$Json$Encode$string(submission.a)),
 				_Utils_Tuple2(
 				'gameName',
-				$elm$json$Json$Encode$string(submission.gameName)),
+				$elm$json$Json$Encode$string(submission.j)),
 				_Utils_Tuple2(
 				'githubLink',
-				$elm$json$Json$Encode$string(submission.githubLink)),
+				$elm$json$Json$Encode$string(submission.n)),
 				_Utils_Tuple2(
 				'notes',
-				$elm$json$Json$Encode$string(submission.notes)),
+				$elm$json$Json$Encode$string(submission.q)),
 				_Utils_Tuple2(
 				'submissionDate',
-				$elm$json$Json$Encode$string(submission.submissionDate))
+				$elm$json$Json$Encode$string(submission.P))
 			]));
 };
 var $author$project$Student$findStudent = _Platform_outgoingPort('findStudent', $elm$json$Json$Encode$string);
@@ -5363,14 +5357,14 @@ var $author$project$Student$getGameOptions = F2(
 		var _v0 = A2(
 			$elm$core$List$filter,
 			function (b) {
-				return _Utils_eq(b.id, beltId);
+				return _Utils_eq(b.h, beltId);
 			},
 			belts);
 		if (!_v0.b) {
 			return _List_Nil;
 		} else {
 			var belt = _v0.a;
-			return belt.gameOptions;
+			return belt.ak;
 		}
 	});
 var $elm$core$List$head = function (list) {
@@ -5432,7 +5426,7 @@ var $elm$core$List$sortBy = _List_sortBy;
 var $elm$core$String$trim = _String_trim;
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
+		if (!maybe.$) {
 			var value = maybe.a;
 			return value;
 		} else {
@@ -5442,47 +5436,47 @@ var $elm$core$Maybe$withDefault = F2(
 var $author$project$Student$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'UpdateSearchName':
+			case 0:
 				var name = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{searchName: name}),
+						{F: name}),
 					$elm$core$Platform$Cmd$none);
-			case 'SearchStudent':
-				var trimmedName = $elm$core$String$trim(model.searchName);
+			case 1:
+				var trimmedName = $elm$core$String$trim(model.F);
 				return $elm$core$String$isEmpty(trimmedName) ? _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							errorMessage: $elm$core$Maybe$Just('Please enter your name to continue')
+							g: $elm$core$Maybe$Just('Please enter your name to continue')
 						}),
 					$elm$core$Platform$Cmd$none) : ((!$author$project$Student$isValidNameFormat(trimmedName)) ? _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							errorMessage: $elm$core$Maybe$Just('Please enter your name in the format firstname.lastname (e.g., tyler.smith)')
+							g: $elm$core$Maybe$Just('Please enter your name in the format firstname.lastname (e.g., tyler.smith)')
 						}),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							errorMessage: $elm$core$Maybe$Nothing,
-							page: $author$project$Student$LoadingPage('Searching for your record...')
+							g: $elm$core$Maybe$Nothing,
+							i: $author$project$Student$LoadingPage('Searching for your record...')
 						}),
 					$author$project$Student$findStudent(trimmedName)));
-			case 'StudentFoundResult':
+			case 2:
 				var result = msg.a;
-				if (result.$ === 'Ok') {
+				if (!result.$) {
 					var maybeStudent = result.a;
-					if (maybeStudent.$ === 'Just') {
+					if (!maybeStudent.$) {
 						var student = maybeStudent.a;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{
-									errorMessage: $elm$core$Maybe$Nothing,
-									page: $author$project$Student$StudentProfilePage(student)
+									g: $elm$core$Maybe$Nothing,
+									i: $author$project$Student$StudentProfilePage(student)
 								}),
 							$elm$core$Platform$Cmd$none);
 					} else {
@@ -5490,8 +5484,8 @@ var $author$project$Student$update = F2(
 							_Utils_update(
 								model,
 								{
-									errorMessage: $elm$core$Maybe$Just('No record found. Please check your name or ask your teacher to create a record for you.'),
-									page: $author$project$Student$NamePage
+									g: $elm$core$Maybe$Just('No record found. Please check your name or ask your teacher to create a record for you.'),
+									i: $author$project$Student$NamePage
 								}),
 							$elm$core$Platform$Cmd$none);
 					}
@@ -5501,29 +5495,29 @@ var $author$project$Student$update = F2(
 						_Utils_update(
 							model,
 							{
-								errorMessage: $elm$core$Maybe$Just(
+								g: $elm$core$Maybe$Just(
 									'Error loading record: ' + $elm$json$Json$Decode$errorToString(error)),
-								page: $author$project$Student$NamePage
+								i: $author$project$Student$NamePage
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
-			case 'StartNewSubmission':
+			case 3:
 				var student = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							beltLevel: '',
-							errorMessage: $elm$core$Maybe$Nothing,
-							gameName: '',
-							githubLink: '',
-							notes: '',
-							page: $author$project$Student$SubmissionFormPage(student)
+							a: '',
+							g: $elm$core$Maybe$Nothing,
+							j: '',
+							n: '',
+							q: '',
+							i: $author$project$Student$SubmissionFormPage(student)
 						}),
 					$elm$core$Platform$Cmd$none);
-			case 'UpdateBeltLevel':
+			case 4:
 				var beltId = msg.a;
-				var gameOptions = A2($author$project$Student$getGameOptions, beltId, model.belts);
+				var gameOptions = A2($author$project$Student$getGameOptions, beltId, model.t);
 				var defaultGame = A2(
 					$elm$core$Maybe$withDefault,
 					'',
@@ -5531,115 +5525,115 @@ var $author$project$Student$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{beltLevel: beltId, gameName: defaultGame}),
+						{a: beltId, j: defaultGame}),
 					$elm$core$Platform$Cmd$none);
-			case 'UpdateGameName':
+			case 5:
 				var game = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{gameName: game}),
+						{j: game}),
 					$elm$core$Platform$Cmd$none);
-			case 'UpdateGithubLink':
+			case 6:
 				var link = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{githubLink: link}),
+						{n: link}),
 					$elm$core$Platform$Cmd$none);
-			case 'UpdateNotes':
+			case 7:
 				var notes = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{notes: notes}),
+						{q: notes}),
 					$elm$core$Platform$Cmd$none);
-			case 'SubmitForm':
+			case 8:
 				var student = msg.a;
-				if (($elm$core$String$trim(model.beltLevel) === '') || (($elm$core$String$trim(model.gameName) === '') || ($elm$core$String$trim(model.githubLink) === ''))) {
+				if (($elm$core$String$trim(model.a) === '') || (($elm$core$String$trim(model.j) === '') || ($elm$core$String$trim(model.n) === ''))) {
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								errorMessage: $elm$core$Maybe$Just('Please fill in all required fields')
+								g: $elm$core$Maybe$Just('Please fill in all required fields')
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var currentDate = '2025-03-04';
 					var newSubmission = {
-						beltLevel: model.beltLevel,
-						gameName: model.gameName,
-						githubLink: model.githubLink,
-						grade: $elm$core$Maybe$Nothing,
-						id: student.id + ('-' + (model.beltLevel + ('-' + $elm$core$String$fromInt(
-							$elm$core$List$length(student.submissions) + 1)))),
-						notes: model.notes,
-						studentId: student.id,
-						submissionDate: currentDate
+						a: model.a,
+						j: model.j,
+						n: model.n,
+						T: $elm$core$Maybe$Nothing,
+						h: student.h + ('-' + (model.a + ('-' + $elm$core$String$fromInt(
+							$elm$core$List$length(student.Q) + 1)))),
+						q: model.q,
+						aa: student.h,
+						P: currentDate
 					};
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								errorMessage: $elm$core$Maybe$Nothing,
-								page: $author$project$Student$LoadingPage('Saving your submission...')
+								g: $elm$core$Maybe$Nothing,
+								i: $author$project$Student$LoadingPage('Saving your submission...')
 							}),
 						$author$project$Student$saveSubmission(
 							$author$project$Student$encodeSubmission(newSubmission)));
 				}
-			case 'SubmissionSaved':
+			case 9:
 				var result = msg.a;
-				var _v3 = model.page;
-				if (_v3.$ === 'LoadingPage') {
+				var _v3 = model.i;
+				if (_v3.$ === 4) {
 					return A2($elm$core$String$startsWith, 'Error:', result) ? _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								errorMessage: $elm$core$Maybe$Just(result),
-								page: $author$project$Student$NamePage
+								g: $elm$core$Maybe$Just(result),
+								i: $author$project$Student$NamePage
 							}),
 						$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
 						model,
-						$author$project$Student$findStudent(model.searchName));
+						$author$project$Student$findStudent(model.F));
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			case 'BackToProfile':
-				var _v4 = model.page;
-				if (_v4.$ === 'SubmissionFormPage') {
+			case 10:
+				var _v4 = model.i;
+				if (_v4.$ === 2) {
 					var student = _v4.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								page: $author$project$Student$StudentProfilePage(student)
+								i: $author$project$Student$StudentProfilePage(student)
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			case 'BackToSearch':
+			case 11:
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{page: $author$project$Student$NamePage}),
+						{i: $author$project$Student$NamePage}),
 					$elm$core$Platform$Cmd$none);
-			case 'Reset':
-				return $author$project$Student$init(_Utils_Tuple0);
+			case 12:
+				return $author$project$Student$init(0);
 			default:
 				var result = msg.a;
-				if (result.$ === 'Ok') {
+				if (!result.$) {
 					var belts = result.a;
 					var sortedBelts = A2(
 						$elm$core$List$sortBy,
 						function ($) {
-							return $.order;
+							return $.W;
 						},
 						belts);
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{belts: sortedBelts}),
+							{t: sortedBelts}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var error = result.a;
@@ -5647,7 +5641,7 @@ var $author$project$Student$update = F2(
 						_Utils_update(
 							model,
 							{
-								errorMessage: $elm$core$Maybe$Just(
+								g: $elm$core$Maybe$Just(
 									'Error loading belts: ' + $elm$json$Json$Decode$errorToString(error))
 							}),
 						$elm$core$Platform$Cmd$none);
@@ -5669,7 +5663,7 @@ var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Student$viewError = function (maybeError) {
-	if (maybeError.$ === 'Just') {
+	if (!maybeError.$) {
 		var errorMsg = maybeError.a;
 		return A2(
 			$elm$html$Html$div,
@@ -5759,9 +5753,9 @@ var $author$project$Student$viewLoading = function (message) {
 					]))
 			]));
 };
-var $author$project$Student$SearchStudent = {$: 'SearchStudent'};
+var $author$project$Student$SearchStudent = {$: 1};
 var $author$project$Student$UpdateSearchName = function (a) {
-	return {$: 'UpdateSearchName', a: a};
+	return {$: 0, a: a};
 };
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
@@ -5779,7 +5773,7 @@ var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id'
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
+	return {$: 0, a: a};
 };
 var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$on = F2(
@@ -5799,7 +5793,7 @@ var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
+	return {$: 1, a: a};
 };
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
@@ -5883,7 +5877,7 @@ var $author$project$Student$viewNamePage = function (model) {
 							[
 								$elm$html$Html$Attributes$type_('text'),
 								$elm$html$Html$Attributes$id('studentName'),
-								$elm$html$Html$Attributes$value(model.searchName),
+								$elm$html$Html$Attributes$value(model.F),
 								$elm$html$Html$Events$onInput($author$project$Student$UpdateSearchName),
 								$elm$html$Html$Attributes$placeholder('firstname.lastname (e.g., tyler.smith)'),
 								$elm$html$Html$Attributes$autofocus(true),
@@ -5942,9 +5936,9 @@ var $author$project$Student$viewNamePage = function (model) {
 					]))
 			]));
 };
-var $author$project$Student$BackToSearch = {$: 'BackToSearch'};
+var $author$project$Student$BackToSearch = {$: 11};
 var $author$project$Student$StartNewSubmission = function (a) {
-	return {$: 'StartNewSubmission', a: a};
+	return {$: 3, a: a};
 };
 var $elm$core$List$drop = F2(
 	function (n, list) {
@@ -6007,9 +6001,9 @@ var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$html$Html$td = _VirtualDom_node('td');
 var $elm$core$Basics$ge = _Utils_ge;
 var $author$project$Student$viewGradeStatus = function (maybeGrade) {
-	if (maybeGrade.$ === 'Just') {
+	if (!maybeGrade.$) {
 		var grade = maybeGrade.a;
-		var _v1 = (grade.score >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.score >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.score >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
+		var _v1 = (grade.K >= 90) ? _Utils_Tuple2('bg-green-100', 'text-green-800') : ((grade.K >= 70) ? _Utils_Tuple2('bg-blue-100', 'text-blue-800') : ((grade.K >= 60) ? _Utils_Tuple2('bg-yellow-100', 'text-yellow-800') : _Utils_Tuple2('bg-red-100', 'text-red-800')));
 		var bgColor = _v1.a;
 		var textColor = _v1.b;
 		return A2(
@@ -6021,7 +6015,7 @@ var $author$project$Student$viewGradeStatus = function (maybeGrade) {
 			_List_fromArray(
 				[
 					$elm$html$Html$text(
-					$elm$core$String$fromInt(grade.score) + '/100')
+					$elm$core$String$fromInt(grade.K) + '/100')
 				]));
 	} else {
 		return A2(
@@ -6042,28 +6036,28 @@ var $author$project$Student$viewSubmissionRow = F2(
 			var matchingBelts = A2(
 				$elm$core$List$filter,
 				function (b) {
-					return _Utils_eq(b.id, submission.beltLevel);
+					return _Utils_eq(b.h, submission.a);
 				},
-				model.belts);
+				model.t);
 			if (!matchingBelts.b) {
-				return submission.beltLevel;
+				return submission.a;
 			} else {
 				var belt = matchingBelts.a;
-				return belt.name;
+				return belt.p;
 			}
 		}();
 		var beltColor = function () {
 			var matchingBelts = A2(
 				$elm$core$List$filter,
 				function (b) {
-					return _Utils_eq(b.id, submission.beltLevel);
+					return _Utils_eq(b.h, submission.a);
 				},
-				model.belts);
+				model.t);
 			if (!matchingBelts.b) {
 				return '#808080';
 			} else {
 				var belt = matchingBelts.a;
-				return belt.color;
+				return belt.R;
 			}
 		}();
 		return A2(
@@ -6079,7 +6073,7 @@ var $author$project$Student$viewSubmissionRow = F2(
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text(submission.gameName)
+							$elm$html$Html$text(submission.j)
 						])),
 					A2(
 					$elm$html$Html$td,
@@ -6116,7 +6110,7 @@ var $author$project$Student$viewSubmissionRow = F2(
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text(submission.submissionDate)
+							$elm$html$Html$text(submission.P)
 						])),
 					A2(
 					$elm$html$Html$td,
@@ -6126,7 +6120,7 @@ var $author$project$Student$viewSubmissionRow = F2(
 						]),
 					_List_fromArray(
 						[
-							$author$project$Student$viewGradeStatus(submission.grade)
+							$author$project$Student$viewGradeStatus(submission.T)
 						]))
 				]));
 	});
@@ -6144,7 +6138,7 @@ var $author$project$Student$viewStudentProfilePage = F2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('border-b border-gray-200 pb-5')
+							$elm$html$Html$Attributes$class('border-b border-gray-400 pb-5')
 						]),
 					_List_fromArray(
 						[
@@ -6165,7 +6159,7 @@ var $author$project$Student$viewStudentProfilePage = F2(
 									_List_fromArray(
 										[
 											$elm$html$Html$text(
-											'Welcome, ' + $author$project$Student$formatDisplayName(student.name))
+											'Welcome, ' + $author$project$Student$formatDisplayName(student.p))
 										])),
 									A2(
 									$elm$html$Html$button,
@@ -6219,7 +6213,7 @@ var $author$project$Student$viewStudentProfilePage = F2(
 											$elm$html$Html$text('Submit New Game')
 										]))
 								])),
-							$elm$core$List$isEmpty(student.submissions) ? A2(
+							$elm$core$List$isEmpty(student.Q) ? A2(
 							$elm$html$Html$div,
 							_List_fromArray(
 								[
@@ -6312,18 +6306,18 @@ var $author$project$Student$viewStudentProfilePage = F2(
 											$elm$html$Html$tbody,
 											_List_fromArray(
 												[
-													$elm$html$Html$Attributes$class('divide-y divide-gray-200 bg-white')
+													$elm$html$Html$Attributes$class('divide-y divide-gray-400 divide-opacity-4 bg-white')
 												]),
 											A2(
 												$elm$core$List$map,
 												$author$project$Student$viewSubmissionRow(model),
-												student.submissions))
+												student.Q))
 										]))
 								]))
 						]))
 				]));
 	});
-var $author$project$Student$BackToProfile = {$: 'BackToProfile'};
+var $author$project$Student$BackToProfile = {$: 10};
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$html$Html$Attributes$href = function (url) {
 	return A2(
@@ -6340,14 +6334,14 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 			var matchingBelts = A2(
 				$elm$core$List$filter,
 				function (b) {
-					return _Utils_eq(b.id, submission.beltLevel);
+					return _Utils_eq(b.h, submission.a);
 				},
-				model.belts);
+				model.t);
 			if (!matchingBelts.b) {
-				return submission.beltLevel;
+				return submission.a;
 			} else {
 				var belt = matchingBelts.a;
-				return belt.name;
+				return belt.p;
 			}
 		}();
 		return A2(
@@ -6384,7 +6378,7 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Thank you, ' + (student.name + '! Your Unity game project has been submitted.'))
+									$elm$html$Html$text('Thank you, ' + (student.p + '! Your Unity game project has been submitted.'))
 								]))
 						])),
 					A2(
@@ -6439,7 +6433,7 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(student.name)
+													$elm$html$Html$text(student.p)
 												]))
 										])),
 									A2(
@@ -6497,7 +6491,7 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(submission.gameName)
+													$elm$html$Html$text(submission.j)
 												]))
 										])),
 									A2(
@@ -6522,13 +6516,13 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 											$elm$html$Html$a,
 											_List_fromArray(
 												[
-													$elm$html$Html$Attributes$href(submission.githubLink),
+													$elm$html$Html$Attributes$href(submission.n),
 													$elm$html$Html$Attributes$target('_blank'),
 													$elm$html$Html$Attributes$class('text-blue-600 hover:text-blue-800')
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(submission.githubLink)
+													$elm$html$Html$text(submission.n)
 												]))
 										])),
 									A2(
@@ -6557,7 +6551,7 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 												]),
 											_List_fromArray(
 												[
-													$elm$html$Html$text(submission.notes)
+													$elm$html$Html$text(submission.q)
 												]))
 										]))
 								]))
@@ -6597,19 +6591,19 @@ var $author$project$Student$viewSubmissionCompletePage = F3(
 				]));
 	});
 var $author$project$Student$SubmitForm = function (a) {
-	return {$: 'SubmitForm', a: a};
+	return {$: 8, a: a};
 };
 var $author$project$Student$UpdateBeltLevel = function (a) {
-	return {$: 'UpdateBeltLevel', a: a};
+	return {$: 4, a: a};
 };
 var $author$project$Student$UpdateGameName = function (a) {
-	return {$: 'UpdateGameName', a: a};
+	return {$: 5, a: a};
 };
 var $author$project$Student$UpdateGithubLink = function (a) {
-	return {$: 'UpdateGithubLink', a: a};
+	return {$: 6, a: a};
 };
 var $author$project$Student$UpdateNotes = function (a) {
-	return {$: 'UpdateNotes', a: a};
+	return {$: 7, a: a};
 };
 var $elm$html$Html$option = _VirtualDom_node('option');
 var $elm$html$Html$Attributes$rows = function (n) {
@@ -6626,10 +6620,10 @@ var $author$project$Student$viewBeltColorIndicator = F2(
 			A2(
 				$elm$core$List$filter,
 				function (b) {
-					return _Utils_eq(b.id, selectedBeltId);
+					return _Utils_eq(b.h, selectedBeltId);
 				},
 				belts));
-		if (selectedBelt.$ === 'Just') {
+		if (!selectedBelt.$) {
 			var belt = selectedBelt.a;
 			return A2(
 				$elm$html$Html$div,
@@ -6644,7 +6638,7 @@ var $author$project$Student$viewBeltColorIndicator = F2(
 						_List_fromArray(
 							[
 								$elm$html$Html$Attributes$class('w-4 h-4 rounded-full'),
-								A2($elm$html$Html$Attributes$style, 'background-color', belt.color),
+								A2($elm$html$Html$Attributes$style, 'background-color', belt.R),
 								A2($elm$html$Html$Attributes$style, 'border', '1px solid #ddd')
 							]),
 						_List_Nil)
@@ -6658,10 +6652,10 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 		var sortedBelts = A2(
 			$elm$core$List$sortBy,
 			function ($) {
-				return $.order;
+				return $.W;
 			},
-			model.belts);
-		var gameOptions = A2($author$project$Student$getGameOptions, model.beltLevel, model.belts);
+			model.t);
+		var gameOptions = A2($author$project$Student$getGameOptions, model.a, model.t);
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -6678,7 +6672,7 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 						]),
 					_List_fromArray(
 						[
-							$elm$html$Html$text('New Submission for ' + student.name)
+							$elm$html$Html$text('New Submission for ' + student.p)
 						])),
 					A2(
 					$elm$html$Html$p,
@@ -6731,7 +6725,7 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 												[
 													$elm$html$Html$Attributes$id('beltLevel'),
 													$elm$html$Html$Events$onInput($author$project$Student$UpdateBeltLevel),
-													$elm$html$Html$Attributes$value(model.beltLevel),
+													$elm$html$Html$Attributes$value(model.a),
 													$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm pl-8')
 												]),
 											_Utils_ap(
@@ -6755,15 +6749,15 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 															$elm$html$Html$option,
 															_List_fromArray(
 																[
-																	$elm$html$Html$Attributes$value(belt.id)
+																	$elm$html$Html$Attributes$value(belt.h)
 																]),
 															_List_fromArray(
 																[
-																	$elm$html$Html$text(belt.name)
+																	$elm$html$Html$text(belt.p)
 																]));
 													},
 													sortedBelts))),
-											A2($author$project$Student$viewBeltColorIndicator, model.beltLevel, sortedBelts)
+											A2($author$project$Student$viewBeltColorIndicator, model.a, sortedBelts)
 										]))
 								])),
 							A2(
@@ -6785,7 +6779,7 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 										[
 											$elm$html$Html$text('Game Name:')
 										])),
-									(model.beltLevel === '') ? A2(
+									(model.a === '') ? A2(
 									$elm$html$Html$div,
 									_List_fromArray(
 										[
@@ -6809,7 +6803,7 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 										[
 											$elm$html$Html$Attributes$id('gameName'),
 											$elm$html$Html$Events$onInput($author$project$Student$UpdateGameName),
-											$elm$html$Html$Attributes$value(model.gameName),
+											$elm$html$Html$Attributes$value(model.j),
 											$elm$html$Html$Attributes$class('mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
 										]),
 									_Utils_ap(
@@ -6867,7 +6861,7 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 										[
 											$elm$html$Html$Attributes$type_('url'),
 											$elm$html$Html$Attributes$id('githubLink'),
-											$elm$html$Html$Attributes$value(model.githubLink),
+											$elm$html$Html$Attributes$value(model.n),
 											$elm$html$Html$Events$onInput($author$project$Student$UpdateGithubLink),
 											$elm$html$Html$Attributes$placeholder('https://github.com/username/repository'),
 											$elm$html$Html$Attributes$class('mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm')
@@ -6898,7 +6892,7 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 									_List_fromArray(
 										[
 											$elm$html$Html$Attributes$id('notes'),
-											$elm$html$Html$Attributes$value(model.notes),
+											$elm$html$Html$Attributes$value(model.q),
 											$elm$html$Html$Events$onInput($author$project$Student$UpdateNotes),
 											$elm$html$Html$Attributes$placeholder('Provide any additional information about your game project'),
 											$elm$html$Html$Attributes$rows(5),
@@ -6942,17 +6936,17 @@ var $author$project$Student$viewSubmissionFormPage = F2(
 				]));
 	});
 var $author$project$Student$viewPage = function (model) {
-	var _v0 = model.page;
+	var _v0 = model.i;
 	switch (_v0.$) {
-		case 'NamePage':
+		case 0:
 			return $author$project$Student$viewNamePage(model);
-		case 'StudentProfilePage':
+		case 1:
 			var student = _v0.a;
 			return A2($author$project$Student$viewStudentProfilePage, model, student);
-		case 'SubmissionFormPage':
+		case 2:
 			var student = _v0.a;
 			return A2($author$project$Student$viewSubmissionFormPage, model, student);
-		case 'SubmissionCompletePage':
+		case 3:
 			var student = _v0.a;
 			var submission = _v0.b;
 			return A3($author$project$Student$viewSubmissionCompletePage, model, student, submission);
@@ -6962,7 +6956,7 @@ var $author$project$Student$viewPage = function (model) {
 	}
 };
 var $author$project$Student$viewSuccess = function (maybeSuccess) {
-	if (maybeSuccess.$ === 'Just') {
+	if (!maybeSuccess.$) {
 		var successMsg = maybeSuccess.a;
 		return A2(
 			$elm$html$Html$div,
@@ -7029,7 +7023,7 @@ var $author$project$Student$view = function (model) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				$elm$html$Html$Attributes$class('min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12')
+				$elm$html$Html$Attributes$class('min-h-screen bg-gray-300 py-6 flex flex-col justify-center sm:py-12')
 			]),
 		_List_fromArray(
 			[
@@ -7052,7 +7046,7 @@ var $author$project$Student$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('relative px-4 py-10 bg-white shadow-lg sm:rounded-lg sm:p-20')
+								$elm$html$Html$Attributes$class('relative px-4 py-10 bg-gray-100 shadow-lg sm:rounded-lg sm:p-20')
 							]),
 						_List_fromArray(
 							[
@@ -7075,14 +7069,14 @@ var $author$project$Student$view = function (model) {
 												$elm$html$Html$text('Unity Game Submissions')
 											])),
 										$author$project$Student$viewPage(model),
-										$author$project$Student$viewError(model.errorMessage),
-										$author$project$Student$viewSuccess(model.successMessage)
+										$author$project$Student$viewError(model.g),
+										$author$project$Student$viewSuccess(model.ab)
 									]))
 							]))
 					]))
 			]));
 };
 var $author$project$Student$main = $elm$browser$Browser$element(
-	{init: $author$project$Student$init, subscriptions: $author$project$Student$subscriptions, update: $author$project$Student$update, view: $author$project$Student$view});
+	{a5: $author$project$Student$init, bf: $author$project$Student$subscriptions, bi: $author$project$Student$update, bj: $author$project$Student$view});
 _Platform_export({'Student':{'init':$author$project$Student$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
+	$elm$json$Json$Decode$succeed(0))(0)}});}(this));

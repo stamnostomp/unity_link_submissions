@@ -50,6 +50,10 @@ port beltResult : (String -> msg) -> Sub msg
 port deleteSubmission : String -> Cmd msg
 port submissionDeleted : (Decode.Value -> msg) -> Sub msg
 
+-- Admin user creation ports
+port createAdminUser : { email : String, password : String, displayName : String } -> Cmd msg
+port adminUserCreated : (Decode.Value -> msg) -> Sub msg
+
 
 -- MAIN
 
@@ -105,6 +109,24 @@ type alias Belt =
     , gameOptions : List String
     }
 
+type alias AdminUserForm =
+    { email : String
+    , password : String
+    , confirmPassword : String
+    , displayName : String
+    , formError : Maybe String
+    }
+
+-- Initialize the admin user form
+initAdminUserForm : AdminUserForm
+initAdminUserForm =
+    { email = ""
+    , password = ""
+    , confirmPassword = ""
+    , displayName = ""
+    , formError = Nothing
+    }
+
 type AppState
     = NotAuthenticated
     | AuthenticatingWith String String
@@ -115,6 +137,7 @@ type Page
     | StudentRecordPage Student (List Submission)
     | CreateStudentPage
     | BeltManagementPage
+    | AdminUsersPage  -- New page type
 
 type SortBy
     = ByName
@@ -165,6 +188,9 @@ type alias Model =
     , editingStudent : Maybe Student
     , confirmDeleteStudent : Maybe Student
     , confirmDeleteSubmission : Maybe Submission
+    , adminUserForm : AdminUserForm
+    , showAdminUserForm : Bool
+    , adminUserCreationResult : Maybe String
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -202,6 +228,9 @@ init _ =
       , editingStudent = Nothing
       , confirmDeleteStudent = Nothing
       , confirmDeleteSubmission = Nothing
+      , adminUserForm = initAdminUserForm
+      , showAdminUserForm = False
+      , adminUserCreationResult = Nothing
       }
     , Cmd.none
     )
@@ -269,6 +298,17 @@ type Msg
     | ConfirmDeleteSubmission Submission
     | CancelDeleteSubmission
     | SubmissionDeleted (Result Decode.Error String)
+    -- Admin User Management Messages
+    | ShowAdminUsersPage
+    | ReturnToSubmissionsPage
+    | ShowAdminUserForm
+    | HideAdminUserForm
+    | UpdateAdminUserEmail String
+    | UpdateAdminUserPassword String
+    | UpdateAdminUserConfirmPassword String
+    | UpdateAdminUserDisplayName String
+    | SubmitAdminUserForm
+    | AdminUserCreated (Result Decode.Error { success : Bool, message : String })
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 
@@ -688,6 +728,7 @@ update msg model =
 
         RefreshBelts ->
             ( { model | loading = True }, requestBelts () )
+
         ShowCreateStudentForm ->
             ( { model | page = CreateStudentPage, newStudentName = "" }, requestAllStudents () )
 
@@ -830,6 +871,121 @@ update msg model =
                       , error = Just ("Error deleting submission: " ++ Decode.errorToString error)
                       }, Cmd.none )
 
+        -- Admin User Management
+        ShowAdminUsersPage ->
+            ( { model | page = AdminUsersPage, adminUserCreationResult = Nothing }, Cmd.none )
+
+        ReturnToSubmissionsPage ->
+            ( { model | page = SubmissionsPage }, Cmd.none )
+
+        ShowAdminUserForm ->
+            ( { model | showAdminUserForm = True, adminUserForm = initAdminUserForm }, Cmd.none )
+
+        HideAdminUserForm ->
+            ( { model | showAdminUserForm = False }, Cmd.none )
+
+        UpdateAdminUserEmail email ->
+            let
+                form =
+                    model.adminUserForm
+
+                updatedForm =
+                    { form | email = email }
+            in
+            ( { model | adminUserForm = updatedForm }, Cmd.none )
+
+        UpdateAdminUserPassword password ->
+            let
+                form =
+                    model.adminUserForm
+
+                updatedForm =
+                    { form | password = password }
+            in
+            ( { model | adminUserForm = updatedForm }, Cmd.none )
+
+        UpdateAdminUserConfirmPassword confirmPassword ->
+            let
+                form =
+                    model.adminUserForm
+
+                updatedForm =
+                    { form | confirmPassword = confirmPassword }
+            in
+            ( { model | adminUserForm = updatedForm }, Cmd.none )
+
+        UpdateAdminUserDisplayName displayName ->
+            let
+                form =
+                    model.adminUserForm
+
+                updatedForm =
+                    { form | displayName = displayName }
+            in
+            ( { model | adminUserForm = updatedForm }, Cmd.none )
+
+        SubmitAdminUserForm ->
+            let
+                form =
+                    model.adminUserForm
+
+                -- Basic validation
+                validationError =
+                    if String.isEmpty form.email then
+                        Just "Email is required"
+                    else if not (String.contains "@" form.email) then
+                        Just "Please enter a valid email address"
+                    else if String.isEmpty form.password then
+                        Just "Password is required"
+                    else if String.length form.password < 6 then
+                        Just "Password must be at least 6 characters"
+                    else if form.password /= form.confirmPassword then
+                        Just "Passwords do not match"
+                    else
+                        Nothing
+
+                updatedForm =
+                    { form | formError = validationError }
+            in
+            case validationError of
+                Just _ ->
+                    ( { model | adminUserForm = updatedForm }, Cmd.none )
+
+                Nothing ->
+                    ( { model | adminUserForm = updatedForm, loading = True }
+                    , createAdminUser
+                        { email = form.email
+                        , password = form.password
+                        , displayName = form.displayName
+                        }
+                    )
+
+        AdminUserCreated result ->
+            case result of
+                Ok adminResult ->
+                    let
+                        message =
+                            if adminResult.success then
+                                "Success: " ++ adminResult.message
+                            else
+                                "Error: " ++ adminResult.message
+                    in
+                    ( { model
+                        | adminUserCreationResult = Just message
+                        , showAdminUserForm = if adminResult.success then False else model.showAdminUserForm
+                        , loading = False
+                      }
+                    , Cmd.none
+                    )
+
+                Err error ->
+                    ( { model
+                        | adminUserCreationResult = Just ("Error: " ++ Decode.errorToString error)
+                        , loading = False
+                      }
+                    , Cmd.none
+                    )
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -847,10 +1003,18 @@ subscriptions _ =
         , submissionDeleted (decodeSubmissionDeletedResponse >> SubmissionDeleted)
         , gradeResult GradeResult
         , beltResult BeltResult
+        , adminUserCreated (decodeAdminCreationResult >> AdminUserCreated)
         ]
 
 
--- JSON DECODERS & ENCODERS
+decodeAdminCreationResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
+decodeAdminCreationResult value =
+    Decode.decodeValue
+        (Decode.map2 (\success message -> { success = success, message = message })
+            (Decode.field "success" Decode.bool)
+            (Decode.field "message" Decode.string)
+        )
+        value
 
 decodeStudentsResponse : Decode.Value -> Result Decode.Error (List Student)
 decodeStudentsResponse value =
@@ -1230,7 +1394,7 @@ sortSubmissions sortBy direction submissions =
 
 view : Model -> Html Msg
 view model =
-    div [ class "min-h-screen bg-gray-100 py-6 flex flex-col" ]
+    div [ class "min-h-screen bg-gray-300 py-6 flex flex-col" ]
         [ div [ class "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full" ]
             [ h1 [ class "text-3xl font-bold text-gray-900 mb-8 text-center" ] [ text "Game Submission Admin" ]
             , viewContent model
@@ -1259,6 +1423,11 @@ viewContent model =
                         ]
                     , div [ class "flex space-x-2" ]
                          [ button
+                            [ onClick ShowAdminUsersPage
+                            , class "px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none"
+                            ]
+                            [ text "Manage Admins" ]
+                         , button
                             [ onClick PerformSignOut
                             , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
                             ]
@@ -1304,6 +1473,147 @@ viewCurrentPage model =
 
         BeltManagementPage ->
             viewBeltManagementPage model
+
+        AdminUsersPage ->
+            viewAdminUsersPage model
+
+viewAdminUsersPage : Model -> Html Msg
+viewAdminUsersPage model =
+    div [ class "space-y-6" ]
+        [ div [ class "bg-white shadow rounded-lg p-6" ]
+            [ div [ class "flex justify-between items-center" ]
+                [ h2 [ class "text-xl font-medium text-gray-900" ]
+                    [ text "Admin User Management" ]
+                , button
+                    [ onClick ReturnToSubmissionsPage
+                    , class "text-gray-500 hover:text-gray-700 flex items-center"
+                    ]
+                    [ span [ class "mr-1" ] [ text "←" ]
+                    , text "Back to Submissions"
+                    ]
+                ]
+            ]
+        , div [ class "bg-white shadow rounded-lg p-6" ]
+            [ viewAdminUserCreationResult model.adminUserCreationResult
+            , if model.showAdminUserForm then
+                viewAdminUserForm model.adminUserForm
+              else
+                div [ class "text-center py-8" ]
+                    [ p [ class "text-gray-500 mb-4" ]
+                        [ text "Create additional admin users who will have access to this admin dashboard." ]
+                    , button
+                        [ onClick ShowAdminUserForm
+                        , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        ]
+                        [ text "Create New Admin User" ]
+                    ]
+            ]
+        , div [ class "bg-yellow-50 shadow rounded-lg p-6 border-l-4 border-yellow-400" ]
+            [ h3 [ class "text-lg font-medium text-yellow-800 mb-2" ] [ text "Security Information" ]
+            , p [ class "text-yellow-700 mb-2" ]
+                [ text "All admin users have full access to the system. Only create accounts for trusted instructors who need to manage student submissions and belt progression." ]
+            , p [ class "text-yellow-700" ]
+                [ text "New admin users will be able to:" ]
+            , ul [ class "list-disc list-inside text-yellow-700 mt-2 ml-4 space-y-1" ]
+                [ li [] [ text "Grade student submissions" ]
+                , li [] [ text "Manage belt progression levels" ]
+                , li [] [ text "Create and manage student accounts" ]
+                , li [] [ text "Create other admin users" ]
+                ]
+            ]
+        ]
+
+viewAdminUserCreationResult : Maybe String -> Html Msg
+viewAdminUserCreationResult maybeResult =
+    case maybeResult of
+        Just result ->
+            if String.startsWith "Success" result then
+                div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
+                    [ p [ class "text-sm text-green-700" ] [ text result ] ]
+            else
+                div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
+                    [ p [ class "text-sm text-red-700" ] [ text result ] ]
+
+        Nothing ->
+            text ""
+
+viewAdminUserForm : AdminUserForm -> Html Msg
+viewAdminUserForm form =
+    div [ class "bg-white rounded-lg border border-gray-200 overflow-hidden" ]
+        [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
+            [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Create New Admin User" ] ]
+        , div [ class "p-6" ]
+            [ case form.formError of
+                Just error ->
+                    div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
+                        [ p [ class "text-sm text-red-700" ] [ text error ] ]
+                Nothing ->
+                    text ""
+            , div [ class "space-y-4" ]
+                [ div []
+                    [ label [ for "adminEmail", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Email Address" ]
+                    , input
+                        [ type_ "email"
+                        , id "adminEmail"
+                        , placeholder "admin@example.com"
+                        , value form.email
+                        , onInput UpdateAdminUserEmail
+                        , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        ]
+                        []
+                    ]
+                , div []
+                    [ label [ for "adminDisplayName", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Display Name (optional)" ]
+                    , input
+                        [ type_ "text"
+                        , id "adminDisplayName"
+                        , placeholder "Admin User"
+                        , value form.displayName
+                        , onInput UpdateAdminUserDisplayName
+                        , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        ]
+                        []
+                    ]
+                , div []
+                    [ label [ for "adminPassword", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Password" ]
+                    , input
+                        [ type_ "password"
+                        , id "adminPassword"
+                        , placeholder "••••••••"
+                        , value form.password
+                        , onInput UpdateAdminUserPassword
+                        , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        ]
+                        []
+                    , p [ class "mt-1 text-xs text-gray-500" ] [ text "Password must be at least 6 characters" ]
+                    ]
+                , div []
+                    [ label [ for "adminConfirmPassword", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Confirm Password" ]
+                    , input
+                        [ type_ "password"
+                        , id "adminConfirmPassword"
+                        , placeholder "••••••••"
+                        , value form.confirmPassword
+                        , onInput UpdateAdminUserConfirmPassword
+                        , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        ]
+                        []
+                    ]
+                ]
+            , div [ class "mt-6 flex justify-end space-x-3" ]
+                [ button
+                    [ onClick HideAdminUserForm
+                    , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                    ]
+                    [ text "Cancel" ]
+                , button
+                    [ onClick SubmitAdminUserForm
+                    , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                    ]
+                    [ text "Create Admin User" ]
+                ]
+            ]
+        ]
 
 viewLoginForm : Model -> Html Msg
 viewLoginForm model =
@@ -1389,15 +1699,15 @@ viewFilters model =
             [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Game Submissions" ]
             , div [ class "flex space-x-2" ]
                 [ button
-                      [ onClick ShowCreateStudentForm
-                      , class "ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      ]
-                      [ text "Manage Students" ]
+                    [ onClick ShowCreateStudentForm
+                    , class "ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    ]
+                    [ text "Manage Students" ]
                 , button
-                    [onClick ShowBeltManagement
+                    [ onClick ShowBeltManagement
                     , class "inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     ]
-                    [ text "Manage Belts"]
+                    [ text "Manage Belts" ]
                 ]
             ]
         , div [ class "flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4" ]
@@ -1478,6 +1788,7 @@ viewFilters model =
                 ]
             ]
         ]
+
 
 getSortButtonClass : Model -> SortBy -> String
 getSortButtonClass model sortType =
@@ -1680,7 +1991,6 @@ viewStudentSubmissionRow submission =
                 [ text "Delete" ]
             ]
         ]
-
 
 viewCreateStudentPage : Model -> Html Msg
 viewCreateStudentPage model =

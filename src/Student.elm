@@ -386,10 +386,10 @@ decodeBeltsResponse value =
 
 view : Model -> Html Msg
 view model =
-    div [ class "min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12" ]
+    div [ class "min-h-screen bg-gray-300 py-6 flex flex-col justify-center sm:py-12" ]
         [ div [ class "relative py-3 sm:max-w-4xl sm:mx-auto" ]
             [ div [ class "absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 shadow-lg transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-lg" ] []
-            , div [ class "relative px-4 py-10 bg-white shadow-lg sm:rounded-lg sm:p-20" ]
+            , div [ class "relative px-4 py-10 bg-gray-100 shadow-lg sm:rounded-lg sm:p-20" ]
                 [ div [ class "max-w-4xl mx-auto" ]
                     [ h1 [ class "text-2xl font-semibold text-center text-gray-800 mb-6" ] [ text "Unity Game Submissions" ]
                     , viewPage model
@@ -454,7 +454,7 @@ viewNamePage model =
 viewStudentProfilePage : Model -> Student -> Html Msg
 viewStudentProfilePage model student =
     div [ class "space-y-6" ]
-        [ div [ class "border-b border-gray-200 pb-5" ]
+        [ div [ class "border-b border-gray-400 pb-5" ]
             [ div [ class "flex justify-between items-center" ]
                 [ h2 [ class "text-xl font-medium text-gray-700" ]
                     [ text ("Welcome, " ++ formatDisplayName student.name) ]
@@ -488,7 +488,7 @@ viewStudentProfilePage model student =
                                 , th [ class "px-3 py-3.5 text-left text-sm font-semibold text-gray-900" ] [ text "Grade" ]
                                 ]
                             ]
-                        , tbody [ class "divide-y divide-gray-200 bg-white" ]
+                        , tbody [ class "divide-y divide-gray-400 divide-opacity-4 bg-white" ]
                             (List.map (viewSubmissionRow model) student.submissions)
                         ]
                     ]
