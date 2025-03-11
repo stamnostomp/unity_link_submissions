@@ -55,22 +55,161 @@
             dontBuild = true;
 
             installPhase = ''
-              # Create root directory and app directories
-              mkdir -p $out
-              mkdir -p $out/Admin $out/Student
+              # Create root directory with the correct structure
+              mkdir -p $out/Admin $out/Student $out/css
 
-              # Copy pre-built JavaScript files
-              cp ./Admin/admin.js $out/Admin/ || true
-              cp ./Student/student.js $out/Student/ || true
+              # Copy HTML files
+              if [ -f "./Admin/admin.html" ]; then
+                cp ./Admin/admin.html $out/Admin/ || true
+                echo "Copied Admin/admin.html"
+              else
+                # Create admin.html if it doesn't exist
+                cat > $out/Admin/admin.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions Admin</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+</head>
+<body>
+  <div id="elm-admin-app"></div>
 
-              # Copy static files
-              cp ./Admin/*.html $out/Admin/ || true
-              cp ./Admin/firebase-admin.js $out/Admin/ || true
+  <!-- Compiled Elm application -->
+  <script src="/Admin/admin.js"></script>
 
-              cp ./Student/*.html $out/Student/ || true
-              cp ./Student/student-firebase.js $out/Student/ || true
+  <!-- Import Firebase integration -->
+  <script type="module">
+    import { initializeFirebase } from '/Admin/firebase-admin.js';
 
-              # Copy favicon from the favicon package to the root directory
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if Elm is defined
+      if (typeof Elm === 'undefined') {
+        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
+        document.getElementById('elm-admin-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application could not load</h2>' +
+          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
+          '<p>Error: Elm is not defined</p>' +
+          '</div>';
+        return;
+      }
+
+      // Initialize the Elm application
+      try {
+        const elmApp = Elm.Admin.init({
+          node: document.getElementById('elm-admin-app')
+        });
+
+        // Initialize Firebase with the Elm app
+        initializeFirebase(elmApp);
+      } catch (e) {
+        console.error("Error initializing Elm application:", e);
+        document.getElementById('elm-admin-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application initialization failed</h2>' +
+          '<p>Error details: ' + e.message + '</p>' +
+          '</div>';
+      }
+    });
+  </script>
+</body>
+</html>
+EOF
+                echo "Created Admin/admin.html"
+              fi
+
+              if [ -f "./Student/student.html" ]; then
+                cp ./Student/student.html $out/Student/ || true
+                echo "Copied Student/student.html"
+              else
+                # Create student.html if it doesn't exist
+                cat > $out/Student/student.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Student Records</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+</head>
+<body>
+  <div id="elm-app"></div>
+
+  <!-- Compiled Elm application -->
+  <script src="/Student/student.js"></script>
+
+  <!-- Import Firebase integration -->
+  <script type="module">
+    import { initializeFirebase } from '/Student/student-firebase.js';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if Elm is defined
+      if (typeof Elm === 'undefined') {
+        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
+        document.getElementById('elm-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application could not load</h2>' +
+          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
+          '<p>Error: Elm is not defined</p>' +
+          '</div>';
+        return;
+      }
+
+      // Initialize the Elm application
+      try {
+        const elmApp = Elm.Student.init({
+          node: document.getElementById('elm-app')
+        });
+
+        // Initialize Firebase with the Elm app
+        initializeFirebase(elmApp);
+      } catch (e) {
+        console.error("Error initializing Elm application:", e);
+        document.getElementById('elm-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application initialization failed</h2>' +
+          '<p>Error details: ' + e.message + '</p>' +
+          '</div>';
+      }
+    });
+  </script>
+</body>
+</html>
+EOF
+                echo "Created Student/student.html"
+              fi
+
+              # Copy Firebase integration files
+              if [ -f "./Admin/firebase-admin.js" ]; then
+                cp ./Admin/firebase-admin.js $out/Admin/ || true
+                echo "Copied Admin/firebase-admin.js"
+              fi
+
+              if [ -f "./Student/student-firebase.js" ]; then
+                cp ./Student/student-firebase.js $out/Student/ || true
+                echo "Copied Student/student-firebase.js"
+              fi
+
+              # Copy compiled Elm files
+              if [ -f "./Admin/admin.js" ]; then
+                cp ./Admin/admin.js $out/Admin/ || true
+                echo "Found and copied Admin/admin.js"
+              else
+                echo "Warning: Admin/admin.js not found"
+              fi
+
+              if [ -f "./Student/student.js" ]; then
+                cp ./Student/student.js $out/Student/ || true
+                echo "Found and copied Student/student.js"
+              else
+                echo "Warning: Student/student.js not found"
+              fi
+
+              # Copy favicon to root
               cp ${self.packages.${system}.favicon}/favicon.ico $out/
             '';
           };
@@ -86,19 +225,26 @@
               # Create output directory
               mkdir -p css-output
 
-              # Build Tailwind CSS
-              tailwindcss \
-                -i ./src/css/tailwind.css \
-                -o ./css-output/tailwind.css \
-                --minify
+              # Check if tailwind.css exists
+              if [ -f "./src/css/tailwind.css" ]; then
+                # Build Tailwind CSS
+                tailwindcss \
+                  -i ./src/css/tailwind.css \
+                  -o ./css-output/tailwind.css \
+                  --minify
+              else
+                # Create a basic CSS file
+                echo "/* Basic Tailwind-like CSS */" > ./css-output/tailwind.css
+                echo "body { font-family: sans-serif; margin: 0; padding: 0; }" >> ./css-output/tailwind.css
+                echo "Warning: Could not find tailwind.css source. Created basic CSS file."
+              fi
             '';
 
             installPhase = ''
-              # Create both css directory and individual app directories
-              mkdir -p $out/css
-              mkdir -p $out/Admin $out/Student
+              # Create output directories
+              mkdir -p $out/css $out/Admin $out/Student
 
-              # Copy CSS to the css directory (main location)
+              # Copy CSS to the css directory
               cp ./css-output/tailwind.css $out/css/
 
               # Also copy to individual app directories for backward compatibility
@@ -114,6 +260,30 @@
               self.packages.${system}.elm-apps
               self.packages.${system}.tailwind
             ];
+
+            # Add firebase.json to the output
+            postBuild = ''
+              # Create firebase.json if it doesn't exist in source
+              if [ ! -f "$out/firebase.json" ]; then
+                cat > $out/firebase.json << 'EOF'
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "elm-stuff/**",
+      "src/**",
+      "dist/**"
+    ]
+  }
+}
+EOF
+                echo "Created firebase.json for root directory hosting"
+              fi
+            '';
           };
         };
 
@@ -122,13 +292,18 @@
             drv = pkgs.writeShellScriptBin "build-elm" ''
               set -e
               echo "Building Elm applications..."
+              # Ensure Admin and Student directories exist
+              mkdir -p Admin Student
+
+              # Compile Elm directly to Admin and Student directories
               ${pkgs.elmPackages.elm}/bin/elm make src/Admin.elm --output=Admin/admin.js --optimize
               ${pkgs.elmPackages.elm}/bin/elm make src/Student.elm --output=Student/student.js --optimize
+
               echo "Elm build complete!"
             '';
           };
 
-          deploy = flake-utils.lib.mkApp {
+deploy = flake-utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "deploy" ''
               # Get Firebase project ID
               if [ -f .firebaserc ]; then
@@ -162,20 +337,48 @@
               fi
 
               # Create a fresh dist directory with proper permissions
-              mkdir -p dist
+              mkdir -p dist/Admin dist/Student dist/css
 
               # Copy build artifacts
               echo "Copying build artifacts..."
               cp -r ${self.packages.${system}.default}/* dist/
 
-              # Copy Firebase config files
-              cp ./firebase.json dist/
-              cp ./.firebaserc dist/
+              # IMPORTANT: Explicitly copy the compiled Elm files that we just built
+              echo "Copying compiled Elm files..."
+              cp ./Admin/admin.js dist/Admin/ || echo "Warning: Failed to copy Admin/admin.js"
+              cp ./Student/student.js dist/Student/ || echo "Warning: Failed to copy Student/student.js"
 
-              # Explicitly copy favicon to ensure it's at the root level
-              if [ ! -f "dist/favicon.ico" ]; then
-                cp ${self.packages.${system}.favicon}/favicon.ico dist/ || true
+              # Display content for debugging
+              echo "Content of dist directory:"
+              ls -la dist/
+              echo "Content of dist/Admin directory:"
+              ls -la dist/Admin/
+              echo "Content of dist/Student directory:"
+              ls -la dist/Student/
+
+              # Make sure firebase.json exists
+              if [ ! -f "dist/firebase.json" ]; then
+                echo "Creating firebase.json..."
+                cat > dist/firebase.json << 'EOF'
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "elm-stuff/**",
+      "src/**",
+      "dist/**"
+    ]
+  }
+}
+EOF
               fi
+
+              # Copy Firebase config files
+              cp ./.firebaserc dist/ || echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
 
               # Ensure correct permissions for deployment
               chmod -R u+w dist
@@ -264,11 +467,12 @@
               ${pkgs.nodePackages.tailwindcss}/bin/tailwindcss \
                 -i ./src/css/tailwind.css \
                 -o ./css/tailwind.css \
-                --minify
+                --minify || echo "Warning: Tailwind CSS build failed, check if src/css/tailwind.css exists"
 
               # Also copy to individual directories for compatibility
-              cp ./css/tailwind.css ./Admin/style.css
-              cp ./css/tailwind.css ./Student/style.css
+              mkdir -p Admin Student
+              cp ./css/tailwind.css ./Admin/style.css || true
+              cp ./css/tailwind.css ./Student/style.css || true
 
               echo "Build complete!"
             }

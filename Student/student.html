@@ -1,30 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="icon" href="/favicon.ico">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unity Game Student Records</title>
-  <!-- Replace Tailwind CDN with compiled CSS file -->
+  <title>Unity Game Submissions Admin</title>
+  <link rel="icon" href="/favicon.ico">
   <link href="/css/tailwind.css" rel="stylesheet">
 </head>
-
 <body>
-  <div id="elm-app"></div>
-  <!-- Compiled Elm application with absolute path -->
-  <script src="/Student/student.js"></script>
-  <!-- Import Firebase integration with absolute path and explicit type -->
+  <div id="elm-admin-app"></div>
+
+  <!-- Compiled Elm application -->
+  <script src="/Admin/admin.js"></script>
+
+  <!-- Import Firebase integration -->
   <script type="module">
-    // Use absolute path for imports
-    import { initializeFirebase } from '/Student/student-firebase.js';
-    
+    import { initializeFirebase } from '/Admin/firebase-admin.js';
+
     document.addEventListener('DOMContentLoaded', function() {
+      // Check if Elm is defined
+      if (typeof Elm === 'undefined') {
+        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
+        document.getElementById('elm-admin-app').innerHTML = 
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application could not load</h2>' +
+          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
+          '<p>Error: Elm is not defined</p>' +
+          '</div>';
+        return;
+      }
+
       // Initialize the Elm application
-      const elmApp = Elm.Student.init({
-        node: document.getElementById('elm-app')
-      });
-      // Initialize Firebase with the Elm app
-      initializeFirebase(elmApp);
+      try {
+        const elmApp = Elm.Admin.init({
+          node: document.getElementById('elm-admin-app')
+        });
+
+        // Initialize Firebase with the Elm app
+        initializeFirebase(elmApp);
+      } catch (e) {
+        console.error("Error initializing Elm application:", e);
+        document.getElementById('elm-admin-app').innerHTML = 
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application initialization failed</h2>' +
+          '<p>Error details: ' + e.message + '</p>' +
+          '</div>';
+      }
     });
   </script>
 </body>
