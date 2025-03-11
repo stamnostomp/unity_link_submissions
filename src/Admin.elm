@@ -54,6 +54,13 @@ port submissionDeleted : (Decode.Value -> msg) -> Sub msg
 port createAdminUser : { email : String, password : String, displayName : String } -> Cmd msg
 port adminUserCreated : (Decode.Value -> msg) -> Sub msg
 
+-- Ports for admin user management
+port requestAllAdmins : () -> Cmd msg
+port receiveAllAdmins : (Decode.Value -> msg) -> Sub msg
+port deleteAdminUser : String -> Cmd msg
+port adminUserDeleted : (Decode.Value -> msg) -> Sub msg
+port updateAdminUser : Encode.Value -> Cmd msg
+port adminUserUpdated : (Decode.Value -> msg) -> Sub msg
 
 -- MAIN
 
@@ -115,6 +122,14 @@ type alias AdminUserForm =
     , confirmPassword : String
     , displayName : String
     , formError : Maybe String
+    }
+
+type alias AdminUser =
+    { uid : String
+    , email : String
+    , displayName : String
+    , createdBy : Maybe String
+    , createdAt : Maybe String
     }
 
 -- Initialize the admin user form
@@ -191,6 +206,11 @@ type alias Model =
     , adminUserForm : AdminUserForm
     , showAdminUserForm : Bool
     , adminUserCreationResult : Maybe String
+    , adminUsers : List AdminUser
+    , editingAdminUser : Maybe AdminUser
+    , confirmDeleteAdmin : Maybe AdminUser
+    , adminUserDeletionResult : Maybe String
+    , adminUserUpdateResult : Maybe String
     }
 
 init : () -> ( Model, Cmd Msg )
@@ -231,6 +251,11 @@ init _ =
       , adminUserForm = initAdminUserForm
       , showAdminUserForm = False
       , adminUserCreationResult = Nothing
+      , adminUsers = []
+      , editingAdminUser = Nothing
+      , confirmDeleteAdmin = Nothing
+      , adminUserDeletionResult = Nothing
+      , adminUserUpdateResult = Nothing
       }
     , Cmd.none
     )
@@ -298,7 +323,6 @@ type Msg
     | ConfirmDeleteSubmission Submission
     | CancelDeleteSubmission
     | SubmissionDeleted (Result Decode.Error String)
-    -- Admin User Management Messages
     | ShowAdminUsersPage
     | ReturnToSubmissionsPage
     | ShowAdminUserForm
@@ -309,6 +333,18 @@ type Msg
     | UpdateAdminUserDisplayName String
     | SubmitAdminUserForm
     | AdminUserCreated (Result Decode.Error { success : Bool, message : String })
+    | RequestAllAdmins
+    | ReceiveAllAdmins (Result Decode.Error (List AdminUser))
+    | EditAdminUser AdminUser
+    | UpdateEditingAdminUserEmail String
+    | UpdateEditingAdminUserDisplayName String
+    | SaveAdminUserEdit
+    | CancelAdminUserEdit
+    | AdminUserUpdated (Result Decode.Error { success : Bool, message : String })
+    | DeleteAdminUser AdminUser
+    | ConfirmDeleteAdminUser AdminUser
+    | CancelDeleteAdminUser
+    | AdminUserDeleted (Result Decode.Error { success : Bool, message : String })
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 
@@ -986,6 +1022,109 @@ update msg model =
                     , Cmd.none
                     )
 
+        RequestAllAdmins ->
+            ( { model | loading = True, adminUserDeletionResult = Nothing, adminUserUpdateResult = Nothing }
+            , requestAllAdmins ()
+            )
+
+        ReceiveAllAdmins result ->
+            case result of
+                Ok adminUsers ->
+                    ( { model | adminUsers = adminUsers, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+
+        EditAdminUser adminUser ->
+            ( { model | editingAdminUser = Just adminUser }, Cmd.none )
+
+        UpdateEditingAdminUserEmail email ->
+            case model.editingAdminUser of
+                Just adminUser ->
+                    let
+                        updatedAdminUser = { adminUser | email = email }
+                    in
+                    ( { model | editingAdminUser = Just updatedAdminUser }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        UpdateEditingAdminUserDisplayName displayName ->
+            case model.editingAdminUser of
+                Just adminUser ->
+                    let
+                        updatedAdminUser = { adminUser | displayName = displayName }
+                    in
+                    ( { model | editingAdminUser = Just updatedAdminUser }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SaveAdminUserEdit ->
+            case model.editingAdminUser of
+                Just adminUser ->
+                    if String.trim adminUser.email == "" then
+                        ( { model | error = Just "Email cannot be empty" }, Cmd.none )
+                    else if not (String.contains "@" adminUser.email) then
+                        ( { model | error = Just "Please enter a valid email address" }, Cmd.none )
+                    else
+                        ( { model | loading = True, editingAdminUser = Nothing, error = Nothing }
+                        , updateAdminUser (encodeAdminUserUpdate adminUser)
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        CancelAdminUserEdit ->
+            ( { model | editingAdminUser = Nothing, error = Nothing }, Cmd.none )
+
+        AdminUserUpdated result ->
+            case result of
+                Ok updateResult ->
+                    ( { model
+                    | loading = False
+                    , adminUserUpdateResult = Just updateResult.message
+                    }
+                    , if updateResult.success then requestAllAdmins () else Cmd.none
+                    )
+
+                Err error ->
+                    ( { model
+                    | loading = False
+                    , error = Just ("Error updating admin user: " ++ Decode.errorToString error)
+                    }
+                    , Cmd.none
+                    )
+
+        DeleteAdminUser adminUser ->
+            ( { model | confirmDeleteAdmin = Just adminUser }, Cmd.none )
+
+        ConfirmDeleteAdminUser adminUser ->
+            ( { model | loading = True, confirmDeleteAdmin = Nothing }
+            , deleteAdminUser adminUser.uid
+            )
+
+        CancelDeleteAdminUser ->
+            ( { model | confirmDeleteAdmin = Nothing }, Cmd.none )
+
+        AdminUserDeleted result ->
+            case result of
+                Ok deleteResult ->
+                    ( { model
+                    | loading = False
+                    , adminUserDeletionResult = Just deleteResult.message
+                    }
+                    , if deleteResult.success then requestAllAdmins () else Cmd.none
+                    )
+
+                Err error ->
+                    ( { model
+                    | loading = False
+                    , error = Just ("Error deleting admin user: " ++ Decode.errorToString error)
+                    }
+                    , Cmd.none
+                    )
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -1004,11 +1143,36 @@ subscriptions _ =
         , gradeResult GradeResult
         , beltResult BeltResult
         , adminUserCreated (decodeAdminCreationResult >> AdminUserCreated)
+        , receiveAllAdmins (decodeAdminUsersResponse >> ReceiveAllAdmins)
+        , adminUserDeleted (decodeAdminActionResult >> AdminUserDeleted)
+        , adminUserUpdated (decodeAdminActionResult >> AdminUserUpdated)
         ]
 
 
 decodeAdminCreationResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodeAdminCreationResult value =
+    Decode.decodeValue
+        (Decode.map2 (\success message -> { success = success, message = message })
+            (Decode.field "success" Decode.bool)
+            (Decode.field "message" Decode.string)
+        )
+        value
+
+adminUserDecoder : Decoder AdminUser
+adminUserDecoder =
+    Decode.map5 AdminUser
+        (Decode.field "uid" Decode.string)
+        (Decode.field "email" Decode.string)
+        (Decode.field "displayName" Decode.string)
+        (Decode.maybe (Decode.field "createdBy" Decode.string))
+        (Decode.maybe (Decode.field "createdAt" Decode.string))
+
+decodeAdminUsersResponse : Decode.Value -> Result Decode.Error (List AdminUser)
+decodeAdminUsersResponse value =
+    Decode.decodeValue (Decode.list adminUserDecoder) value
+
+decodeAdminActionResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
+decodeAdminActionResult value =
     Decode.decodeValue
         (Decode.map2 (\success message -> { success = success, message = message })
             (Decode.field "success" Decode.bool)
@@ -1196,6 +1360,13 @@ encodeStudentUpdate student =
         , ( "name", Encode.string student.name )
         ]
 
+encodeAdminUserUpdate : AdminUser -> Encode.Value
+encodeAdminUserUpdate adminUser =
+    Encode.object
+        [ ( "uid", Encode.string adminUser.uid )
+        , ( "email", Encode.string adminUser.email )
+        , ( "displayName", Encode.string adminUser.displayName )
+        ]
 
 -- HELPERS
 
@@ -1495,6 +1666,8 @@ viewAdminUsersPage model =
             ]
         , div [ class "bg-white shadow rounded-lg p-6" ]
             [ viewAdminUserCreationResult model.adminUserCreationResult
+            , viewAdminUserUpdateResult model.adminUserUpdateResult
+            , viewAdminUserDeletionResult model.adminUserDeletionResult
             , if model.showAdminUserForm then
                 viewAdminUserForm model.adminUserForm
               else
@@ -1508,12 +1681,15 @@ viewAdminUsersPage model =
                         [ text "Create New Admin User" ]
                     ]
             ]
+        , viewAdminUsersList model
+        , viewAdminUserEditModal model
+        , viewConfirmDeleteAdminModal model
         , div [ class "bg-yellow-50 shadow rounded-lg p-6 border-l-4 border-yellow-400" ]
             [ h3 [ class "text-lg font-medium text-yellow-800 mb-2" ] [ text "Security Information" ]
             , p [ class "text-yellow-700 mb-2" ]
                 [ text "All admin users have full access to the system. Only create accounts for trusted instructors who need to manage student submissions and belt progression." ]
             , p [ class "text-yellow-700" ]
-                [ text "New admin users will be able to:" ]
+                [ text "Admin users will be able to:" ]
             , ul [ class "list-disc list-inside text-yellow-700 mt-2 ml-4 space-y-1" ]
                 [ li [] [ text "Grade student submissions" ]
                 , li [] [ text "Manage belt progression levels" ]
@@ -1523,8 +1699,22 @@ viewAdminUsersPage model =
             ]
         ]
 
-viewAdminUserCreationResult : Maybe String -> Html Msg
-viewAdminUserCreationResult maybeResult =
+viewAdminUserDeletionResult : Maybe String -> Html Msg
+viewAdminUserDeletionResult maybeResult =
+    case maybeResult of
+        Just result ->
+            if String.startsWith "Success" result then
+                div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
+                    [ p [ class "text-sm text-green-700" ] [ text result ] ]
+            else
+                div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
+                    [ p [ class "text-sm text-red-700" ] [ text result ] ]
+
+        Nothing ->
+            text ""
+
+viewAdminUserUpdateResult : Maybe String -> Html Msg
+viewAdminUserUpdateResult maybeResult =
     case maybeResult of
         Just result ->
             if String.startsWith "Success" result then
@@ -1614,6 +1804,164 @@ viewAdminUserForm form =
                 ]
             ]
         ]
+
+viewAdminUsersList : Model -> Html Msg
+viewAdminUsersList model =
+    div [ class "bg-white shadow rounded-lg p-6" ]
+        [ div [ class "flex justify-between items-center mb-4" ]
+            [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Current Admin Users" ]
+            , button
+                [ onClick RequestAllAdmins
+                , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                ]
+                [ text "Refresh" ]
+            ]
+        , if model.loading then
+            div [ class "flex justify-center my-6" ]
+                [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+          else if List.isEmpty model.adminUsers then
+            div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
+                [ p [ class "text-gray-500" ] [ text "No admin users found. The first admin user may have been created through Firebase directly." ] ]
+          else
+            div [ class "overflow-x-auto bg-white" ]
+                [ table [ class "min-w-full divide-y divide-gray-200" ]
+                    [ thead [ class "bg-gray-50" ]
+                        [ tr []
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Email" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Display Name" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Created By" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Created At" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                            ]
+                        ]
+                    , tbody [ class "bg-white divide-y divide-gray-200" ]
+                        (List.map viewAdminUserRow model.adminUsers)
+                    ]
+                ]
+        ]
+
+viewAdminUserRow : AdminUser -> Html Msg
+viewAdminUserRow admin =
+    tr [ class "hover:bg-gray-50" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text admin.email ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text admin.displayName ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text (Maybe.withDefault "Unknown" admin.createdBy) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm text-gray-500" ] [ text (Maybe.withDefault "Unknown" admin.createdAt) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
+            [ button
+                [ onClick (EditAdminUser admin)
+                , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
+                ]
+                [ text "Edit" ]
+            , button
+                [ onClick (DeleteAdminUser admin)
+                , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
+                ]
+                [ text "Delete" ]
+            ]
+        ]
+
+viewAdminUserEditModal : Model -> Html Msg
+viewAdminUserEditModal model =
+    case model.editingAdminUser of
+        Just adminUser ->
+            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                    [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
+                        [ h2 [ class "text-lg font-medium text-gray-900" ] [ text "Edit Admin User" ] ]
+                    , div [ class "p-6" ]
+                        [ div [ class "space-y-4" ]
+                            [ div []
+                                [ label [ for "adminEmail", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Email Address" ]
+                                , input
+                                    [ type_ "email"
+                                    , id "adminEmail"
+                                    , placeholder "admin@example.com"
+                                    , value adminUser.email
+                                    , onInput UpdateEditingAdminUserEmail
+                                    , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    ]
+                                    []
+                                ]
+                            , div []
+                                [ label [ for "adminDisplayName", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Display Name" ]
+                                , input
+                                    [ type_ "text"
+                                    , id "adminDisplayName"
+                                    , placeholder "Admin User"
+                                    , value adminUser.displayName
+                                    , onInput UpdateEditingAdminUserDisplayName
+                                    , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    ]
+                                    []
+                                ]
+                            , div [ class "pt-2 flex justify-end space-x-3" ]
+                                [ button
+                                    [ onClick CancelAdminUserEdit
+                                    , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                                    ]
+                                    [ text "Cancel" ]
+                                , button
+                                    [ onClick SaveAdminUserEdit
+                                    , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                                    ]
+                                    [ text "Save Changes" ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+        Nothing ->
+            text ""
+
+viewAdminUserCreationResult : Maybe String -> Html Msg
+viewAdminUserCreationResult maybeResult =
+    case maybeResult of
+        Just result ->
+            if String.startsWith "Success" result then
+                div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
+                    [ p [ class "text-sm text-green-700" ] [ text result ] ]
+            else
+                div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
+                    [ p [ class "text-sm text-red-700" ] [ text result ] ]
+
+        Nothing ->
+            text ""
+
+viewConfirmDeleteAdminModal : Model -> Html Msg
+viewConfirmDeleteAdminModal model =
+    case model.confirmDeleteAdmin of
+        Just adminUser ->
+            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                    [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                        [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete" ] ]
+                    , div [ class "p-6" ]
+                        [ p [ class "mb-4 text-gray-700" ]
+                            [ text ("Are you sure you want to delete the admin user " ++ adminUser.email ++ "?") ]
+                        , p [ class "mb-6 text-red-600 font-medium" ]
+                            [ text "This action cannot be undone and will revoke this user's access to the admin panel." ]
+                        , div [ class "flex justify-end space-x-3" ]
+                            [ button
+                                [ onClick CancelDeleteAdminUser
+                                , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                                ]
+                                [ text "Cancel" ]
+                            , button
+                                [ onClick (ConfirmDeleteAdminUser adminUser)
+                                , class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                                ]
+                                [ text "Delete Admin User" ]
+                            ]
+                        ]
+                    ]
+                ]
+        Nothing ->
+            text ""
 
 viewLoginForm : Model -> Html Msg
 viewLoginForm model =

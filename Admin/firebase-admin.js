@@ -1,12 +1,21 @@
 // firebase-admin.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, get, update, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import {
+  getDatabase,
+  ref,
+  get,
+  update,
+  onValue,
+  set,
+  remove
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import {
   getAuth,
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  deleteUser
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Your web app's Firebase configuration
@@ -238,8 +247,211 @@ export function initializeFirebase(elmApp) {
     });
   }
 
+  // Admin user management
+  if (elmApp.ports.requestAllAdmins) {
+    elmApp.ports.requestAllAdmins.subscribe(function() {
+      if (auth.currentUser) {
+        fetchAllAdminUsers(elmApp);
+      } else {
+        console.warn("Cannot fetch admin users: User not authenticated");
+        if (elmApp.ports.receiveAllAdmins) {
+          elmApp.ports.receiveAllAdmins.send([]);
+        }
+      }
+    });
+  }
+
+  if (elmApp.ports.updateAdminUser) {
+    elmApp.ports.updateAdminUser.subscribe(function(adminUserData) {
+      if (auth.currentUser) {
+        updateAdminUserRecord(adminUserData, elmApp);
+      } else {
+        console.warn("Cannot update admin user: User not authenticated");
+        if (elmApp.ports.adminUserUpdated) {
+          elmApp.ports.adminUserUpdated.send({
+            success: false,
+            message: "Not authenticated. Please sign in first."
+          });
+        }
+      }
+    });
+  }
+
+  if (elmApp.ports.deleteAdminUser) {
+    elmApp.ports.deleteAdminUser.subscribe(function(adminUserId) {
+      if (auth.currentUser) {
+        deleteAdminUserRecord(adminUserId, elmApp);
+      } else {
+        console.warn("Cannot delete admin user: User not authenticated");
+        if (elmApp.ports.adminUserDeleted) {
+          elmApp.ports.adminUserDeleted.send({
+            success: false,
+            message: "Not authenticated. Please sign in first."
+          });
+        }
+      }
+    });
+  }
 }
 
+/**
+ * Fetch all admin users from Firebase
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function fetchAllAdminUsers(elmApp) {
+  try {
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can manage admin accounts");
+    }
+
+    // Get all admin users
+    const adminsRef = ref(database, 'admins');
+    const adminsSnapshot = await get(adminsRef);
+
+    if (adminsSnapshot.exists()) {
+      const adminsData = adminsSnapshot.val();
+      const adminUsers = [];
+
+      for (const uid in adminsData) {
+        const admin = adminsData[uid];
+        adminUsers.push({
+          uid,
+          email: admin.email,
+          displayName: admin.displayName || admin.email,
+          createdBy: admin.createdBy || null,
+          createdAt: admin.createdAt || null
+        });
+      }
+
+      // Send the admin users to Elm
+      elmApp.ports.receiveAllAdmins.send(adminUsers);
+    } else {
+      // No admin users found
+      elmApp.ports.receiveAllAdmins.send([]);
+    }
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+    elmApp.ports.receiveAllAdmins.send([]);
+  }
+}
+
+/**
+ * Update an admin user record
+ * @param {Object} adminUserData - The admin user data to update
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function updateAdminUserRecord(adminUserData, elmApp) {
+  try {
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can manage admin accounts");
+    }
+
+    // Check if trying to update your own account
+    if (adminUserData.uid === currentUserUid) {
+      // Allow updating display name but not email for current user
+      // This is to prevent locking yourself out
+      const adminRef = ref(database, `admins/${adminUserData.uid}`);
+      await update(adminRef, {
+        displayName: adminUserData.displayName
+      });
+
+      elmApp.ports.adminUserUpdated.send({
+        success: true,
+        message: "Success: Your display name has been updated. For security reasons, you cannot change your own email."
+      });
+      return;
+    }
+
+    // Check if the admin exists
+    const adminRef = ref(database, `admins/${adminUserData.uid}`);
+    const adminCheck = await get(adminRef);
+
+    if (!adminCheck.exists()) {
+      throw new Error("Admin user not found");
+    }
+
+    // Update the admin record
+    await update(adminRef, {
+      email: adminUserData.email,
+      displayName: adminUserData.displayName,
+      updatedBy: auth.currentUser.email,
+      updatedAt: new Date().toISOString()
+    });
+
+    // Return success
+    elmApp.ports.adminUserUpdated.send({
+      success: true,
+      message: "Success: Admin user updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating admin user:", error);
+    elmApp.ports.adminUserUpdated.send({
+      success: false,
+      message: "Error: " + error.message
+    });
+  }
+}
+
+/**
+ * Delete an admin user
+ * @param {string} adminUserId - The admin user ID to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function deleteAdminUserRecord(adminUserId, elmApp) {
+  try {
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can manage admin accounts");
+    }
+
+    // Check if trying to delete your own account
+    if (adminUserId === currentUserUid) {
+      throw new Error("You cannot delete your own admin account");
+    }
+
+    // Check how many admin users exist (to prevent deleting the last admin)
+    const adminsRef = ref(database, 'admins');
+    const adminsSnapshot = await get(adminsRef);
+
+    if (!adminsSnapshot.exists() || Object.keys(adminsSnapshot.val()).length <= 1) {
+      throw new Error("Cannot delete the only admin user");
+    }
+
+    // Check if the admin exists
+    const adminRef = ref(database, `admins/${adminUserId}`);
+    const adminCheck = await get(adminRef);
+
+    if (!adminCheck.exists()) {
+      throw new Error("Admin user not found");
+    }
+
+    // Delete the admin record
+    await remove(adminRef);
+
+    // Return success
+    elmApp.ports.adminUserDeleted.send({
+      success: true,
+      message: "Success: Admin user deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting admin user:", error);
+    elmApp.ports.adminUserDeleted.send({
+      success: false,
+      message: "Error: " + error.message
+    });
+  }
+}
 
 /**
  * Create a new admin user account
@@ -656,6 +868,8 @@ function getAdminAuthErrorMessage(errorCode) {
       return 'No account found with this email.';
     case 'auth/wrong-password':
       return 'Incorrect password.';
+    case 'auth/too-many-requests':
+      return 'Too many failed login attempts. Please try again later.';
     case 'auth/too-many-requests':
       return 'Too many failed login attempts. Please try again later.';
     case 'auth/network-request-failed':
