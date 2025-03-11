@@ -1,0 +1,22 @@
+{
+  "name": "unity-game-submissions",
+  "version": "1.0.0",
+  "description": "Unity Game Submissions with Elm and Firebase",
+  "private": true,
+  "scripts": {
+    "build:css": "postcss src/css/tailwind.css -o css/tailwind.css --minify",
+    "build:elm:admin": "elm make Admin/src/Admin.elm --output=Admin/admin.js --optimize",
+    "build:elm:student": "elm make Students/src/Student.elm --output=Students/student.js --optimize",
+    "build": "npm run build:css && npm run build:elm:admin && npm run build:elm:student",
+    "deploy": "firebase deploy"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "postcss-cli": "^11.0.0",
+    "tailwindcss": "^3.4.0"
+  }
+}

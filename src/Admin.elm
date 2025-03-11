@@ -1396,8 +1396,8 @@ view : Model -> Html Msg
 view model =
     div [ class "min-h-screen bg-gray-300 py-6 flex flex-col" ]
         [ div [ class "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full" ]
-            [ h1 [ class "text-3xl font-bold text-gray-900 mb-8 text-center" ] [ text "Game Submission Admin" ]
-            , viewContent model
+            [ -- h1 [ class "text-3xl font-bold text-gray-900 mb-8 text-center" ] [ text "Game Submission Admin" ]
+             viewContent model
             ]
         ]
 

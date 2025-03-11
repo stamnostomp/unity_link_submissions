@@ -6756,9 +6756,6 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Admin$PerformSignOut = {$: 3};
 var $author$project$Admin$ShowAdminUsersPage = {$: 59};
 var $elm$html$Html$button = _VirtualDom_node('button');
@@ -6780,6 +6777,8 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		$elm$json$Json$Decode$succeed(msg));
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$core$String$toUpper = _String_toUpper;
 var $author$project$Admin$CancelDeleteSubmission = {$: 57};
 var $author$project$Admin$ConfirmDeleteSubmission = function (a) {
@@ -11324,16 +11323,6 @@ var $author$project$Admin$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						A2(
-						$elm$html$Html$h1,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('text-3xl font-bold text-gray-900 mb-8 text-center')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Game Submission Admin')
-							])),
 						$author$project$Admin$viewContent(model)
 					]))
 			]));

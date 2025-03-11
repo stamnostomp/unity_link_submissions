@@ -4,24 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Unity Game Submissions Admin</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Replace Tailwind CDN with compiled CSS file -->
+  <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 <body>
   <div id="elm-admin-app"></div>
-
-  <!-- Compiled Elm application -->
-  <script src="admin.js"></script>
-
-  <!-- Import Firebase integration -->
+  <!-- Compiled Elm application with absolute path -->
+  <script src="/Admin/admin.js"></script>
+  <!-- Import Firebase integration with absolute path and explicit type -->
   <script type="module">
-    import { initializeFirebase } from './firebase-admin.js';
-
+    // Use absolute path for imports
+    import { initializeFirebase } from '/Admin/firebase-admin.js';
+    
     document.addEventListener('DOMContentLoaded', function() {
       // Initialize the Elm application
       const elmApp = Elm.Admin.init({
         node: document.getElementById('elm-admin-app')
       });
-
       // Initialize Firebase with the Elm app
       initializeFirebase(elmApp);
     });

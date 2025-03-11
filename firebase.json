@@ -1,10 +1,50 @@
 {
   "hosting": {
-    "public": "Public",
+    "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/elm-stuff/**",
+      "**/src/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/student",
+        "destination": "/Students/student.html"
+      },
+      {
+        "source": "/student/**",
+        "destination": "/Students/student.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/admin/**",
+        "destination": "/Admin/admin.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
+          }
+        ]
+      }
     ]
   }
 }
