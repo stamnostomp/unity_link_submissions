@@ -483,6 +483,10 @@ EOF
             '';
           };
 
+
+# This is the updated section of your flake.nix that needs to be modified
+# Replace the deploy app section with this code:
+
           deploy = flake-utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "deploy" ''
               # Get Firebase project ID
@@ -517,7 +521,7 @@ EOF
               fi
 
               # Create a fresh dist directory with proper permissions
-              mkdir -p dist/Admin dist/Student dist/css dist/resetPassword/js
+              mkdir -p dist/Admin dist/Student dist/css dist/resetPassword
 
               # Copy build artifacts
               echo "Copying build artifacts..."
@@ -528,140 +532,112 @@ EOF
               cp ./Admin/admin.js dist/Admin/ || echo "Warning: Failed to copy Admin/admin.js"
               cp ./Student/student.js dist/Student/ || echo "Warning: Failed to copy Student/student.js"
 
-              # Copy Firebase config files - PRESERVE the original firebase.json
-              echo "Copying Firebase configuration files..."
-              cp ./firebase.json dist/ || echo "Warning: Failed to copy firebase.json"
-              cp ./.firebaserc dist/ || echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
+              # Handle resetPassword files
+              echo "Setting up password reset files..."
+              if [ -f "./resetPassword/handle-reset.html" ] && [ -f "./resetPassword/reset-handler.js" ]; then
+                # Copy the HTML file, updating the script reference to include type="module"
+                sed 's|src="reset-handler.js"|src="/resetPassword/reset-handler.js" type="module"|g' "./resetPassword/handle-reset.html" > "dist/resetPassword/handle-reset.html"
 
-              # Copy resetPassword files explicitly with renaming
-              echo "Copying resetPassword files..."
-              if [ -d "./resetPassword" ]; then
-                mkdir -p dist/resetPassword/js
+                # Copy the JS file directly (not in a subdirectory)
+                cp "./resetPassword/reset-handler.js" "dist/resetPassword/"
 
-                # Copy HTML files with modifications if needed
-                for file in ./resetPassword/*.html; do
-                  if [ -f "$file" ]; then
-                    if [[ "$(basename "$file")" == "handle-reset.html" ]]; then
-                      # Create a temporary file with the updated script reference
-                      cat "$file" | sed 's|src="handle-reset.js"|src="js/reset-handler.js"|g' > "dist/resetPassword/$(basename "$file")"
-                      echo "Copied and modified HTML file: $file (updated script path)"
-                    else
-                      cp "$file" dist/resetPassword/
-                      echo "Copied HTML file: $file"
-                    fi
-                  fi
-                done
-
-                # Copy and rename JS files
-                for file in ./resetPassword/*.js; do
-                  if [ -f "$file" ]; then
-                    if [[ "$(basename "$file")" == "handle-reset.js" ]]; then
-                      cp "$file" dist/resetPassword/js/reset-handler.js
-                      chmod 644 dist/resetPassword/js/reset-handler.js
-                      echo "Copied JS file as: resetPassword/js/reset-handler.js"
-                    else
-                      cp "$file" dist/resetPassword/js/
-                      chmod 644 dist/resetPassword/js/$(basename "$file")
-                      echo "Copied JS file to js subdirectory: $file"
-                    fi
-                  fi
-                done
-
-                # Copy any CSS files
-                for file in ./resetPassword/*.css; do
-                  if [ -f "$file" ]; then
-                    cp "$file" dist/resetPassword/
-                    echo "Copied CSS file: $file"
-                  fi
-                done
-
-                echo "Copied and renamed resetPassword directory files"
+                echo "Reset password files copied and updated"
               else
-                echo "Warning: resetPassword directory not found"
+                echo "Warning: Reset password files not found."
+                if [ -f "./resetPassword/handle-reset.html" ]; then
+                  echo "Found handle-reset.html but missing reset-handler.js"
+                fi
+                if [ -f "./resetPassword/reset-handler.js" ]; then
+                  echo "Found reset-handler.js but missing handle-reset.html"
+                fi
               fi
 
-              # Make sure index.html exists or create it
-              if [ -f "./index.html" ]; then
-                cp ./index.html dist/ || echo "Warning: Failed to copy index.html"
-              else
-                echo "Creating default index.html..."
-                cat > dist/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unity Game Submissions</title>
-  <link rel="icon" href="/favicon.ico">
-  <link href="/css/tailwind.css" rel="stylesheet">
-  <style>
-    body {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background-color: #f3f4f6;
-    }
-    .container {
-      max-width: 600px;
-      padding: 2rem;
-      background-color: white;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      text-align: center;
-    }
-    .btn {
-      display: inline-block;
-      margin: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.375rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .btn-blue {
-      background-color: #3b82f6;
-      color: white;
-    }
-    .btn-blue:hover {
-      background-color: #2563eb;
-    }
-    .btn-purple {
-      background-color: #8b5cf6;
-      color: white;
-    }
-    .btn-purple:hover {
-      background-color: #7c3aed;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
-    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+              # Create a fixed firebase.json with correct paths and rewrites
+              echo "Creating firebase.json with proper configuration..."
+              cat > dist/firebase.json << 'EOF'
+          {
+            "hosting": {
+              "public": ".",
+              "ignore": [
+                "firebase.json",
+                ".firebaserc",
+                "**/.*",
+                "**/node_modules/**",
+                "**/elm-stuff/**",
+                "**/src/**",
+                "dist/**"
+              ],
+              "rewrites": [
+                {
+                  "source": "/Admin",
+                  "destination": "/Admin/admin.html"
+                },
+                {
+                  "source": "/admin",
+                  "destination": "/Admin/admin.html"
+                },
+                {
+                  "source": "/Student",
+                  "destination": "/Student/student.html"
+                },
+                {
+                  "source": "/student",
+                  "destination": "/Student/student.html"
+                },
+                {
+                  "source": "/handle-reset",
+                  "destination": "/resetPassword/handle-reset.html"
+                },
+                {
+                  "source": "**",
+                  "destination": "/index.html"
+                }
+              ],
+              "headers": [
+                {
+                  "source": "/resetPassword/reset-handler.js",
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/javascript; charset=utf-8"
+                    }
+                  ]
+                },
+                {
+                  "source": "**/*.js",
+                  "headers": [
+                    {
+                      "key": "Cache-Control",
+                      "value": "no-cache, no-store, must-revalidate"
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/javascript"
+                    }
+                  ]
+                },
+                {
+                  "source": "**/*.css",
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "text/css"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          EOF
 
-    <div>
-      <a href="/student" class="btn btn-blue">Student Portal</a>
-      <a href="/admin" class="btn btn-purple">Admin Portal</a>
-    </div>
-  </div>
-</body>
-</html>
-EOF
-              fi
+              # Create .firebaserc in dist directory
+              echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
 
               # Display content for debugging
               echo "Content of dist directory:"
               ls -la dist/
-              echo "Content of dist/Admin directory:"
-              ls -la dist/Admin/
-              echo "Content of dist/Student directory:"
-              ls -la dist/Student/
               echo "Content of dist/resetPassword directory:"
               ls -la dist/resetPassword/
-              echo "Content of dist/resetPassword/js directory:"
-              ls -la dist/resetPassword/js/
 
               # Ensure correct permissions for deployment
               chmod -R u+w dist

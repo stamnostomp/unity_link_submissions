@@ -6,13 +6,8 @@
       ".firebaserc",
       "**/.*",
       "**/node_modules/**",
-<<<<<<< HEAD
-      "elm-stuff/**",
-      "src/**",
-=======
       "**/elm-stuff/**",
       "**/src/**",
->>>>>>> origin/master
       "dist/**"
     ],
     "rewrites": [
@@ -37,10 +32,6 @@
         "destination": "/resetPassword/handle-reset.html"
       },
       {
-        "source": "/",
-        "destination": "/Admin/admin.html"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -49,21 +40,31 @@
       {
         "source": "/resetPassword/reset-handler.js",
         "headers": [
-              {
-                "key": "Content-Type",
-                "value": "application/javascript"
-              }
+          {
+            "key": "Content-Type",
+            "value": "application/javascript; charset=utf-8"
+          }
         ]
-
+      },
+      {
         "source": "**/*.js",
         "headers": [
           {
             "key": "Cache-Control",
             "value": "no-cache, no-store, must-revalidate"
-
-
+          },
+          {
             "key": "Content-Type",
             "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
           }
         ]
       }
