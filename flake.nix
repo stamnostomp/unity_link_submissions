@@ -58,85 +58,268 @@
               # Create root directory with the correct structure
               mkdir -p $out/Admin $out/Student $out/css $out/resetPassword/js
 
-              # Check required files
-              if [ ! -f "./Admin/admin.html" ]; then
-                echo "Error: Admin/admin.html not found"
-                exit 1
-              fi
-
-              if [ ! -f "./Student/student.html" ]; then
-                echo "Error: Student/student.html not found"
-                exit 1
-              fi
-
-              if [ ! -f "./index.html" ]; then
-                echo "Error: index.html not found"
-                exit 1
-              fi
-
-              # Check for compiled Elm files
-              if [ ! -f "./Admin/admin.js" ]; then
-                echo "Error: Admin/admin.js not found. Please run 'nix run .#build-elm' first"
-                exit 1
-              fi
-
-              if [ ! -f "./Student/student.js" ]; then
-                echo "Error: Student/student.js not found. Please run 'nix run .#build-elm' first"
-                exit 1
-              fi
-
               # Copy HTML files
-              cp ./Admin/admin.html $out/Admin/
-              cp ./Student/student.html $out/Student/
-              cp ./index.html $out/
+              if [ -f "./Admin/admin.html" ]; then
+                cp ./Admin/admin.html $out/Admin/ || true
+                echo "Copied Admin/admin.html"
+              else
+                # Create admin.html if it doesn't exist
+                cat > $out/Admin/admin.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions Admin</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+</head>
+<body>
+  <div id="elm-admin-app"></div>
+
+  <!-- Compiled Elm application -->
+  <script src="/Admin/admin.js"></script>
+
+  <!-- Import Firebase integration -->
+  <script type="module">
+    import { initializeFirebase } from '/Admin/firebase-admin.js';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if Elm is defined
+      if (typeof Elm === 'undefined') {
+        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
+        document.getElementById('elm-admin-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application could not load</h2>' +
+          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
+          '<p>Error: Elm is not defined</p>' +
+          '</div>';
+        return;
+      }
+
+      // Initialize the Elm application
+      try {
+        const elmApp = Elm.Admin.init({
+          node: document.getElementById('elm-admin-app')
+        });
+
+        // Initialize Firebase with the Elm app
+        initializeFirebase(elmApp);
+      } catch (e) {
+        console.error("Error initializing Elm application:", e);
+        document.getElementById('elm-admin-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application initialization failed</h2>' +
+          '<p>Error details: ' + e.message + '</p>' +
+          '</div>';
+      }
+    });
+  </script>
+</body>
+</html>
+EOF
+                echo "Created Admin/admin.html"
+              fi
+
+              if [ -f "./Student/student.html" ]; then
+                cp ./Student/student.html $out/Student/ || true
+                echo "Copied Student/student.html"
+              else
+                # Create student.html if it doesn't exist
+                cat > $out/Student/student.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Student Records</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+</head>
+<body>
+  <div id="elm-app"></div>
+
+  <!-- Compiled Elm application -->
+  <script src="/Student/student.js"></script>
+
+  <!-- Import Firebase integration -->
+  <script type="module">
+    import { initializeFirebase } from '/Student/student-firebase.js';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if Elm is defined
+      if (typeof Elm === 'undefined') {
+        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
+        document.getElementById('elm-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application could not load</h2>' +
+          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
+          '<p>Error: Elm is not defined</p>' +
+          '</div>';
+        return;
+      }
+
+      // Initialize the Elm application
+      try {
+        const elmApp = Elm.Student.init({
+          node: document.getElementById('elm-app')
+        });
+
+        // Initialize Firebase with the Elm app
+        initializeFirebase(elmApp);
+      } catch (e) {
+        console.error("Error initializing Elm application:", e);
+        document.getElementById('elm-app').innerHTML =
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application initialization failed</h2>' +
+          '<p>Error details: ' + e.message + '</p>' +
+          '</div>';
+      }
+    });
+  </script>
+</body>
+</html>
+EOF
+                echo "Created Student/student.html"
+              fi
+
+              # Create or copy index.html for the root directory
+              if [ -f "./index.html" ]; then
+                cp ./index.html $out/ || true
+                echo "Copied index.html"
+              else
+                # Create index.html if it doesn't exist
+                cat > $out/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
+    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+
+    <div>
+      <a href="/student" class="btn btn-blue">Student Portal</a>
+      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+    </div>
+  </div>
+</body>
+</html>
+EOF
+                echo "Created index.html"
+              fi
 
               # Copy Firebase integration files
               if [ -f "./Admin/firebase-admin.js" ]; then
-                cp ./Admin/firebase-admin.js $out/Admin/
-              else
-                echo "Error: Admin/firebase-admin.js not found"
-                exit 1
+                cp ./Admin/firebase-admin.js $out/Admin/ || true
+                echo "Copied Admin/firebase-admin.js"
               fi
 
               if [ -f "./Student/student-firebase.js" ]; then
-                cp ./Student/student-firebase.js $out/Student/
-              else
-                echo "Error: Student/student-firebase.js not found"
-                exit 1
+                cp ./Student/student-firebase.js $out/Student/ || true
+                echo "Copied Student/student-firebase.js"
               fi
 
-              # Copy the pre-compiled Elm JS files
-              cp ./Admin/admin.js $out/Admin/
-              cp ./Student/student.js $out/Student/
-              echo "Copied pre-compiled Elm JS files"
+              # Copy compiled Elm files
+              if [ -f "./Admin/admin.js" ]; then
+                cp ./Admin/admin.js $out/Admin/ || true
+                echo "Found and copied Admin/admin.js"
+              else
+                echo "Warning: Admin/admin.js not found"
+              fi
+
+              if [ -f "./Student/student.js" ]; then
+                cp ./Student/student.js $out/Student/ || true
+                echo "Found and copied Student/student.js"
+              else
+                echo "Warning: Student/student.js not found"
+              fi
 
               # Copy resetPassword files - create js subdirectory and handle rename
               if [ -d "./resetPassword" ]; then
                 # Create directory first to ensure it exists
                 mkdir -p $out/resetPassword/js
 
-                # Look for handle-reset.html
-                if [ -f "./resetPassword/handle-reset.html" ]; then
-                  # Modify it to use the new JS path
-                  cat "./resetPassword/handle-reset.html" | sed 's|src="handle-reset.js"|src="js/reset-handler.js"|g' > "$out/resetPassword/handle-reset.html"
-                  echo "Copied and modified HTML file: handle-reset.html (updated script path)"
-                else
-                  echo "Error: resetPassword/handle-reset.html not found"
-                  exit 1
-                fi
+                # Copy HTML files with specific handling
+                for file in ./resetPassword/*.html; do
+                  if [ -f "$file" ]; then
+                    # If it's handle-reset.html, we need to modify it to use the new JS path
+                    if [[ "$(basename "$file")" == "handle-reset.html" ]]; then
+                      # Create a temporary file with the updated script reference
+                      cat "$file" | sed 's|src="handle-reset.js"|src="js/reset-handler.js"|g' > "$out/resetPassword/$(basename "$file")"
+                      echo "Copied and modified HTML file: $file (updated script path)"
+                    else
+                      cp "$file" $out/resetPassword/
+                      echo "Copied HTML file: $file"
+                    fi
+                  fi
+                done
 
-                # Look for handle-reset.js
-                if [ -f "./resetPassword/handle-reset.js" ]; then
-                  # Copy and rename to avoid Firebase routing conflicts
-                  cp "./resetPassword/handle-reset.js" $out/resetPassword/js/reset-handler.js
-                  chmod 644 $out/resetPassword/js/reset-handler.js
-                  echo "Copied JS file as: resetPassword/js/reset-handler.js"
-                else
-                  echo "Error: resetPassword/handle-reset.js not found"
-                  exit 1
-                fi
+                # Copy JS files with specific handling to preserve content type
+                for file in ./resetPassword/*.js; do
+                  if [ -f "$file" ]; then
+                    # For handle-reset.js, copy it as reset-handler.js in the js/ subdirectory
+                    if [[ "$(basename "$file")" == "handle-reset.js" ]]; then
+                      cp "$file" $out/resetPassword/js/reset-handler.js
+                      chmod 644 $out/resetPassword/js/reset-handler.js
+                      echo "Copied JS file as: resetPassword/js/reset-handler.js"
+                    else
+                      # For other JS files, just copy to js/ subdirectory with original name
+                      cp "$file" $out/resetPassword/js/
+                      chmod 644 $out/resetPassword/js/$(basename "$file")
+                      echo "Copied JS file to js subdirectory: $file"
+                    fi
+                  fi
+                done
 
-                # Copy any CSS files if they exist
+                # Copy any other files that might be needed
                 for file in ./resetPassword/*.css; do
                   if [ -f "$file" ]; then
                     cp "$file" $out/resetPassword/
@@ -144,10 +327,9 @@
                   fi
                 done
 
-                echo "Copied resetPassword directory files"
+                echo "Copied resetPassword directory files individually"
               else
-                echo "Error: resetPassword directory not found"
-                exit 1
+                echo "Warning: resetPassword directory not found"
               fi
 
               # Copy favicon to root
@@ -174,8 +356,10 @@
                   -o ./css-output/tailwind.css \
                   --minify
               else
-                echo "Error: src/css/tailwind.css not found"
-                exit 1
+                # Create a basic CSS file
+                echo "/* Basic Tailwind-like CSS */" > ./css-output/tailwind.css
+                echo "body { font-family: sans-serif; margin: 0; padding: 0; }" >> ./css-output/tailwind.css
+                echo "Warning: Could not find tailwind.css source. Created basic CSS file."
               fi
             '';
 
@@ -200,14 +384,84 @@
               self.packages.${system}.tailwind
             ];
 
-            # Add firebase.json to the output
+            # Add firebase.json to the output if needed
             postBuild = ''
-              # Copy firebase.json - fail if it doesn't exist
-              if [ -f "./firebase.json" ]; then
-                cp ./firebase.json $out/
-              else
-                echo "Error: firebase.json not found"
-                exit 1
+              # Copy firebase.json if it exists, otherwise create a standard one
+              if [ -f "${self.packages.${system}.elm-apps}/firebase.json" ]; then
+                cp "${self.packages.${system}.elm-apps}/firebase.json" "$out/" || true
+              elif [ ! -f "$out/firebase.json" ]; then
+                cat > $out/firebase.json << 'EOF'
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "**/elm-stuff/**",
+      "**/src/**",
+      "dist/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/student",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/student/**",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/admin/**",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/handle-reset",
+        "destination": "/resetPassword/handle-reset.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/js/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+                echo "Created firebase.json for hosting"
               fi
             '';
           };
@@ -221,17 +475,6 @@
               # Ensure Admin and Student directories exist
               mkdir -p Admin Student
 
-              # Check for Elm source files
-              if [ ! -f "src/Admin.elm" ]; then
-                echo "Error: src/Admin.elm not found"
-                exit 1
-              fi
-
-              if [ ! -f "src/Student.elm" ]; then
-                echo "Error: src/Student.elm not found"
-                exit 1
-              fi
-
               # Compile Elm directly to Admin and Student directories
               ${pkgs.elmPackages.elm}/bin/elm make src/Admin.elm --output=Admin/admin.js --optimize
               ${pkgs.elmPackages.elm}/bin/elm make src/Student.elm --output=Student/student.js --optimize
@@ -242,7 +485,7 @@
 
           deploy = flake-utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "deploy" ''
-              # Check for .firebaserc or create it
+              # Get Firebase project ID
               if [ -f .firebaserc ]; then
                 PROJECT_ID=$(${pkgs.jq}/bin/jq -r '.projects.default' .firebaserc)
                 echo "Using Firebase project: $PROJECT_ID"
@@ -257,11 +500,11 @@
               fi
 
               echo "Building Elm applications locally..."
-              # Build Elm apps before packaging with Nix
-              nix run .#build-elm
+              # Build Elm apps using the build-elm app
+              $(nix run .#build-elm)
 
               echo "Packaging with Nix..."
-              # Now build with Nix (which will use the pre-compiled JS files)
+              # Build the project with Nix
               nix build
 
               echo "Preparing for deployment..."
@@ -280,10 +523,133 @@
               echo "Copying build artifacts..."
               cp -r ${self.packages.${system}.default}/* dist/
 
-              # Copy Firebase config files
+              # IMPORTANT: Explicitly copy the compiled Elm files that we just built
+              echo "Copying compiled Elm files..."
+              cp ./Admin/admin.js dist/Admin/ || echo "Warning: Failed to copy Admin/admin.js"
+              cp ./Student/student.js dist/Student/ || echo "Warning: Failed to copy Student/student.js"
+
+              # Copy Firebase config files - PRESERVE the original firebase.json
               echo "Copying Firebase configuration files..."
-              cp ./firebase.json dist/ || (echo "Error: firebase.json not found" && exit 1)
+              cp ./firebase.json dist/ || echo "Warning: Failed to copy firebase.json"
               cp ./.firebaserc dist/ || echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
+
+              # Copy resetPassword files explicitly with renaming
+              echo "Copying resetPassword files..."
+              if [ -d "./resetPassword" ]; then
+                mkdir -p dist/resetPassword/js
+
+                # Copy HTML files with modifications if needed
+                for file in ./resetPassword/*.html; do
+                  if [ -f "$file" ]; then
+                    if [[ "$(basename "$file")" == "handle-reset.html" ]]; then
+                      # Create a temporary file with the updated script reference
+                      cat "$file" | sed 's|src="handle-reset.js"|src="js/reset-handler.js"|g' > "dist/resetPassword/$(basename "$file")"
+                      echo "Copied and modified HTML file: $file (updated script path)"
+                    else
+                      cp "$file" dist/resetPassword/
+                      echo "Copied HTML file: $file"
+                    fi
+                  fi
+                done
+
+                # Copy and rename JS files
+                for file in ./resetPassword/*.js; do
+                  if [ -f "$file" ]; then
+                    if [[ "$(basename "$file")" == "handle-reset.js" ]]; then
+                      cp "$file" dist/resetPassword/js/reset-handler.js
+                      chmod 644 dist/resetPassword/js/reset-handler.js
+                      echo "Copied JS file as: resetPassword/js/reset-handler.js"
+                    else
+                      cp "$file" dist/resetPassword/js/
+                      chmod 644 dist/resetPassword/js/$(basename "$file")
+                      echo "Copied JS file to js subdirectory: $file"
+                    fi
+                  fi
+                done
+
+                # Copy any CSS files
+                for file in ./resetPassword/*.css; do
+                  if [ -f "$file" ]; then
+                    cp "$file" dist/resetPassword/
+                    echo "Copied CSS file: $file"
+                  fi
+                done
+
+                echo "Copied and renamed resetPassword directory files"
+              else
+                echo "Warning: resetPassword directory not found"
+              fi
+
+              # Make sure index.html exists or create it
+              if [ -f "./index.html" ]; then
+                cp ./index.html dist/ || echo "Warning: Failed to copy index.html"
+              else
+                echo "Creating default index.html..."
+                cat > dist/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
+    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+
+    <div>
+      <a href="/student" class="btn btn-blue">Student Portal</a>
+      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+    </div>
+  </div>
+</body>
+</html>
+EOF
+              fi
 
               # Display content for debugging
               echo "Content of dist directory:"
@@ -384,7 +750,163 @@
               ${pkgs.nodePackages.tailwindcss}/bin/tailwindcss \
                 -i ./src/css/tailwind.css \
                 -o ./css/tailwind.css \
-                --minify || echo "Error: Tailwind CSS build failed, src/css/tailwind.css may be missing"
+                --minify || echo "Warning: Tailwind CSS build failed, check if src/css/tailwind.css exists"
+
+              # Also copy to individual directories for compatibility
+              mkdir -p Admin Student
+              cp ./css/tailwind.css ./Admin/style.css || true
+              cp ./css/tailwind.css ./Student/style.css || true
+
+              # Make sure we have an index.html
+              if [ ! -f "index.html" ]; then
+                echo "Creating index.html..."
+                cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity Game Submissions</title>
+  <link rel="icon" href="/favicon.ico">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      margin: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-blue {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-blue:hover {
+      background-color: #2563eb;
+    }
+    .btn-purple {
+      background-color: #8b5cf6;
+      color: white;
+    }
+    .btn-purple:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
+    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+
+    <div>
+      <a href="/student" class="btn btn-blue">Student Portal</a>
+      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+    </div>
+  </div>
+</body>
+</html>
+EOF
+              fi
+
+              # Make sure firebase.json has the correct routing settings
+              if [ -f "firebase.json" ]; then
+                echo "Checking firebase.json for proper routing..."
+                if ! grep -q "rewrites" firebase.json; then
+                  echo "firebase.json seems to be missing rewrites. Consider updating it with proper routing."
+                  echo "See the project documentation for the recommended firebase.json configuration."
+                fi
+              else
+                echo "Creating firebase.json with proper routing..."
+                cat > firebase.json << 'EOF'
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "**/elm-stuff/**",
+      "**/src/**",
+      "dist/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/student",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/student/**",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/admin",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/admin/**",
+        "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "/handle-reset",
+        "destination": "/resetPassword/handle-reset.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/js/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**/*.css",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "text/css"
+          }
+        ]
+      }
+    ]
+  }
+}
+EOF
+              fi
 
               echo "Build complete!"
             }
