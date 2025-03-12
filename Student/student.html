@@ -3,50 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unity Game Submissions Admin</title>
+  <title>Unity Game Student Records</title>
   <link rel="icon" href="/favicon.ico">
   <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 <body>
-  <div id="elm-admin-app"></div>
+  <div id="elm-app"></div>
 
-  <!-- Compiled Elm application -->
-  <script src="/Admin/admin.js"></script>
+  <!-- Add debug info -->
+  <div id="debug-info" style="padding: 20px; background-color: #f8f9fa; margin: 20px; border-radius: 5px;">
+    <h3>Debug Information</h3>
+    <div id="load-status">Loading Elm application...</div>
+  </div>
 
-  <!-- Import Firebase integration -->
+  <!-- Compiled Elm application - using a different load pattern -->
+  <script src="./student.js"></script>
   <script type="module">
-    import { initializeFirebase } from '/Admin/firebase-admin.js';
-
-    document.addEventListener('DOMContentLoaded', function() {
-      // Check if Elm is defined
-      if (typeof Elm === 'undefined') {
-        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
-        document.getElementById('elm-admin-app').innerHTML = 
-          '<div style="color: red; padding: 20px;">' +
-          '<h2>Error: Application could not load</h2>' +
-          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
-          '<p>Error: Elm is not defined</p>' +
-          '</div>';
-        return;
-      }
-
-      // Initialize the Elm application
+    // Check if Elm is defined after script load
+    document.getElementById('load-status').textContent = 
+      `Elm object status: ${typeof Elm !== 'undefined' ? 'Defined' : 'Not defined'}`;
+      
+    if (typeof Elm === 'undefined') {
+      document.getElementById('load-status').innerHTML += 
+        `<br>Error: Elm is not defined. The script might not be loading correctly.<br>
+         <strong>Try these alternatives:</strong><br>
+         1. Refreshing the page<br>
+         2. Clearing your browser cache<br>
+         3. Check console for errors`;
+    } else {
+      // Show available Elm modules
+      document.getElementById('load-status').innerHTML += 
+        `<br>Available Elm modules: ${Object.keys(Elm).join(', ')}`;
+        
       try {
-        const elmApp = Elm.Admin.init({
-          node: document.getElementById('elm-admin-app')
-        });
+        // Try to initialize the Elm app
+        if (Elm.Student) {
+          const app = Elm.Student.init({
+            node: document.getElementById('elm-app')
+          });
+          document.getElementById('load-status').innerHTML += '<br>✅ Elm application initialized successfully';
 
-        // Initialize Firebase with the Elm app
-        initializeFirebase(elmApp);
+          // Manually import and initialize Firebase integration
+          import('./student-firebase.js')
+            .then(module => {
+              try {
+                module.initializeFirebase(app);
+                document.getElementById('load-status').innerHTML += '<br>✅ Firebase integration initialized';
+              } catch (e) {
+                document.getElementById('load-status').innerHTML +=
+                  `<br>❌ Error initializing Firebase: ${e.message}`;
+              }
+            })
+            .catch(err => {
+              document.getElementById('load-status').innerHTML +=
+                `<br>❌ Error importing Firebase module: ${err.message}`;
+            });
+        } else {
+          document.getElementById('load-status').innerHTML +=
+            '<br>❌ Elm.Student module not found';
+        }
       } catch (e) {
-        console.error("Error initializing Elm application:", e);
-        document.getElementById('elm-admin-app').innerHTML = 
-          '<div style="color: red; padding: 20px;">' +
-          '<h2>Error: Application initialization failed</h2>' +
-          '<p>Error details: ' + e.message + '</p>' +
-          '</div>';
+        document.getElementById('load-status').innerHTML +=
+          `<br>❌ Error initializing Elm app: ${e.message}`;
       }
-    });
+    }
   </script>
 </body>
 </html>

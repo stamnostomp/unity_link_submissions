@@ -3,45 +3,58 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
       "**/.*",
       "**/node_modules/**",
-      "**/elm-stuff/**",
-      "**/src/**"
+      "elm-stuff/**",
+      "src/**",
+      "dist/**"
     ],
     "rewrites": [
       {
-        "source": "/student",
-        "destination": "/Student/student.html"
-      },
-      {
-        "source": "/student/**",
-        "destination": "/Student/student.html"
+        "source": "/Admin",
+        "destination": "/Admin/admin.html"
       },
       {
         "source": "/admin",
         "destination": "/Admin/admin.html"
       },
       {
-        "source": "/admin/**",
+        "source": "/Student",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/student",
+        "destination": "/Student/student.html"
+      },
+      {
+        "source": "/handle-reset",
+        "destination": "/resetPassword/handle-reset.html"
+      },
+      {
+        "source": "/",
         "destination": "/Admin/admin.html"
       }
     ],
     "headers": [
       {
+        "source": "/resetPassword/reset-handler.js",
+        "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/javascript"
+              }
+        ]
+
         "source": "**/*.js",
         "headers": [
           {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+
+
             "key": "Content-Type",
             "value": "application/javascript"
-          }
-        ]
-      },
-      {
-        "source": "**/*.css",
-        "headers": [
-          {
-            "key": "Content-Type",
-            "value": "text/css"
           }
         ]
       }
