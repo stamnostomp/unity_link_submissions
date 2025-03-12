@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset Password</title>
+  <style>
+
+    .error-text {
+      color: red;
+      font-size: 14px;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="reset-container" class="reset-container">
+    <h2>Reset your password</h2>
+    <p>for <span id="email"></span></p>
+
+    <form id="resetForm">
+      <div class="form-group">
+        <label for="newPassword">New password</label>
+        <input type="password" id="newPassword" required minlength="6">
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm password</label>
+        <input type="password" id="confirmPassword" required>
+        <p id="match-error" class="error-text"></p>
+      </div>
+
+      <div id="error-message" class="error-text"></div>
+
+      <button type="submit" class="save-button">SAVE</button>
+    </form>
+  </div>
+
+  <script src="reset-handler.js"></script>
+</body>
+</html>
