@@ -1,6 +1,6 @@
 # Unity Game Submissions
 
-A web application for managing Unity game submissions built with Elm and Firebase, using Nix for reproducible builds.
+A comprehensive web application for managing Unity game submissions built with Elm and Firebase, using Nix for reproducible builds.
 
 ## 🌐 Live Demo
 
@@ -8,10 +8,32 @@ Visit the application at: [https://elm-unity-subs.web.app](https://elm-unity-sub
 
 ## 🚀 Features
 
-- Separate interfaces for administrators and students
-- Real-time data synchronization with Firebase
-- Responsive design with Tailwind CSS
-- Reproducible builds with Nix flakes
+### Student Portal
+- Simple submission form for uploading Unity game projects
+- Personalized student profiles displaying submission history
+- Belt-based progression system for tracking skill advancement
+- Game selection based on current belt level
+- GitHub repository link management
+
+### Admin Portal
+- Comprehensive dashboard for reviewing and grading student submissions
+- Advanced filtering and sorting options for submissions management
+- Grade submissions with detailed feedback and scoring
+- Student record management
+- Belt level configuration with customizable game options
+- Admin user management with role-based permissions
+- Password reset functionality
+
+### New Features
+- **Belt Management System**: Configure custom belt levels with specific colors and ordered progression
+- **Game Options by Belt Level**: Customize available games for each belt level
+- **Role-Based Admin Access**: Superuser and regular admin roles with appropriate permissions
+- **Admin User Management**: Create, edit, and delete admin users
+- **Password Reset Functionality**: Self-service password recovery for admin users
+- **Student Directory**: Comprehensive view of all students with sorting and filtering
+- **Detailed Grading System**: Provide scores and feedback for student submissions
+- **Confirmation Dialogs**: Safe deletion of student records, submissions, and admin accounts
+- **Real-time Data Updates**: Immediate data synchronization with Firebase
 
 ## 📋 Project Structure
 
@@ -39,6 +61,23 @@ Visit the application at: [https://elm-unity-subs.web.app](https://elm-unity-sub
 ├── firebase.json           # Firebase configuration
 └── tailwind.config.js      # Tailwind CSS configuration
 ```
+
+## 🔐 Authentication and Security
+
+- Firebase Authentication for secure admin access
+- Role-based permissions system
+- Only authenticated admins can access student records and submissions
+- Superuser role required for admin user management
+- Secure password reset process
+
+## 📱 Responsive Design
+
+The application is fully responsive and works well on:
+- Desktop computers
+- Tablets
+- Mobile phones
+
+All interface elements adapt to different screen sizes for optimal user experience.
 
 ## 🛠️ Development
 
@@ -73,7 +112,7 @@ Once in the Nix development shell, you can use these commands:
 
 - `build_all` - Build Elm and CSS for local development
 - `deploy_firebase` - Deploy to Firebase
-- `nix run` - Show interactive menu
+- `nix run` - Show interactive menu with all available options
 - `nix run .#build-elm` - Build only Elm files
 - `nix run .#favicon` - Generate favicon
 - `nix run .#deploy` - Deploy to Firebase
@@ -96,17 +135,65 @@ To deploy to Firebase:
 nix run .#deploy
 ```
 
+## 🗂️ Database Structure
+
+The Firebase Realtime Database follows this structure:
+
+```
+├── students/              # Student records
+│   ├── [student-id]/      # Individual student
+│   │   ├── name           # Student name (firstname.lastname format)
+│   │   ├── created        # Account creation date
+│   │   └── lastActive     # Last activity date
+│
+├── submissions/           # Game submissions
+│   ├── [submission-id]/   # Individual submission
+│   │   ├── studentId      # ID of the submitting student
+│   │   ├── beltLevel      # Belt level for this submission
+│   │   ├── gameName       # Selected game name
+│   │   ├── githubLink     # GitHub repository link
+│   │   ├── notes          # Additional notes
+│   │   ├── submissionDate # Date of submission
+│   │   └── grade/         # Optional grading information
+│   │       ├── score      # Numeric score (0-100)
+│   │       ├── feedback   # Detailed feedback
+│   │       ├── gradedBy   # Admin email who graded
+│   │       └── gradingDate # Date of grading
+│
+├── belts/                # Belt configurations
+│   ├── [belt-id]/        # Individual belt
+│   │   ├── name          # Belt name (e.g., "White Belt")
+│   │   ├── color         # Belt color in hex format
+│   │   ├── order         # Display/progression order
+│   │   └── gameOptions   # Array of game options for this belt
+│
+└── admins/               # Admin user accounts
+    └── [user-uid]/       # Individual admin
+        ├── email         # Admin email
+        ├── displayName   # Display name
+        ├── role          # User role (admin or superuser)
+        ├── createdBy     # Email of admin who created this account
+        └── createdAt     # Creation timestamp
+```
+
 ## 📜 URL Routes
 
-- `/admin` - Administrator interface
-- `/student` - Student interface
+- `/` - Application landing page with links to student and admin portals
+- `/student` - Student interface for game submissions
+- `/admin` - Administrator interface for managing submissions, students, and belts
 
 ## 🧰 Technologies Used
 
-- [Elm](https://elm-lang.org/) - The frontend language
-- [Firebase](https://firebase.google.com/) - Backend and hosting
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [Nix](https://nixos.org/) - Build system
+- [Elm](https://elm-lang.org/) - The frontend language for reliable web applications
+- [Firebase](https://firebase.google.com/) - Backend, authentication, and hosting
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Nix](https://nixos.org/) - Build system for reproducible development
+
+## 👥 User Roles
+
+- **Students**: Submit game projects and view their submission history
+- **Admin**: Review and grade submissions, manage student records, configure belt levels
+- **Superuser**: Additional privileges to manage other admin accounts
 
 ## 📄 License
 

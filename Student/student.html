@@ -10,15 +10,21 @@
 <body>
   <div id="elm-app"></div>
 
+<<<<<<< HEAD
   <!-- Add debug info -->
   <div id="debug-info" style="padding: 20px; background-color: #f8f9fa; margin: 20px; border-radius: 5px;">
     <h3>Debug Information</h3>
     <div id="load-status">Loading Elm application...</div>
   </div>
+=======
+  <!-- Compiled Elm application -->
+  <script src="/Student/student.js"></script>
+>>>>>>> origin/master
 
   <!-- Compiled Elm application - using a different load pattern -->
   <script src="./student.js"></script>
   <script type="module">
+<<<<<<< HEAD
     // Check if Elm is defined after script load
     document.getElementById('load-status').textContent = 
       `Elm object status: ${typeof Elm !== 'undefined' ? 'Defined' : 'Not defined'}`;
@@ -65,6 +71,34 @@
       } catch (e) {
         document.getElementById('load-status').innerHTML +=
           `<br>❌ Error initializing Elm app: ${e.message}`;
+=======
+    import { initializeFirebase } from '/Student/student-firebase.js';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof Elm === 'undefined') {
+        console.error("Error: Elm is not defined");
+        document.getElementById('elm-app').innerHTML = 
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application could not load</h2>' +
+          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
+          '<p>Error: Elm is not defined</p>' +
+          '</div>';
+        return;
+      }
+
+      try {
+        const elmApp = Elm.Student.init({
+          node: document.getElementById('elm-app')
+        });
+        initializeFirebase(elmApp);
+      } catch (e) {
+        console.error("Error:", e);
+        document.getElementById('elm-app').innerHTML = 
+          '<div style="color: red; padding: 20px;">' +
+          '<h2>Error: Application initialization failed</h2>' +
+          '<p>Error details: ' + e.message + '</p>' +
+          '</div>';
+>>>>>>> origin/master
       }
     }
   </script>

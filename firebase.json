@@ -6,8 +6,13 @@
       ".firebaserc",
       "**/.*",
       "**/node_modules/**",
+<<<<<<< HEAD
       "elm-stuff/**",
       "src/**",
+=======
+      "**/elm-stuff/**",
+      "**/src/**",
+>>>>>>> origin/master
       "dist/**"
     ],
     "rewrites": [
@@ -34,6 +39,10 @@
       {
         "source": "/",
         "destination": "/Admin/admin.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ],
     "headers": [

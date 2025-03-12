@@ -407,10 +407,13 @@ EOF
         "destination": "/Admin/admin.html"
       },
       {
+<<<<<<< HEAD
         "source": "/handle-reset",
         "destination": "/resetPassword/handle-reset.html"
       },
       {
+=======
+>>>>>>> origin/master
         "source": "**",
         "destination": "/index.html"
       }
@@ -510,6 +513,7 @@ EOF
               cp ./firebase.json dist/ || echo "Warning: Failed to copy firebase.json"
               cp ./.firebaserc dist/ || echo "{\"projects\":{\"default\":\"$PROJECT_ID\"}}" > dist/.firebaserc
 
+<<<<<<< HEAD
               # Copy resetPassword files explicitly
               echo "Copying resetPassword files..."
               if [ -d "./resetPassword" ]; then
@@ -546,6 +550,8 @@ EOF
                 echo "Warning: resetPassword directory not found"
               fi
 
+=======
+>>>>>>> origin/master
               # Make sure index.html exists or create it
               if [ -f "./index.html" ]; then
                 cp ./index.html dist/ || echo "Warning: Failed to copy index.html"
@@ -624,8 +630,11 @@ EOF
               ls -la dist/Admin/
               echo "Content of dist/Student directory:"
               ls -la dist/Student/
+<<<<<<< HEAD
               echo "Content of dist/resetPassword directory:"
               ls -la dist/resetPassword/
+=======
+>>>>>>> origin/master
 
               # Ensure correct permissions for deployment
               chmod -R u+w dist
@@ -830,10 +839,13 @@ EOF
         "destination": "/Admin/admin.html"
       },
       {
+<<<<<<< HEAD
         "source": "/handle-reset",
         "destination": "/resetPassword/handle-reset.html"
       },
       {
+=======
+>>>>>>> origin/master
         "source": "**",
         "destination": "/index.html"
       }
