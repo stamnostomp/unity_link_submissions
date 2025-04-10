@@ -1,0 +1,36 @@
+{
+  "rules": {
+    "students": {
+      ".read": true,
+      ".write": "auth != null",
+      "$studentId": {
+        ".read": true,
+        ".write": "auth != null",
+        "lastActive": {
+          ".write": true
+        }
+      }
+    },
+    "submissions": {
+      ".read": true,
+      ".write": true,
+      "$submissionId": {
+        ".read": true,
+        ".write": true,
+        "grade": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "belts": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "admins": {
+      ".read": "auth != null",
+      ".write": "auth != null &&
+                ((data.child(auth.uid).exists() && data.child(auth.uid).child('role').val() === 'superuser') ||
+                 (root.child('admins').child(auth.uid).exists() && root.child('admins').child(auth.uid).child('role').val() === 'superuser'))"
+    }
+  }
+}
