@@ -20,6 +20,10 @@ export class BeltService {
     }
   }
 
+  async getAll() {
+    return await this.getBelts();
+  }
+
   // Save belt (create or update)
   async saveBelt(beltData) {
     try {

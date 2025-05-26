@@ -3,6 +3,9 @@ import { ref, get, set, update, remove, push, query, orderByChild } from 'https:
 import { handleDatabaseError } from '../utils/error-handling.js';
 
 export class StudentService {
+  async getAll(){
+    return await this.getStudents();
+  }
   // Find student by name
   async findStudent(studentName) {
     try {
