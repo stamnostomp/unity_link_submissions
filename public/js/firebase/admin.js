@@ -6,7 +6,9 @@ import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
   signOut,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  deleteUser,
+  sendPasswordResetEmail
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Your web app's Firebase configuration
@@ -70,22 +72,87 @@ function isValidNameFormat(name) {
  */
 export function initializeFirebase(elmApp) {
   // Handle authentication state changes
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // User is signed in
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email,
-      };
-      console.log("User is signed in:", userData);
-      elmApp.ports.receiveAuthState.send({
-        user: userData,
-        isSignedIn: true
-      });
+  if (elmApp.ports && elmApp.ports.requestPasswordReset) {
+    elmApp.ports.requestPasswordReset.subscribe(function(email) {
+      console.log("Attempting to send password reset email to:", email);
 
-      // Now that user is signed in, we can start listening for submissions
-      setupAdminSubmissionListeners(elmApp);
+      sendPasswordResetEmail(auth, email)
+        .then(() => {
+          console.log("Password reset email sent successfully!");
+          // Make sure this port exists
+          if (elmApp.ports.passwordResetResult) {
+            elmApp.ports.passwordResetResult.send({
+              success: true,
+              message: "Password reset email sent! Check your inbox."
+            });
+          } else {
+            console.error("passwordResetResult port not found in Elm app");
+          }
+        })
+        .catch((error) => {
+          console.error("Error sending password reset email:", error);
+          // Make sure this port exists
+          if (elmApp.ports.passwordResetResult) {
+            elmApp.ports.passwordResetResult.send({
+              success: false,
+              message: getPasswordResetErrorMessage(error.code)
+            });
+          } else {
+            console.error("passwordResetResult port not found in Elm app");
+          }
+        });
+    });
+  } else {
+    console.warn("requestPasswordReset port not found in Elm app");
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      try {
+        // Get the admin data to include the role
+        const adminRef = ref(database, `admins/${user.uid}`);
+        const adminSnapshot = await get(adminRef);
+
+        if (adminSnapshot.exists()) {
+          const adminData = adminSnapshot.val();
+          // User is signed in
+          const userData = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email,
+            role: adminData.role || "admin"  // Guarantee a default value
+          };
+          console.log("User is signed in:", userData);
+
+          // If the admin doesn't have a role set, let's add one
+          if (!adminData.role) {
+            // Update the admin record with a default role
+            await update(adminRef, { role: "admin" });
+            console.log("Added default 'admin' role to existing admin user");
+          }
+
+          elmApp.ports.receiveAuthState.send({
+            user: userData,
+            isSignedIn: true
+          });
+
+          // Now that user is signed in, we can start listening for submissions
+          setupAdminSubmissionListeners(elmApp);
+        } else {
+          // Admin record not found
+          console.log("Admin record not found for authenticated user");
+          elmApp.ports.receiveAuthState.send({
+            user: null,
+            isSignedIn: false
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching admin data:", error);
+        elmApp.ports.receiveAuthState.send({
+          user: null,
+          isSignedIn: false
+        });
+      }
     } else {
       // User is signed out
       console.log("User is signed out");
@@ -221,29 +288,324 @@ export function initializeFirebase(elmApp) {
     }
   });
 
+  // Handle admin user creation requests
+  if (elmApp.ports.createAdminUser) {
+    elmApp.ports.createAdminUser.subscribe(function(userData) {
+      if (auth.currentUser) {
+        createAdminUserAccount(userData, elmApp);
+      } else {
+        console.warn("Cannot create admin user: User not authenticated");
+        if (elmApp.ports.adminUserCreated) {
+          elmApp.ports.adminUserCreated.send({
+            success: false,
+            message: "Not authenticated. Please sign in first."
+          });
+        }
+      }
+    });
+  }
 
-  elmApp.ports.createAdminUser.subscribe(function(userData) {
-    if (auth.currentUser) {
-      createAdminUserAccount(userData, elmApp);
-    } else {
-      console.warn("Cannot create admin user: User not authenticated");
-      elmApp.ports.adminUserCreated.send({
-        success: false,
-        message: "Not authenticated. Please sign in first."
-      });
-    }
-  });
+  // Admin user management
+  if (elmApp.ports.requestAllAdmins) {
+    elmApp.ports.requestAllAdmins.subscribe(function() {
+      if (auth.currentUser) {
+        fetchAllAdminUsers(elmApp);
+      } else {
+        console.warn("Cannot fetch admin users: User not authenticated");
+        if (elmApp.ports.receiveAllAdmins) {
+          elmApp.ports.receiveAllAdmins.send([]);
+        }
+      }
+    });
+  }
+
+  if (elmApp.ports.updateAdminUser) {
+    elmApp.ports.updateAdminUser.subscribe(function(adminUserData) {
+      if (auth.currentUser) {
+        updateAdminUserRecord(adminUserData, elmApp);
+      } else {
+        console.warn("Cannot update admin user: User not authenticated");
+        if (elmApp.ports.adminUserUpdated) {
+          elmApp.ports.adminUserUpdated.send({
+            success: false,
+            message: "Not authenticated. Please sign in first."
+          });
+        }
+      }
+    });
+  }
+
+  if (elmApp.ports.deleteAdminUser) {
+    elmApp.ports.deleteAdminUser.subscribe(function(adminUserId) {
+      if (auth.currentUser) {
+        deleteAdminUserRecord(adminUserId, elmApp);
+      } else {
+        console.warn("Cannot delete admin user: User not authenticated");
+        if (elmApp.ports.adminUserDeleted) {
+          elmApp.ports.adminUserDeleted.send({
+            success: false,
+            message: "Not authenticated. Please sign in first."
+          });
+        }
+      }
+    });
+  }
+
+  // If logged in, check if we need to migrate role fields
+  if (auth.currentUser) {
+    migrateAdminRoles(elmApp);
+  }
 }
 
+/**
+ * Automatically migrate existing admin records to include role field
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function migrateAdminRoles(elmApp) {
+  try {
+    console.log("Checking for admin records missing role field...");
+    const adminsRef = ref(database, 'admins');
+    const adminsSnapshot = await get(adminsRef);
+
+    if (adminsSnapshot.exists()) {
+      const adminsData = adminsSnapshot.val();
+      let migratedCount = 0;
+
+      for (const uid in adminsData) {
+        const admin = adminsData[uid];
+
+        // If role is missing, add it
+        if (!admin.role) {
+          // For the first admin, make them a superuser
+          const role = migratedCount === 0 ? "superuser" : "admin";
+
+          await update(ref(database, `admins/${uid}`), { role });
+          console.log(`Migrated admin ${admin.email} to role: ${role}`);
+          migratedCount++;
+        }
+      }
+
+      if (migratedCount > 0) {
+        console.log(`Migrated ${migratedCount} admin records to include role field`);
+      } else {
+        console.log("All admin records already have role field");
+      }
+    }
+  } catch (error) {
+    console.error("Error migrating admin roles:", error);
+  }
+}
+
+/**
+ * Fetch all admin users from Firebase
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function fetchAllAdminUsers(elmApp) {
+  try {
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can manage admin accounts");
+    }
+
+    // Get all admin users
+    const adminsRef = ref(database, 'admins');
+    const adminsSnapshot = await get(adminsRef);
+
+    if (adminsSnapshot.exists()) {
+      const adminsData = adminsSnapshot.val();
+      const adminUsers = [];
+
+      for (const uid in adminsData) {
+        const admin = adminsData[uid];
+        adminUsers.push({
+          uid,
+          email: admin.email,
+          displayName: admin.displayName || admin.email,
+          role: admin.role || "admin",  // Ensure role has a default value
+          createdBy: admin.createdBy || null,
+          createdAt: admin.createdAt || null
+        });
+      }
+
+      // Send the admin users to Elm
+      elmApp.ports.receiveAllAdmins.send(adminUsers);
+    } else {
+      // No admin users found
+      elmApp.ports.receiveAllAdmins.send([]);
+    }
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+    elmApp.ports.receiveAllAdmins.send([]);
+  }
+}
+
+/**
+ * Update an admin user record
+ * @param {Object} adminUserData - The admin user data to update
+ * @param {Object} elmApp - The Elm application instance
+ */
+// In firebase-admin.js, modify the updateAdminUserRecord function's permission checks:
+
+async function updateAdminUserRecord(adminUserData, elmApp) {
+  try {
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can manage admin accounts");
+    }
+
+    // Get the current user's role
+    const currentAdminData = adminSnapshot.val();
+    const isCurrentUserSuperuser = currentAdminData.role === "superuser";
+
+    // Make sure regular admins can't update superusers
+    const targetAdminRef = ref(database, `admins/${adminUserData.uid}`);
+    const targetAdminSnapshot = await get(targetAdminRef);
+
+    if (targetAdminSnapshot.exists()) {
+      const targetAdminData = targetAdminSnapshot.val();
+      const isTargetSuperuser = targetAdminData.role === "superuser";
+
+      // Check if a non-superuser is trying to update a superuser
+      if (isTargetSuperuser && !isCurrentUserSuperuser) {
+        throw new Error("Only superusers can modify other superuser accounts");
+      }
+
+      // Check if trying to promote to superuser without being a superuser
+      if (adminUserData.role === "superuser" && !isCurrentUserSuperuser) {
+        throw new Error("Only superusers can promote accounts to superuser status");
+      }
+
+      // IMPORTANT: There's no restriction on superusers downgrading other superusers to regular admins
+      // This allows role changes in both directions
+    }
+
+    // Check if trying to update your own account
+    if (adminUserData.uid === currentUserUid) {
+      // Don't allow superusers to downgrade themselves (prevents lockout situation)
+      if (isCurrentUserSuperuser && adminUserData.role !== "superuser") {
+        throw new Error("You cannot downgrade your own superuser status");
+      }
+
+      // Allow updating display name but not email for current user
+      // This is to prevent locking yourself out
+      const adminRef = ref(database, `admins/${adminUserData.uid}`);
+      await update(adminRef, {
+        displayName: adminUserData.displayName,
+        // Allow updating your own role if you're not downgrading from superuser
+        role: adminUserData.role
+      });
+
+      elmApp.ports.adminUserUpdated.send({
+        success: true,
+        message: "Success: Your account information has been updated."
+      });
+      return;
+    }
+
+    // Ensure role is defined with a default value if it's missing
+    const roleToUse = adminUserData.role || "admin";
+
+    console.log("Updating admin user with role:", roleToUse);
+
+    // Update the admin record
+    await update(targetAdminRef, {
+      email: adminUserData.email,
+      displayName: adminUserData.displayName,
+      role: roleToUse, // Use the role with fallback to "admin"
+      updatedBy: auth.currentUser.email,
+      updatedAt: new Date().toISOString()
+    });
+
+    // Return success
+    elmApp.ports.adminUserUpdated.send({
+      success: true,
+      message: "Success: Admin user updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating admin user:", error);
+    elmApp.ports.adminUserUpdated.send({
+      success: false,
+      message: "Error: " + error.message
+    });
+  }
+}
+
+/**
+ * Delete an admin user
+ * @param {string} adminUserId - The admin user ID to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function deleteAdminUserRecord(adminUserId, elmApp) {
+  try {
+    // First check if the current user is an admin
+    const currentUserUid = auth.currentUser.uid;
+    const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
+
+    if (!adminSnapshot.exists()) {
+      throw new Error("Only existing admins can manage admin accounts");
+    }
+
+    // Get the current user's role
+    const currentAdminData = adminSnapshot.val();
+    const isCurrentUserSuperuser = currentAdminData.role === "superuser";
+
+    // Check if trying to delete a superuser
+    const targetAdminRef = ref(database, `admins/${adminUserId}`);
+    const targetAdminSnapshot = await get(targetAdminRef);
+
+    if (targetAdminSnapshot.exists()) {
+      const targetAdminData = targetAdminSnapshot.val();
+      if (targetAdminData.role === "superuser" && !isCurrentUserSuperuser) {
+        throw new Error("Only superusers can delete other superuser accounts");
+      }
+    } else {
+      throw new Error("Admin user not found");
+    }
+
+    // Check if trying to delete your own account
+    if (adminUserId === currentUserUid) {
+      throw new Error("You cannot delete your own admin account");
+    }
+
+    // Check how many admin users exist (to prevent deleting the last admin)
+    const adminsRef = ref(database, 'admins');
+    const adminsSnapshot = await get(adminsRef);
+
+    if (!adminsSnapshot.exists() || Object.keys(adminsSnapshot.val()).length <= 1) {
+      throw new Error("Cannot delete the only admin user");
+    }
+
+    // Delete the admin record
+    await remove(targetAdminRef);
+
+    // Return success
+    elmApp.ports.adminUserDeleted.send({
+      success: true,
+      message: "Success: Admin user deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting admin user:", error);
+    elmApp.ports.adminUserDeleted.send({
+      success: false,
+      message: "Error: " + error.message
+    });
+  }
+}
 
 /**
  * Create a new admin user account
- * @param {Object} userData - The user data {email, password, displayName}
+ * @param {Object} userData - The user data {email, password, displayName, role}
  * @param {Object} elmApp - The Elm application instance
  */
 async function createAdminUserAccount(userData, elmApp) {
   try {
-    const { email, password, displayName } = userData;
+    const { email, password, displayName, role } = userData;
 
     // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
@@ -251,6 +613,13 @@ async function createAdminUserAccount(userData, elmApp) {
 
     if (!adminSnapshot.exists()) {
       throw new Error("Only existing admins can create new admin accounts");
+    }
+
+    // Check if the current user is a superuser before allowing creation of another superuser
+    const currentAdminData = adminSnapshot.val();
+    const currentUserRole = currentAdminData.role || "admin";
+    if (role === "superuser" && currentUserRole !== "superuser") {
+      throw new Error("Only superusers can create other superuser accounts");
     }
 
     // Create the user with Firebase Auth
@@ -262,22 +631,26 @@ async function createAdminUserAccount(userData, elmApp) {
     await set(adminRef, {
       email: email,
       displayName: displayName || email,
-      role: "admin",
+      role: role || "admin",  // Use the provided role or default to "admin"
       createdBy: auth.currentUser.email,
       createdAt: new Date().toISOString()
     });
 
     // Return success to Elm
-    elmApp.ports.adminUserCreated.send({
-      success: true,
-      message: "Admin user created successfully"
-    });
+    if (elmApp.ports.adminUserCreated) {
+      elmApp.ports.adminUserCreated.send({
+        success: true,
+        message: "Admin user created successfully"
+      });
+    }
   } catch (error) {
     console.error("Error creating admin user:", error);
-    elmApp.ports.adminUserCreated.send({
-      success: false,
-      message: error.message
-    });
+    if (elmApp.ports.adminUserCreated) {
+      elmApp.ports.adminUserCreated.send({
+        success: false,
+        message: error.message
+      });
+    }
   }
 }
 
