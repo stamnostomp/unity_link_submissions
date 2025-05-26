@@ -21,40 +21,9 @@ import Shared.Utils exposing (..)
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ViewStudentRecord studentId ->
-            ( { model | loading = True, page = StudentManagementPage }
-            , Ports.requestStudentRecord studentId
-            )
-
-        ReceivedStudentRecord result ->
-            case result of
-                Ok { student, submissions } ->
-                    ( { model
-                        | loading = False
-                        , currentStudent = Just student
-                        , studentSubmissions = submissions
-                        , page = StudentRecordPage student submissions
-                      }
-                    , Cmd.none
-                    )
-
-                Err error ->
-                    ( { model
-                        | loading = False
-                        , error = Just ("Failed to load student record: " ++ Decode.errorToString error)
-                      }
-                    , Cmd.none
-                    )
-
-        CloseStudentRecord ->
-            ( { model
-                | page = StudentManagementPage
-                , currentStudent = Nothing
-                , studentSubmissions = []
-              }
-            , Cmd.none
-            )
-
+        -- Note: ViewStudentRecord is now handled in Admin.Main.elm
+        -- Note: ReceivedStudentRecord is now handled in Admin.Main.elm
+        -- Note: CloseStudentRecord is now handled in Admin.Main.elm
         UpdateNewStudentName name ->
             ( { model | newStudentName = name }, Cmd.none )
 

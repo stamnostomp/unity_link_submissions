@@ -162,6 +162,41 @@ update msg model =
         CloseCurrentPage ->
             ( { model | page = SubmissionsPage, currentStudent = Nothing, studentSubmissions = [], editingStudent = Nothing, editingBelt = Nothing, editingAdminUser = Nothing, confirmDeleteStudent = Nothing, confirmDeleteSubmission = Nothing, confirmDeleteAdmin = Nothing, showAdminUserForm = False, error = Nothing, success = Nothing }, Cmd.none )
 
+        -- Student Record Navigation (handle here so it works from any page)
+        ViewStudentRecord studentId ->
+            ( { model | loading = True, page = StudentManagementPage }
+            , Ports.requestStudentRecord studentId
+            )
+
+        ReceivedStudentRecord result ->
+            case result of
+                Ok { student, submissions } ->
+                    ( { model
+                        | loading = False
+                        , currentStudent = Just student
+                        , studentSubmissions = submissions
+                        , page = StudentRecordPage student submissions
+                      }
+                    , Cmd.none
+                    )
+
+                Err error ->
+                    ( { model
+                        | loading = False
+                        , error = Just ("Failed to load student record: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
+
+        CloseStudentRecord ->
+            ( { model
+                | page = StudentManagementPage
+                , currentStudent = Nothing
+                , studentSubmissions = []
+              }
+            , Cmd.none
+            )
+
         -- Password Reset Messages
         ShowPasswordReset ->
             ( { model | showPasswordReset = True, passwordResetEmail = model.loginEmail }, Cmd.none )
