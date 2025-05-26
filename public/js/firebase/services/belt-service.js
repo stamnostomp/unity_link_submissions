@@ -20,10 +20,33 @@ export class BeltService {
     }
   }
 
-  async getAll() {
-    return await this.getBelts();
-  }
+  async function getAll(app) {
+    try {
+      const beltsRef = ref(database, 'belts');
+      const snapshot = await get(beltsRef);
 
+      if (snapshot.exists()) {
+        const beltsData = snapshot.val();
+        const beltsArray = Object.keys(beltsData).map(key => ({
+          id: key,
+          ...beltsData[key]
+        }));
+
+        if (app.ports.receiveBelts) {
+          app.ports.receiveBelts.send(beltsArray);
+        }
+        } else {
+          if (app.ports.receiveBelts) {
+              app.ports.receiveBelts.send([]);
+          }
+        }
+    } catch (error) {
+      console.error('Belt service error:', error);
+      if (app.ports.receiveBelts) {
+        app.ports.receiveBelts.send([]);
+      }
+    }
+  }
   // Save belt (create or update)
   async saveBelt(beltData) {
     try {
