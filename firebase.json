@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": ".",
+    "public": "public",
     "ignore": [
       "firebase.json",
       ".firebaserc",
@@ -8,24 +8,30 @@
       "**/node_modules/**",
       "**/elm-stuff/**",
       "**/src/**",
-      "dist/**"
+      "dist/**",
+      "flake.nix",
+      "flake.lock",
+      "tailwind.config.js",
+      "elm.json",
+      "package.json",
+      "postcss.config.js"
     ],
     "rewrites": [
       {
-        "source": "/Admin",
-        "destination": "/Admin/admin.html"
-      },
-      {
         "source": "/admin",
-        "destination": "/Admin/admin.html"
+        "destination": "/admin/admin.html"
       },
       {
-        "source": "/Student",
-        "destination": "/Student/student.html"
+        "source": "/admin/**",
+        "destination": "/admin/admin.html"
       },
       {
         "source": "/student",
-        "destination": "/Student/student.html"
+        "destination": "/student/student.html"
+      },
+      {
+        "source": "/student/**",
+        "destination": "/student/student.html"
       },
       {
         "source": "/handle-reset",
@@ -38,7 +44,16 @@
     ],
     "headers": [
       {
-        "source": "/resetPassword/reset-handler.js",
+        "source": "/js/**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript; charset=utf-8"
+          }
+        ]
+      },
+      {
+        "source": "/resetPassword/**/*.js",
         "headers": [
           {
             "key": "Content-Type",
@@ -50,12 +65,12 @@
         "source": "**/*.js",
         "headers": [
           {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          },
-          {
             "key": "Content-Type",
             "value": "application/javascript"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
           }
         ]
       },

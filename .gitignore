@@ -53,3 +53,7 @@ Student/style.css
 # Temporary files
 *.tmp
 *.bak
+/public/admin/admin.js
+/public/student/student.js
+/public/css/
+elm-stuff/
