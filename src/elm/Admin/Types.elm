@@ -1,12 +1,10 @@
 module Admin.Types exposing (..)
 
-import Json.Decode as Decode
 import Shared.Types exposing (..)
 
 
 
--- COPY THESE TYPE DEFINITIONS FROM YOUR CURRENT Admin.elm:
--- (Around lines 50-150)
+-- APPLICATION STATE
 
 
 type AppState
@@ -23,120 +21,8 @@ type Page
     | AdminUsersPage
 
 
-type SortBy
-    = ByName
-    | ByDate
-    | ByBelt
-    | ByGradeStatus
 
-
-type SortDirection
-    = Ascending
-    | Descending
-
-
-type StudentSortBy
-    = ByStudentName
-    | ByStudentCreated
-    | ByStudentLastActive
-
-
-type alias AdminUserForm =
-    { email : String
-    , password : String
-    , confirmPassword : String
-    , displayName : String
-    , role : String
-    , formError : Maybe String
-    }
-
-
-
--- MODEL
-
-
-type alias Student =
-    { id : String
-    , name : String
-    , created : String
-    , lastActive : String
-    }
-
-
-type alias Submission =
-    { id : String
-    , studentId : String
-    , studentName : String
-    , beltLevel : String
-    , gameName : String
-    , githubLink : String
-    , notes : String
-    , submissionDate : String
-    , grade : Maybe Grade
-    }
-
-
-type alias Grade =
-    { score : Int
-    , feedback : String
-    , gradedBy : String
-    , gradingDate : String
-    }
-
-
-type alias User =
-    { uid : String
-    , email : String
-    , displayName : String
-    , role : String
-    }
-
-
-type alias Belt =
-    { id : String
-    , name : String
-    , color : String
-    , order : Int
-    , gameOptions : List String
-    }
-
-
-type alias AdminUserForm =
-    { email : String
-    , password : String
-    , confirmPassword : String
-    , displayName : String
-    , role : String
-    , formError : Maybe String
-    }
-
-
-type alias AdminUser =
-    { uid : String
-    , email : String
-    , displayName : String
-    , role : String
-    , createdBy : Maybe String
-    , createdAt : Maybe String
-    }
-
-
-
--- types
-
-
-type AppState
-    = NotAuthenticated
-    | AuthenticatingWith String String
-    | Authenticated User
-
-
-type Page
-    = SubmissionsPage
-    | StudentRecordPage Student (List Submission)
-    | CreateStudentPage
-    | BeltManagementPage
-    | AdminUsersPage -- New page type
+-- SORTING AND FILTERING
 
 
 type SortBy
@@ -157,56 +43,18 @@ type StudentSortBy
     | ByStudentLastActive
 
 
-type alias Model =
-    { appState : AppState
-    , page : Page
-    , loginEmail : String
-    , loginPassword : String
-    , authError : Maybe String
-    , submissions : List Submission
-    , currentSubmission : Maybe Submission
-    , currentStudent : Maybe Student
-    , studentSubmissions : List Submission
-    , loading : Bool
-    , error : Maybe String
-    , success : Maybe String
-    , filterText : String
-    , filterBelt : Maybe String
-    , filterGraded : Maybe Bool
-    , sortBy : SortBy
-    , sortDirection : SortDirection
-    , tempScore : String
-    , tempFeedback : String
-    , newStudentName : String
-    , belts : List Belt
-    , newBeltName : String
-    , newBeltColor : String
-    , newBeltOrder : String
-    , newBeltGameOptions : String
-    , editingBelt : Maybe Belt
-    , students : List Student
-    , studentFilterText : String
-    , studentSortBy : StudentSortBy
-    , studentSortDirection : SortDirection
-    , editingStudent : Maybe Student
-    , confirmDeleteStudent : Maybe Student
-    , confirmDeleteSubmission : Maybe Submission
-    , adminUserForm : AdminUserForm
-    , showAdminUserForm : Bool
-    , adminUserCreationResult : Maybe String
-    , adminUsers : List AdminUser
-    , editingAdminUser : Maybe AdminUser
-    , confirmDeleteAdmin : Maybe AdminUser
-    , adminUserDeletionResult : Maybe String
-    , adminUserUpdateResult : Maybe String
-    , showPasswordReset : Bool
-    , passwordResetEmail : String
-    , passwordResetMessage : Maybe String
+
+-- FORMS
+
+
+type alias AdminUserForm =
+    { email : String
+    , password : String
+    , confirmPassword : String
+    , displayName : String
+    , role : String
+    , formError : Maybe String
     }
-
-
-
--- Helper function
 
 
 initAdminUserForm : AdminUserForm
@@ -218,3 +66,174 @@ initAdminUserForm =
     , role = "admin"
     , formError = Nothing
     }
+
+
+
+-- MAIN MODEL
+
+
+type alias Model =
+    { -- App State
+      appState : AppState
+    , page : Page
+    , loading : Bool
+    , error : Maybe String
+    , success : Maybe String
+
+    -- Authentication
+    , loginEmail : String
+    , loginPassword : String
+    , authError : Maybe String
+
+    -- Data
+    , submissions : List Submission
+    , students : List Student
+    , belts : List Belt
+    , adminUsers : List AdminUser
+
+    -- Current Selection/Editing
+    , currentSubmission : Maybe Submission
+    , currentStudent : Maybe Student
+    , studentSubmissions : List Submission
+    , editingStudent : Maybe Student
+    , editingBelt : Maybe Belt
+    , editingAdminUser : Maybe AdminUser
+
+    -- Filtering and Sorting
+    , filterText : String
+    , filterBelt : Maybe String
+    , filterGraded : Maybe Bool
+    , sortBy : SortBy
+    , sortDirection : SortDirection
+    , studentFilterText : String
+    , studentSortBy : StudentSortBy
+    , studentSortDirection : SortDirection
+
+    -- Form States
+    , tempScore : String
+    , tempFeedback : String
+    , newStudentName : String
+    , newBeltName : String
+    , newBeltColor : String
+    , newBeltOrder : String
+    , newBeltGameOptions : String
+    , adminUserForm : AdminUserForm
+    , showAdminUserForm : Bool
+
+    -- Confirmation States
+    , confirmDeleteStudent : Maybe Student
+    , confirmDeleteSubmission : Maybe Submission
+    , confirmDeleteAdmin : Maybe AdminUser
+
+    -- Result Messages
+    , adminUserCreationResult : Maybe String
+    , adminUserUpdateResult : Maybe String
+    , adminUserDeletionResult : Maybe String
+
+    -- Password Reset
+    , showPasswordReset : Bool
+    , passwordResetEmail : String
+    , passwordResetMessage : Maybe String
+    }
+
+
+
+-- MESSAGES
+
+
+type
+    Msg
+    -- Authentication
+    = UpdateLoginEmail String
+    | UpdateLoginPassword String
+    | SubmitLogin
+    | PerformSignOut
+    | ReceivedAuthState (Result Decode.Error { user : Maybe User, isSignedIn : Bool })
+    | ReceivedAuthResult (Result Decode.Error { success : Bool, message : String })
+      -- Navigation
+    | ShowSubmissionsPage
+    | ShowStudentManagementPage
+    | ShowBeltManagementPage
+    | ShowAdminUsersPage
+    | CloseCurrentPage
+      -- Password Reset
+    | ShowPasswordReset
+    | HidePasswordReset
+    | UpdatePasswordResetEmail String
+    | SubmitPasswordReset
+    | PasswordResetResult (Result Decode.Error { success : Bool, message : String })
+      -- Submissions
+    | ReceiveSubmissions (Result Decode.Error (List Submission))
+    | SelectSubmission Submission
+    | CloseSubmission
+    | UpdateFilterText String
+    | UpdateFilterBelt String
+    | UpdateFilterGraded String
+    | UpdateSortBy SortBy
+    | ToggleSortDirection
+    | UpdateTempScore String
+    | UpdateTempFeedback String
+    | SubmitGrade
+    | GradeResult String
+    | RefreshSubmissions
+    | DeleteSubmission Submission
+    | ConfirmDeleteSubmission Submission
+    | CancelDeleteSubmission
+    | SubmissionDeleted (Result Decode.Error String)
+      -- Students
+    | ViewStudentRecord String
+    | ReceivedStudentRecord (Result Decode.Error { student : Student, submissions : List Submission })
+    | CloseStudentRecord
+    | UpdateNewStudentName String
+    | CreateNewStudent
+    | StudentCreated (Result Decode.Error Student)
+    | RequestAllStudents
+    | ReceiveAllStudents (Result Decode.Error (List Student))
+    | UpdateStudentFilterText String
+    | UpdateStudentSortBy StudentSortBy
+    | ToggleStudentSortDirection
+    | EditStudent Student
+    | DeleteStudent Student
+    | UpdateEditingStudentName String
+    | SaveStudentEdit
+    | CancelStudentEdit
+    | ConfirmDeleteStudent Student
+    | CancelDeleteStudent
+    | StudentUpdated (Result Decode.Error Student)
+    | StudentDeleted (Result Decode.Error String)
+      -- Belts
+    | ReceiveBelts (Result Decode.Error (List Belt))
+    | UpdateNewBeltName String
+    | UpdateNewBeltColor String
+    | UpdateNewBeltOrder String
+    | UpdateNewBeltGameOptions String
+    | AddNewBelt
+    | EditBelt Belt
+    | CancelEditBelt
+    | UpdateBelt
+    | DeleteBelt String
+    | BeltResult String
+    | RefreshBelts
+      -- Admin Users
+    | ShowAdminUserForm
+    | HideAdminUserForm
+    | UpdateAdminUserEmail String
+    | UpdateAdminUserPassword String
+    | UpdateAdminUserConfirmPassword String
+    | UpdateAdminUserDisplayName String
+    | UpdateAdminUserRole String
+    | SubmitAdminUserForm
+    | AdminUserCreated (Result Decode.Error { success : Bool, message : String })
+    | RequestAllAdmins
+    | ReceiveAllAdmins (Result Decode.Error (List AdminUser))
+    | EditAdminUser AdminUser
+    | UpdateEditingAdminUserEmail String
+    | UpdateEditingAdminUserDisplayName String
+    | UpdateEditingAdminUserRole String
+    | SaveAdminUserEdit
+    | CancelAdminUserEdit
+    | AdminUserUpdated (Result Decode.Error { success : Bool, message : String })
+    | DeleteAdminUser AdminUser
+    | ConfirmDeleteAdminUser AdminUser
+    | CancelDeleteAdminUser
+    | AdminUserDeleted (Result Decode.Error { success : Bool, message : String })
