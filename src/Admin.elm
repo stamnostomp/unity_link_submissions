@@ -8,66 +8,158 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 
 
+
 -- PORTS
 
+
 port requestSubmissions : () -> Cmd msg
+
+
 port receiveSubmissions : (Decode.Value -> msg) -> Sub msg
+
+
 port saveGrade : Encode.Value -> Cmd msg
+
+
 port gradeResult : (String -> msg) -> Sub msg
 
+
+
 -- Authentication ports
+
+
 port signIn : Encode.Value -> Cmd msg
+
+
 port signOut : () -> Cmd msg
+
+
 port receiveAuthState : (Decode.Value -> msg) -> Sub msg
+
+
 port receiveAuthResult : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Student record ports
+
+
 port requestStudentRecord : String -> Cmd msg
+
+
 port receiveStudentRecord : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Student creation ports
+
+
 port createStudent : Encode.Value -> Cmd msg
+
+
 port studentCreated : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Student listing ports
+
+
 port requestAllStudents : () -> Cmd msg
+
+
 port receiveAllStudents : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Student edit/delete ports
+
+
 port updateStudent : Encode.Value -> Cmd msg
+
+
 port deleteStudent : String -> Cmd msg
+
+
 port studentUpdated : (Decode.Value -> msg) -> Sub msg
+
+
 port studentDeleted : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Belt management ports
+
+
 port requestBelts : () -> Cmd msg
+
+
 port receiveBelts : (Decode.Value -> msg) -> Sub msg
+
+
 port saveBelt : Encode.Value -> Cmd msg
+
+
 port deleteBelt : String -> Cmd msg
+
+
 port beltResult : (String -> msg) -> Sub msg
 
+
+
 -- Submission deletion ports
+
+
 port deleteSubmission : String -> Cmd msg
+
+
 port submissionDeleted : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Admin user creation ports
-port createAdminUser : { email : String, password : String, displayName : String,  role : String } -> Cmd msg
+
+
+port createAdminUser : { email : String, password : String, displayName : String, role : String } -> Cmd msg
+
+
 port adminUserCreated : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Ports for admin user management
+
+
 port requestAllAdmins : () -> Cmd msg
+
+
 port receiveAllAdmins : (Decode.Value -> msg) -> Sub msg
+
+
 port deleteAdminUser : String -> Cmd msg
+
+
 port adminUserDeleted : (Decode.Value -> msg) -> Sub msg
+
+
 port updateAdminUser : Encode.Value -> Cmd msg
+
+
 port adminUserUpdated : (Decode.Value -> msg) -> Sub msg
 
+
+
 -- Ports for password reset
+
+
 port requestPasswordReset : String -> Cmd msg
+
+
 port passwordResetResult : (Decode.Value -> msg) -> Sub msg
 
 
+
 -- MAIN
+
 
 main : Program () Model Msg
 main =
@@ -79,7 +171,9 @@ main =
         }
 
 
+
 -- MODEL
+
 
 type alias Student =
     { id : String
@@ -87,6 +181,7 @@ type alias Student =
     , created : String
     , lastActive : String
     }
+
 
 type alias Submission =
     { id : String
@@ -100,12 +195,14 @@ type alias Submission =
     , grade : Maybe Grade
     }
 
+
 type alias Grade =
     { score : Int
     , feedback : String
     , gradedBy : String
     , gradingDate : String
     }
+
 
 type alias User =
     { uid : String
@@ -114,6 +211,7 @@ type alias User =
     , role : String
     }
 
+
 type alias Belt =
     { id : String
     , name : String
@@ -121,6 +219,7 @@ type alias Belt =
     , order : Int
     , gameOptions : List String
     }
+
 
 type alias AdminUserForm =
     { email : String
@@ -131,6 +230,7 @@ type alias AdminUserForm =
     , formError : Maybe String
     }
 
+
 type alias AdminUser =
     { uid : String
     , email : String
@@ -140,7 +240,11 @@ type alias AdminUser =
     , createdAt : Maybe String
     }
 
+
+
 -- Initialize the admin user form
+
+
 initAdminUserForm : AdminUserForm
 initAdminUserForm =
     { email = ""
@@ -151,17 +255,20 @@ initAdminUserForm =
     , formError = Nothing
     }
 
+
 type AppState
     = NotAuthenticated
     | AuthenticatingWith String String
     | Authenticated User
+
 
 type Page
     = SubmissionsPage
     | StudentRecordPage Student (List Submission)
     | CreateStudentPage
     | BeltManagementPage
-    | AdminUsersPage  -- New page type
+    | AdminUsersPage -- New page type
+
 
 type SortBy
     = ByName
@@ -169,14 +276,17 @@ type SortBy
     | ByBelt
     | ByGradeStatus
 
+
 type SortDirection
     = Ascending
     | Descending
+
 
 type StudentSortBy
     = ByStudentName
     | ByStudentCreated
     | ByStudentLastActive
+
 
 type alias Model =
     { appState : AppState
@@ -220,10 +330,11 @@ type alias Model =
     , confirmDeleteAdmin : Maybe AdminUser
     , adminUserDeletionResult : Maybe String
     , adminUserUpdateResult : Maybe String
-    ,showPasswordReset : Bool
+    , showPasswordReset : Bool
     , passwordResetEmail : String
     , passwordResetMessage : Maybe String
     }
+
 
 init : () -> ( Model, Cmd Msg )
 init _ =
@@ -276,7 +387,9 @@ init _ =
     )
 
 
+
 -- UPDATE
+
 
 type Msg
     = UpdateLoginEmail String
@@ -368,11 +481,10 @@ type Msg
     | SubmitPasswordReset
     | PasswordResetResult (Result Decode.Error { success : Bool, message : String })
 
-update : Msg -> Model -> ( Model, Cmd Msg )
 
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-
         ShowPasswordReset ->
             ( { model | showPasswordReset = True, passwordResetEmail = model.loginEmail }, Cmd.none )
 
@@ -385,6 +497,7 @@ update msg model =
         SubmitPasswordReset ->
             if String.isEmpty model.passwordResetEmail then
                 ( { model | passwordResetMessage = Just "Please enter your email address" }, Cmd.none )
+
             else
                 ( { model | passwordResetMessage = Nothing, loading = True }
                 , requestPasswordReset model.passwordResetEmail
@@ -394,26 +507,26 @@ update msg model =
             case result of
                 Ok resetResult ->
                     ( { model
-                      | passwordResetMessage = Just resetResult.message
-                      , loading = False
+                        | passwordResetMessage = Just resetResult.message
+                        , loading = False
                       }
                     , Cmd.none
                     )
 
                 Err error ->
                     ( { model
-                      | passwordResetMessage = Just ("Error: " ++ Decode.errorToString error)
-                      , loading = False
+                        | passwordResetMessage = Just ("Error: " ++ Decode.errorToString error)
+                        , loading = False
                       }
                     , Cmd.none
                     )
-
 
         UpdateEditingAdminUserRole role ->
             case model.editingAdminUser of
                 Just adminUser ->
                     let
-                        updatedAdminUser = { adminUser | role = role }
+                        updatedAdminUser =
+                            { adminUser | role = role }
                     in
                     ( { model | editingAdminUser = Just updatedAdminUser }, Cmd.none )
 
@@ -429,11 +542,12 @@ update msg model =
         SubmitLogin ->
             if String.isEmpty model.loginEmail || String.isEmpty model.loginPassword then
                 ( { model | authError = Just "Please enter both email and password" }, Cmd.none )
+
             else
                 ( { model
-                  | appState = AuthenticatingWith model.loginEmail model.loginPassword
-                  , authError = Nothing
-                  , loading = True
+                    | appState = AuthenticatingWith model.loginEmail model.loginPassword
+                    , authError = Nothing
+                    , loading = True
                   }
                 , signIn (encodeCredentials model.loginEmail model.loginPassword)
                 )
@@ -448,15 +562,16 @@ update msg model =
                         case authState.user of
                             Just user ->
                                 ( { model
-                                  | appState = Authenticated user
-                                  , loading = True
-                                  , authError = Nothing
+                                    | appState = Authenticated user
+                                    , loading = True
+                                    , authError = Nothing
                                   }
                                 , Cmd.batch [ requestSubmissions (), requestBelts () ]
                                 )
 
                             Nothing ->
                                 ( { model | appState = NotAuthenticated, loading = False }, Cmd.none )
+
                     else
                         ( { model | appState = NotAuthenticated, loading = False }, Cmd.none )
 
@@ -468,19 +583,24 @@ update msg model =
                 Ok authResult ->
                     if authResult.success then
                         ( { model | loading = True }, Cmd.none )
+
                     else
                         ( { model
-                          | appState = NotAuthenticated
-                          , authError = Just authResult.message
-                          , loading = False
-                          }, Cmd.none )
+                            | appState = NotAuthenticated
+                            , authError = Just authResult.message
+                            , loading = False
+                          }
+                        , Cmd.none
+                        )
 
                 Err error ->
                     ( { model
-                      | appState = NotAuthenticated
-                      , authError = Just (Decode.errorToString error)
-                      , loading = False
-                      }, Cmd.none )
+                        | appState = NotAuthenticated
+                        , authError = Just (Decode.errorToString error)
+                        , loading = False
+                      }
+                    , Cmd.none
+                    )
 
         ReceiveSubmissions result ->
             case result of
@@ -503,9 +623,9 @@ update msg model =
                         |> Maybe.withDefault ""
             in
             ( { model
-              | currentSubmission = Just submission
-              , tempScore = tempScore
-              , tempFeedback = tempFeedback
+                | currentSubmission = Just submission
+                , tempScore = tempScore
+                , tempFeedback = tempFeedback
               }
             , Cmd.none
             )
@@ -521,6 +641,7 @@ update msg model =
                 filterBelt =
                     if belt == "all" then
                         Nothing
+
                     else
                         Just belt
             in
@@ -530,10 +651,17 @@ update msg model =
             let
                 filterGraded =
                     case status of
-                        "all" -> Nothing
-                        "graded" -> Just True
-                        "ungraded" -> Just False
-                        _ -> Nothing
+                        "all" ->
+                            Nothing
+
+                        "graded" ->
+                            Just True
+
+                        "ungraded" ->
+                            Just False
+
+                        _ ->
+                            Nothing
             in
             ( { model | filterGraded = filterGraded }, Cmd.none )
 
@@ -544,8 +672,11 @@ update msg model =
             let
                 newDirection =
                     case model.sortDirection of
-                        Ascending -> Descending
-                        Descending -> Ascending
+                        Ascending ->
+                            Descending
+
+                        Descending ->
+                            Ascending
             in
             ( { model | sortDirection = newDirection }, Cmd.none )
 
@@ -566,6 +697,7 @@ update msg model =
                         Just score ->
                             if score < 0 || score > 100 then
                                 ( { model | error = Just "Score must be between 0 and 100" }, Cmd.none )
+
                             else
                                 let
                                     -- Current date will be set on the server side
@@ -595,6 +727,7 @@ update msg model =
         GradeResult result ->
             if String.startsWith "Error:" result then
                 ( { model | error = Just result, loading = False, success = Nothing }, Cmd.none )
+
             else
                 ( { model | success = Just "Grade saved successfully", loading = False, error = Nothing }
                 , requestSubmissions ()
@@ -612,27 +745,27 @@ update msg model =
             case result of
                 Ok { student, submissions } ->
                     ( { model
-                      | loading = False
-                      , currentStudent = Just student
-                      , studentSubmissions = submissions
-                      , page = StudentRecordPage student submissions
+                        | loading = False
+                        , currentStudent = Just student
+                        , studentSubmissions = submissions
+                        , page = StudentRecordPage student submissions
                       }
                     , Cmd.none
                     )
 
                 Err error ->
                     ( { model
-                      | loading = False
-                      , error = Just ("Failed to load student record: " ++ Decode.errorToString error)
+                        | loading = False
+                        , error = Just ("Failed to load student record: " ++ Decode.errorToString error)
                       }
                     , Cmd.none
                     )
 
         CloseStudentRecord ->
             ( { model
-              | page = SubmissionsPage
-              , currentStudent = Nothing
-              , studentSubmissions = []
+                | page = SubmissionsPage
+                , currentStudent = Nothing
+                , studentSubmissions = []
               }
             , Cmd.none
             )
@@ -645,12 +778,15 @@ update msg model =
 
         CreateNewStudent ->
             let
-                trimmedName = String.trim model.newStudentName
+                trimmedName =
+                    String.trim model.newStudentName
             in
             if String.isEmpty trimmedName then
                 ( { model | error = Just "Please enter a student name" }, Cmd.none )
+
             else if not (isValidNameFormat trimmedName) then
-                     ( { model | error = Just "Please enter the name in the format firstname.lastname (e.g., tyler.smith)" }, Cmd.none )
+                ( { model | error = Just "Please enter the name in the format firstname.lastname (e.g., tyler.smith)" }, Cmd.none )
+
             else
                 ( { model | loading = True, error = Nothing }
                 , createStudent (encodeNewStudent trimmedName)
@@ -660,29 +796,33 @@ update msg model =
             case result of
                 Ok student ->
                     ( { model
-                      | page = StudentRecordPage student []
-                      , loading = False
-                      , success = Just ("Student record for " ++ student.name ++ " created successfully")
-                      , currentStudent = Just student
-                      , studentSubmissions = []
-                      }, Cmd.none )
+                        | page = StudentRecordPage student []
+                        , loading = False
+                        , success = Just ("Student record for " ++ student.name ++ " created successfully")
+                        , currentStudent = Just student
+                        , studentSubmissions = []
+                      }
+                    , Cmd.none
+                    )
 
                 Err error ->
                     ( { model
-                      | loading = False
-                      , error = Just ("Error creating student: " ++ Decode.errorToString error)
-                      }, Cmd.none )
+                        | loading = False
+                        , error = Just ("Error creating student: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
 
         ShowBeltManagement ->
             ( { model
-              | page = BeltManagementPage
-              , newBeltName = ""
-              , newBeltColor = "#000000"
-              , newBeltOrder = ""
-              , newBeltGameOptions = ""
-              , editingBelt = Nothing
-              , error = Nothing
-              , success = Nothing
+                | page = BeltManagementPage
+                , newBeltName = ""
+                , newBeltColor = "#000000"
+                , newBeltOrder = ""
+                , newBeltGameOptions = ""
+                , editingBelt = Nothing
+                , error = Nothing
+                , success = Nothing
               }
             , requestBelts ()
             )
@@ -713,23 +853,25 @@ update msg model =
         AddNewBelt ->
             if String.trim model.newBeltName == "" then
                 ( { model | error = Just "Please enter a belt name" }, Cmd.none )
+
             else
                 let
-                    orderResult = String.toInt model.newBeltOrder
+                    orderResult =
+                        String.toInt model.newBeltOrder
                 in
                 case orderResult of
                     Just order ->
                         let
                             gameOptions =
                                 model.newBeltGameOptions
-                                |> String.split ","
-                                |> List.map String.trim
-                                |> List.filter (not << String.isEmpty)
+                                    |> String.split ","
+                                    |> List.map String.trim
+                                    |> List.filter (not << String.isEmpty)
 
                             beltId =
                                 model.newBeltName
-                                |> String.toLower
-                                |> String.replace " " "-"
+                                    |> String.toLower
+                                    |> String.replace " " "-"
 
                             newBelt =
                                 { id = beltId
@@ -748,22 +890,22 @@ update msg model =
 
         EditBelt belt ->
             ( { model
-              | editingBelt = Just belt
-              , newBeltName = belt.name
-              , newBeltColor = belt.color
-              , newBeltOrder = String.fromInt belt.order
-              , newBeltGameOptions = String.join ", " belt.gameOptions
+                | editingBelt = Just belt
+                , newBeltName = belt.name
+                , newBeltColor = belt.color
+                , newBeltOrder = String.fromInt belt.order
+                , newBeltGameOptions = String.join ", " belt.gameOptions
               }
             , Cmd.none
             )
 
         CancelEditBelt ->
             ( { model
-              | editingBelt = Nothing
-              , newBeltName = ""
-              , newBeltColor = "#000000"
-              , newBeltOrder = ""
-              , newBeltGameOptions = ""
+                | editingBelt = Nothing
+                , newBeltName = ""
+                , newBeltColor = "#000000"
+                , newBeltOrder = ""
+                , newBeltGameOptions = ""
               }
             , Cmd.none
             )
@@ -773,18 +915,20 @@ update msg model =
                 Just belt ->
                     if String.trim model.newBeltName == "" then
                         ( { model | error = Just "Please enter a belt name" }, Cmd.none )
+
                     else
                         let
-                            orderResult = String.toInt model.newBeltOrder
+                            orderResult =
+                                String.toInt model.newBeltOrder
                         in
                         case orderResult of
                             Just order ->
                                 let
                                     gameOptions =
                                         model.newBeltGameOptions
-                                        |> String.split ","
-                                        |> List.map String.trim
-                                        |> List.filter (not << String.isEmpty)
+                                            |> String.split ","
+                                            |> List.map String.trim
+                                            |> List.filter (not << String.isEmpty)
 
                                     updatedBelt =
                                         { id = belt.id
@@ -812,22 +956,23 @@ update msg model =
         BeltResult result ->
             if String.startsWith "Error:" result then
                 ( { model
-                  | error = Just result
-                  , loading = False
-                  , success = Nothing
+                    | error = Just result
+                    , loading = False
+                    , success = Nothing
                   }
                 , Cmd.none
                 )
+
             else
                 ( { model
-                  | success = Just result
-                  , loading = False
-                  , error = Nothing
-                  , editingBelt = Nothing
-                  , newBeltName = ""
-                  , newBeltColor = "#000000"
-                  , newBeltOrder = ""
-                  , newBeltGameOptions = ""
+                    | success = Just result
+                    , loading = False
+                    , error = Nothing
+                    , editingBelt = Nothing
+                    , newBeltName = ""
+                    , newBeltColor = "#000000"
+                    , newBeltOrder = ""
+                    , newBeltGameOptions = ""
                   }
                 , requestBelts ()
                 )
@@ -859,8 +1004,11 @@ update msg model =
             let
                 newDirection =
                     case model.studentSortDirection of
-                        Ascending -> Descending
-                        Descending -> Ascending
+                        Ascending ->
+                            Descending
+
+                        Descending ->
+                            Ascending
             in
             ( { model | studentSortDirection = newDirection }, Cmd.none )
 
@@ -871,7 +1019,8 @@ update msg model =
             case model.editingStudent of
                 Just student ->
                     let
-                        updatedStudent = { student | name = name }
+                        updatedStudent =
+                            { student | name = name }
                     in
                     ( { model | editingStudent = Just updatedStudent }, Cmd.none )
 
@@ -883,8 +1032,10 @@ update msg model =
                 Just student ->
                     if String.trim student.name == "" then
                         ( { model | error = Just "Please enter a student name" }, Cmd.none )
+
                     else if not (isValidNameFormat student.name) then
                         ( { model | error = Just "Please enter the name in the format firstname.lastname" }, Cmd.none )
+
                     else
                         ( { model | loading = True, error = Nothing, editingStudent = Nothing }
                         , updateStudent (encodeStudentUpdate student)
@@ -913,20 +1064,30 @@ update msg model =
                     let
                         updatedStudents =
                             List.map
-                                (\s -> if s.id == student.id then student else s)
+                                (\s ->
+                                    if s.id == student.id then
+                                        student
+
+                                    else
+                                        s
+                                )
                                 model.students
                     in
                     ( { model
-                      | loading = False
-                      , success = Just ("Student " ++ student.name ++ " updated successfully")
-                      , students = updatedStudents
-                      }, Cmd.none )
+                        | loading = False
+                        , success = Just ("Student " ++ student.name ++ " updated successfully")
+                        , students = updatedStudents
+                      }
+                    , Cmd.none
+                    )
 
                 Err error ->
                     ( { model
-                      | loading = False
-                      , error = Just ("Error updating student: " ++ Decode.errorToString error)
-                      }, Cmd.none )
+                        | loading = False
+                        , error = Just ("Error updating student: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
 
         StudentDeleted result ->
             case result of
@@ -936,16 +1097,20 @@ update msg model =
                             List.filter (\s -> s.id /= studentId) model.students
                     in
                     ( { model
-                      | loading = False
-                      , success = Just "Student deleted successfully"
-                      , students = updatedStudents
-                      }, Cmd.none )
+                        | loading = False
+                        , success = Just "Student deleted successfully"
+                        , students = updatedStudents
+                      }
+                    , Cmd.none
+                    )
 
                 Err error ->
                     ( { model
-                      | loading = False
-                      , error = Just ("Error deleting student: " ++ Decode.errorToString error)
-                      }, Cmd.none )
+                        | loading = False
+                        , error = Just ("Error deleting student: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
 
         DeleteSubmission submission ->
             ( { model | confirmDeleteSubmission = Just submission }, Cmd.none )
@@ -966,16 +1131,20 @@ update msg model =
                             List.filter (\s -> s.id /= submissionId) model.submissions
                     in
                     ( { model
-                      | loading = False
-                      , success = Just "Submission deleted successfully"
-                      , submissions = updatedSubmissions
-                      }, Cmd.none )
+                        | loading = False
+                        , success = Just "Submission deleted successfully"
+                        , submissions = updatedSubmissions
+                      }
+                    , Cmd.none
+                    )
 
                 Err error ->
                     ( { model
-                      | loading = False
-                      , error = Just ("Error deleting submission: " ++ Decode.errorToString error)
-                      }, Cmd.none )
+                        | loading = False
+                        , error = Just ("Error deleting submission: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
 
         -- Admin User Management
         ShowAdminUsersPage ->
@@ -986,10 +1155,12 @@ update msg model =
                     , adminUserCreationResult = Nothing
                     , adminUserUpdateResult = Nothing
                     , adminUserDeletionResult = Nothing
-                    , loading = True  -- Set loading to true while data is being fetched
-                }
-                , requestAllAdmins ()  -- Immediately request admin users
+                    , loading = True -- Set loading to true while data is being fetched
+                  }
+                , requestAllAdmins ()
+                  -- Immediately request admin users
                 )
+
             else
                 ( { model | error = Just "You don't have permission to access admin management." }, Cmd.none )
 
@@ -1002,7 +1173,7 @@ update msg model =
                 , showAdminUserForm = False
                 , editingAdminUser = Nothing
                 , confirmDeleteAdmin = Nothing
-            }
+              }
             , Cmd.none
             )
 
@@ -1061,14 +1232,19 @@ update msg model =
                 validationError =
                     if String.isEmpty form.email then
                         Just "Email is required"
+
                     else if not (String.contains "@" form.email) then
                         Just "Please enter a valid email address"
+
                     else if String.isEmpty form.password then
                         Just "Password is required"
+
                     else if String.length form.password < 6 then
                         Just "Password must be at least 6 characters"
+
                     else if form.password /= form.confirmPassword then
                         Just "Passwords do not match"
+
                     else
                         Nothing
 
@@ -1106,12 +1282,18 @@ update msg model =
                         message =
                             if adminResult.success then
                                 "Success: " ++ adminResult.message
+
                             else
                                 "Error: " ++ adminResult.message
                     in
                     ( { model
                         | adminUserCreationResult = Just message
-                        , showAdminUserForm = if adminResult.success then False else model.showAdminUserForm
+                        , showAdminUserForm =
+                            if adminResult.success then
+                                False
+
+                            else
+                                model.showAdminUserForm
                         , loading = False
                       }
                     , Cmd.none
@@ -1145,7 +1327,8 @@ update msg model =
             case model.editingAdminUser of
                 Just adminUser ->
                     let
-                        updatedAdminUser = { adminUser | email = email }
+                        updatedAdminUser =
+                            { adminUser | email = email }
                     in
                     ( { model | editingAdminUser = Just updatedAdminUser }, Cmd.none )
 
@@ -1156,7 +1339,8 @@ update msg model =
             case model.editingAdminUser of
                 Just adminUser ->
                     let
-                        updatedAdminUser = { adminUser | displayName = displayName }
+                        updatedAdminUser =
+                            { adminUser | displayName = displayName }
                     in
                     ( { model | editingAdminUser = Just updatedAdminUser }, Cmd.none )
 
@@ -1168,8 +1352,10 @@ update msg model =
                 Just adminUser ->
                     if String.trim adminUser.email == "" then
                         ( { model | error = Just "Email cannot be empty" }, Cmd.none )
+
                     else if not (String.contains "@" adminUser.email) then
                         ( { model | error = Just "Please enter a valid email address" }, Cmd.none )
+
                     else
                         -- Add debug info
                         let
@@ -1194,17 +1380,21 @@ update msg model =
             case result of
                 Ok updateResult ->
                     ( { model
-                    | loading = False
-                    , adminUserUpdateResult = Just updateResult.message
-                    }
-                    , if updateResult.success then requestAllAdmins () else Cmd.none
+                        | loading = False
+                        , adminUserUpdateResult = Just updateResult.message
+                      }
+                    , if updateResult.success then
+                        requestAllAdmins ()
+
+                      else
+                        Cmd.none
                     )
 
                 Err error ->
                     ( { model
-                    | loading = False
-                    , error = Just ("Error updating admin user: " ++ Decode.errorToString error)
-                    }
+                        | loading = False
+                        , error = Just ("Error updating admin user: " ++ Decode.errorToString error)
+                      }
                     , Cmd.none
                     )
 
@@ -1223,21 +1413,28 @@ update msg model =
             case result of
                 Ok deleteResult ->
                     ( { model
-                    | loading = False
-                    , adminUserDeletionResult = Just deleteResult.message
-                    }
-                    , if deleteResult.success then requestAllAdmins () else Cmd.none
+                        | loading = False
+                        , adminUserDeletionResult = Just deleteResult.message
+                      }
+                    , if deleteResult.success then
+                        requestAllAdmins ()
+
+                      else
+                        Cmd.none
                     )
 
                 Err error ->
                     ( { model
-                    | loading = False
-                    , error = Just ("Error deleting admin user: " ++ Decode.errorToString error)
-                    }
+                        | loading = False
+                        , error = Just ("Error deleting admin user: " ++ Decode.errorToString error)
+                      }
                     , Cmd.none
                     )
 
+
+
 -- SUBSCRIPTIONS
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -1261,6 +1458,7 @@ subscriptions _ =
         , passwordResetResult (decodePasswordResetResult >> PasswordResetResult)
         ]
 
+
 decodePasswordResetResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodePasswordResetResult value =
     let
@@ -1271,6 +1469,7 @@ decodePasswordResetResult value =
     in
     Decode.decodeValue decoder value
 
+
 decodeAdminCreationResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodeAdminCreationResult value =
     Decode.decodeValue
@@ -1280,6 +1479,7 @@ decodeAdminCreationResult value =
         )
         value
 
+
 adminUserDecoder : Decoder AdminUser
 adminUserDecoder =
     Decode.map6 AdminUser
@@ -1288,15 +1488,17 @@ adminUserDecoder =
         (Decode.field "displayName" Decode.string)
         (Decode.oneOf
             [ Decode.field "role" Decode.string
-            , Decode.succeed "admin"  -- Default to adimn
+            , Decode.succeed "admin" -- Default to adimn
             ]
         )
         (Decode.maybe (Decode.field "createdBy" Decode.string))
         (Decode.maybe (Decode.field "createdAt" Decode.string))
 
+
 decodeAdminUsersResponse : Decode.Value -> Result Decode.Error (List AdminUser)
 decodeAdminUsersResponse value =
     Decode.decodeValue (Decode.list adminUserDecoder) value
+
 
 decodeAdminActionResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodeAdminActionResult value =
@@ -1307,29 +1509,34 @@ decodeAdminActionResult value =
         )
         value
 
+
 decodeStudentsResponse : Decode.Value -> Result Decode.Error (List Student)
 decodeStudentsResponse value =
     Decode.decodeValue (Decode.list studentDecoder) value
+
 
 decodeStudentDeletedResponse : Decode.Value -> Result Decode.Error String
 decodeStudentDeletedResponse value =
     Decode.decodeValue Decode.string value
 
+
 decodeSubmissionDeletedResponse : Decode.Value -> Result Decode.Error String
 decodeSubmissionDeletedResponse value =
     Decode.decodeValue Decode.string value
 
+
 decodeSubmissionsResponse : Decode.Value -> Result Decode.Error (List Submission)
 decodeSubmissionsResponse value =
     Decode.decodeValue (Decode.list submissionDecoder) value
+
 
 submissionDecoder : Decoder Submission
 submissionDecoder =
     Decode.map6
         (\id gameBelt gameName githubLink notes submissionDate ->
             { id = id
-            , studentId = ""  -- Temporary value, will be filled in later
-            , studentName = "Unknown"  -- Default value, will be overridden if available
+            , studentId = "" -- Temporary value, will be filled in later
+            , studentName = "Unknown" -- Default value, will be overridden if available
             , beltLevel = gameBelt
             , gameName = gameName
             , githubLink = githubLink
@@ -1353,6 +1560,7 @@ submissionDecoder =
                             case maybeStudentId of
                                 Just studentId ->
                                     { submission | studentId = studentId }
+
                                 Nothing ->
                                     -- If no studentId, use a default based on the submission ID
                                     { submission | studentId = submission.id }
@@ -1367,6 +1575,7 @@ submissionDecoder =
                             case maybeStudentName of
                                 Just studentName ->
                                     { submission | studentName = studentName }
+
                                 Nothing ->
                                     -- If no studentName, derive it from studentId
                                     { submission | studentName = capitalizeWords (String.replace "-" " " submission.studentId) }
@@ -1379,6 +1588,7 @@ submissionDecoder =
                     |> Decode.map (\grade -> { submission | grade = grade })
             )
 
+
 gradeDecoder : Decoder Grade
 gradeDecoder =
     Decode.map4 Grade
@@ -1387,6 +1597,7 @@ gradeDecoder =
         (Decode.field "gradedBy" Decode.string)
         (Decode.field "gradingDate" Decode.string)
 
+
 studentDecoder : Decoder Student
 studentDecoder =
     Decode.map4 Student
@@ -1394,6 +1605,7 @@ studentDecoder =
         (Decode.field "name" Decode.string)
         (Decode.field "created" Decode.string)
         (Decode.field "lastActive" Decode.string)
+
 
 beltDecoder : Decoder Belt
 beltDecoder =
@@ -1404,9 +1616,11 @@ beltDecoder =
         (Decode.field "order" Decode.int)
         (Decode.field "gameOptions" (Decode.list Decode.string))
 
+
 decodeBeltsResponse : Decode.Value -> Result Decode.Error (List Belt)
 decodeBeltsResponse value =
     Decode.decodeValue (Decode.list beltDecoder) value
+
 
 decodeStudentRecordResponse : Decode.Value -> Result Decode.Error { student : Student, submissions : List Submission }
 decodeStudentRecordResponse value =
@@ -1418,6 +1632,7 @@ decodeStudentRecordResponse value =
     in
     Decode.decodeValue decoder value
 
+
 userDecoder : Decoder User
 userDecoder =
     Decode.map4 User
@@ -1427,11 +1642,14 @@ userDecoder =
         (Decode.oneOf
             [ Decode.field "role" Decode.string
             , Decode.succeed "admin" -- default to adimn role
-            ])
+            ]
+        )
+
 
 decodeStudentResponse : Decode.Value -> Result Decode.Error Student
 decodeStudentResponse value =
     Decode.decodeValue studentDecoder value
+
 
 decodeAuthState : Decode.Value -> Result Decode.Error { user : Maybe User, isSignedIn : Bool }
 decodeAuthState value =
@@ -1443,6 +1661,7 @@ decodeAuthState value =
     in
     Decode.decodeValue decoder value
 
+
 decodeAuthResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodeAuthResult value =
     let
@@ -1453,12 +1672,14 @@ decodeAuthResult value =
     in
     Decode.decodeValue decoder value
 
+
 encodeCredentials : String -> String -> Encode.Value
 encodeCredentials email password =
     Encode.object
         [ ( "email", Encode.string email )
         , ( "password", Encode.string password )
         ]
+
 
 encodeGrade : Grade -> Encode.Value
 encodeGrade grade =
@@ -1469,10 +1690,12 @@ encodeGrade grade =
         , ( "gradingDate", Encode.string grade.gradingDate )
         ]
 
+
 encodeNewStudent : String -> Encode.Value
 encodeNewStudent name =
     Encode.object
         [ ( "name", Encode.string name ) ]
+
 
 encodeBelt : Belt -> Encode.Value
 encodeBelt belt =
@@ -1484,6 +1707,7 @@ encodeBelt belt =
         , ( "gameOptions", Encode.list Encode.string belt.gameOptions )
         ]
 
+
 encodeStudentUpdate : Student -> Encode.Value
 encodeStudentUpdate student =
     Encode.object
@@ -1491,16 +1715,20 @@ encodeStudentUpdate student =
         , ( "name", Encode.string student.name )
         ]
 
+
 encodeAdminUserUpdate : AdminUser -> Encode.Value
 encodeAdminUserUpdate adminUser =
     Encode.object
         [ ( "uid", Encode.string adminUser.uid )
         , ( "email", Encode.string adminUser.email )
         , ( "displayName", Encode.string adminUser.displayName )
-        , ( "role", Encode.string adminUser.role)
+        , ( "role", Encode.string adminUser.role )
         ]
 
+
+
 -- HELPERS
+
 
 formatDate : String -> String
 formatDate dateString =
@@ -1513,7 +1741,8 @@ formatDate dateString =
                     |> String.split "T"
                     |> List.take 2
 
-            date = Maybe.withDefault "" (List.head dateParts)
+            date =
+                Maybe.withDefault "" (List.head dateParts)
 
             time =
                 case List.drop 1 dateParts |> List.head of
@@ -1522,10 +1751,12 @@ formatDate dateString =
                         String.split ":" timeStr
                             |> List.take 2
                             |> String.join ":"
+
                     Nothing ->
                         ""
         in
         date ++ " " ++ time
+
     else
         -- If not ISO format, return as is
         dateString
@@ -1536,19 +1767,24 @@ isSuperUser model =
     case model.appState of
         Authenticated user ->
             user.role == "superuser"
+
         _ ->
             False
-
 
 
 truncateGamesList : List String -> String
 truncateGamesList games =
     let
-        maxGamesToShow = 3
-        totalGames = List.length games
+        maxGamesToShow =
+            3
+
+        totalGames =
+            List.length games
+
         displayGames =
             if totalGames <= maxGamesToShow then
                 games
+
             else
                 List.take maxGamesToShow games ++ [ "..." ++ String.fromInt (totalGames - maxGamesToShow) ++ " more" ]
     in
@@ -1561,10 +1797,12 @@ applyStudentFilters model =
         |> List.filter (filterStudentByText model.studentFilterText)
         |> sortStudents model.studentSortBy model.studentSortDirection
 
+
 filterStudentByText : String -> Student -> Bool
 filterStudentByText filterText student =
     if String.isEmpty filterText then
         True
+
     else
         let
             lowercaseFilter =
@@ -1574,6 +1812,7 @@ filterStudentByText filterText student =
                 String.contains lowercaseFilter (String.toLower text)
         in
         containsFilter student.name || containsFilter student.id
+
 
 sortStudents : StudentSortBy -> SortDirection -> List Student -> List Student
 sortStudents sortBy direction students =
@@ -1599,13 +1838,16 @@ sortStudents sortBy direction students =
         Descending ->
             List.reverse sortedList
 
+
 getStudentSortButtonClass : Model -> StudentSortBy -> String
 getStudentSortButtonClass model sortType =
     let
-        baseClass = "px-3 py-1 rounded text-sm"
+        baseClass =
+            "px-3 py-1 rounded text-sm"
     in
     if model.studentSortBy == sortType then
         baseClass ++ " bg-blue-100 text-blue-800 font-medium"
+
     else
         baseClass ++ " text-gray-600 hover:bg-gray-100"
 
@@ -1619,39 +1861,65 @@ getUserEmail model =
         _ ->
             "unknown@example.com"
 
+
+
 --helper function to check name is correct format
+
+
 isValidNameFormat : String -> Bool
 isValidNameFormat name =
     let
-        parts = String.split "." name
+        parts =
+            String.split "." name
     in
-    List.length parts == 2 &&
-    List.all (\part -> String.length part > 0) parts
+    List.length parts
+        == 2
+        && List.all (\part -> String.length part > 0) parts
+
+
 
 --helper to format the display name properly
+
+
 formatDisplayName : String -> String
 formatDisplayName name =
     let
-        parts = String.split "." name
-        firstName = List.head parts |> Maybe.withDefault ""
-        lastName = List.drop 1 parts |> List.head |> Maybe.withDefault ""
-        capitalizedFirst = String.toUpper (String.left 1 firstName) ++ String.dropLeft 1 firstName
-        capitalizedLast = String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
+        parts =
+            String.split "." name
+
+        firstName =
+            List.head parts |> Maybe.withDefault ""
+
+        lastName =
+            List.drop 1 parts |> List.head |> Maybe.withDefault ""
+
+        capitalizedFirst =
+            String.toUpper (String.left 1 firstName) ++ String.dropLeft 1 firstName
+
+        capitalizedLast =
+            String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
     in
     capitalizedFirst ++ " " ++ capitalizedLast
 
+
+
 -- Helper function to capitalize words in a string
+
+
 capitalizeWords : String -> String
 capitalizeWords str =
     String.join " " (List.map capitalizeWord (String.split " " str))
 
+
 capitalizeWord : String -> String
 capitalizeWord word =
     case String.uncons word of
-        Just (firstChar, rest) ->
+        Just ( firstChar, rest ) ->
             String.cons (Char.toUpper firstChar) rest
+
         Nothing ->
             ""
+
 
 applyFilters : Model -> List Submission
 applyFilters model =
@@ -1661,10 +1929,12 @@ applyFilters model =
         |> List.filter (filterByGraded model.filterGraded)
         |> sortSubmissions model.sortBy model.sortDirection
 
+
 filterByText : String -> Submission -> Bool
 filterByText filterText submission =
     if String.isEmpty filterText then
         True
+
     else
         let
             lowercaseFilter =
@@ -1677,6 +1947,7 @@ filterByText filterText submission =
             || containsFilter submission.gameName
             || containsFilter submission.beltLevel
 
+
 filterByBelt : Maybe String -> Submission -> Bool
 filterByBelt maybeBelt submission =
     case maybeBelt of
@@ -1685,6 +1956,7 @@ filterByBelt maybeBelt submission =
 
         Nothing ->
             True
+
 
 filterByGraded : Maybe Bool -> Submission -> Bool
 filterByGraded maybeGraded submission =
@@ -1699,6 +1971,7 @@ filterByGraded maybeGraded submission =
 
         Nothing ->
             True
+
 
 sortSubmissions : SortBy -> SortDirection -> List Submission -> List Submission
 sortSubmissions sortBy direction submissions =
@@ -1716,10 +1989,15 @@ sortSubmissions sortBy direction submissions =
 
                 ByGradeStatus ->
                     \a b ->
-                        case (a.grade, b.grade) of
-                            (Just _, Nothing) -> LT
-                            (Nothing, Just _) -> GT
-                            _ -> compare a.submissionDate b.submissionDate
+                        case ( a.grade, b.grade ) of
+                            ( Just _, Nothing ) ->
+                                LT
+
+                            ( Nothing, Just _ ) ->
+                                GT
+
+                            _ ->
+                                compare a.submissionDate b.submissionDate
 
         sortedList =
             List.sortWith sortFunction submissions
@@ -1732,16 +2010,19 @@ sortSubmissions sortBy direction submissions =
             List.reverse sortedList
 
 
+
 -- VIEW
+
 
 view : Model -> Html Msg
 view model =
     div [ class "min-h-screen bg-gray-300 py-6 flex flex-col" ]
         [ div [ class "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full" ]
             [ -- h1 [ class "text-3xl font-bold text-gray-900 mb-8 text-center" ] [ text "Game Submission Admin" ]
-             viewContent model
+              viewContent model
             ]
         ]
+
 
 viewContent : Model -> Html Msg
 viewContent model =
@@ -1770,18 +2051,22 @@ viewContent model =
                                 , class "px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none"
                                 ]
                                 [ text "Manage Admins" ]
-                        else
-                            text ""  -- Don't show button for regular admins
+
+                          else
+                            text ""
+
+                        -- Don't show button for regular admins
                         , button
                             [ onClick PerformSignOut
                             , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
                             ]
                             [ text "Sign Out" ]
                         ]
-                                        ]
+                    ]
                 , if model.loading then
                     div [ class "flex justify-center my-12" ]
                         [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+
                   else
                     div []
                         [ viewMessages model
@@ -1800,6 +2085,7 @@ viewContent model =
                     Nothing ->
                         text ""
                 ]
+
 
 viewCurrentPage : Model -> Html Msg
 viewCurrentPage model =
@@ -1821,6 +2107,7 @@ viewCurrentPage model =
 
         AdminUsersPage ->
             viewAdminUsersPage model
+
 
 viewAdminUsersPage : Model -> Html Msg
 viewAdminUsersPage model =
@@ -1844,6 +2131,7 @@ viewAdminUsersPage model =
             , viewAdminUserDeletionResult model.adminUserDeletionResult
             , if model.showAdminUserForm then
                 viewAdminUserForm model.adminUserForm
+
               else
                 div [ class "text-center py-8" ]
                     [ p [ class "text-gray-500 mb-4" ]
@@ -1873,6 +2161,7 @@ viewAdminUsersPage model =
             ]
         ]
 
+
 viewAdminUserDeletionResult : Maybe String -> Html Msg
 viewAdminUserDeletionResult maybeResult =
     case maybeResult of
@@ -1880,12 +2169,14 @@ viewAdminUserDeletionResult maybeResult =
             if String.startsWith "Success" result then
                 div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
                     [ p [ class "text-sm text-green-700" ] [ text result ] ]
+
             else
                 div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
                     [ p [ class "text-sm text-red-700" ] [ text result ] ]
 
         Nothing ->
             text ""
+
 
 viewAdminUserUpdateResult : Maybe String -> Html Msg
 viewAdminUserUpdateResult maybeResult =
@@ -1894,12 +2185,14 @@ viewAdminUserUpdateResult maybeResult =
             if String.startsWith "Success" result then
                 div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
                     [ p [ class "text-sm text-green-700" ] [ text result ] ]
+
             else
                 div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
                     [ p [ class "text-sm text-red-700" ] [ text result ] ]
 
         Nothing ->
             text ""
+
 
 viewAdminUserForm : AdminUserForm -> Html Msg
 viewAdminUserForm form =
@@ -1911,6 +2204,7 @@ viewAdminUserForm form =
                 Just error ->
                     div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
                         [ p [ class "text-sm text-red-700" ] [ text error ] ]
+
                 Nothing ->
                     text ""
             , div [ class "space-y-4" ]
@@ -1963,6 +2257,7 @@ viewAdminUserForm form =
                         ]
                         []
                     ]
+
                 -- Add role selection dropdown
                 , div []
                     [ label [ for "adminRole", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Role:" ]
@@ -1994,6 +2289,7 @@ viewAdminUserForm form =
             ]
         ]
 
+
 viewAdminUsersList : Model -> Html Msg
 viewAdminUsersList model =
     div [ class "bg-white shadow rounded-lg p-6" ]
@@ -2008,9 +2304,11 @@ viewAdminUsersList model =
         , if model.loading then
             div [ class "flex justify-center my-6" ]
                 [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+
           else if List.isEmpty model.adminUsers then
             div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
                 [ p [ class "text-gray-500" ] [ text "No admin users found. The first admin user may have been created through Firebase directly." ] ]
+
           else
             div [ class "overflow-x-auto bg-white" ]
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
@@ -2029,6 +2327,7 @@ viewAdminUsersList model =
                     ]
                 ]
         ]
+
 
 viewAdminUserRow : AdminUser -> Html Msg
 viewAdminUserRow admin =
@@ -2061,14 +2360,16 @@ viewAdminUserRow admin =
             ]
         ]
 
+
 viewRoleBadge : String -> Html Msg
 viewRoleBadge role =
     let
-        (bgColor, textColor) =
+        ( bgColor, textColor ) =
             if role == "superuser" then
-                ("bg-purple-100", "text-purple-800")
+                ( "bg-purple-100", "text-purple-800" )
+
             else
-                ("bg-blue-100", "text-blue-800")
+                ( "bg-blue-100", "text-blue-800" )
     in
     span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
         [ text role ]
@@ -2081,12 +2382,14 @@ viewAdminUserCreationResult maybeResult =
             if String.startsWith "Success" result then
                 div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
                     [ p [ class "text-sm text-green-700" ] [ text result ] ]
+
             else
                 div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
                     [ p [ class "text-sm text-red-700" ] [ text result ] ]
 
         Nothing ->
             text ""
+
 
 viewAdminUserEditModal : Model -> Html Msg
 viewAdminUserEditModal model =
@@ -2124,6 +2427,7 @@ viewAdminUserEditModal model =
                                     ]
                                     []
                                 ]
+
                             -- Role dropdown with enhanced styling and current role display
                             , div []
                                 [ label [ for "editAdminRole", class "block text-sm font-medium text-gray-700 mb-1" ]
@@ -2158,8 +2462,10 @@ viewAdminUserEditModal model =
                         ]
                     ]
                 ]
+
         Nothing ->
             text ""
+
 
 viewConfirmDeleteAdminModal : Model -> Html Msg
 viewConfirmDeleteAdminModal model =
@@ -2189,8 +2495,10 @@ viewConfirmDeleteAdminModal model =
                         ]
                     ]
                 ]
+
         Nothing ->
             text ""
+
 
 viewLoginForm : Model -> Html Msg
 viewLoginForm model =
@@ -2262,9 +2570,11 @@ viewLoginForm model =
                                 if String.startsWith "Error" message then
                                     div [ class "mb-4 bg-red-50 border-l-4 border-red-400 p-4" ]
                                         [ p [ class "text-sm text-red-700" ] [ text message ] ]
+
                                 else
                                     div [ class "mb-4 bg-green-50 border-l-4 border-green-400 p-4" ]
                                         [ p [ class "text-sm text-green-700" ] [ text message ] ]
+
                             Nothing ->
                                 text ""
                         , div [ class "mb-4" ]
@@ -2295,9 +2605,11 @@ viewLoginForm model =
                         ]
                     ]
                 ]
+
           else
             text ""
         ]
+
 
 viewLoadingAuthentication : Html Msg
 viewLoadingAuthentication =
@@ -2306,6 +2618,7 @@ viewLoadingAuthentication =
             [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
         , p [ class "text-gray-600" ] [ text "Signing you in..." ]
         ]
+
 
 viewMessages : Model -> Html Msg
 viewMessages model =
@@ -2325,6 +2638,7 @@ viewMessages model =
             Nothing ->
                 text ""
         ]
+
 
 viewFilters : Model -> Html Msg
 viewFilters model =
@@ -2365,8 +2679,9 @@ viewFilters model =
                         , onInput UpdateFilterBelt
                         , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         ]
-                        ([ option [ value "all" ] [ text "All Belts" ] ] ++
-                            List.map (\belt -> option [ value belt.name ] [ text belt.name ]) model.belts)
+                        ([ option [ value "all" ] [ text "All Belts" ] ]
+                            ++ List.map (\belt -> option [ value belt.name ] [ text belt.name ]) model.belts
+                        )
                     ]
                 , div [ class "flex-1 md:w-40" ]
                     [ label [ for "filterGraded", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Status" ]
@@ -2409,7 +2724,14 @@ viewFilters model =
                     [ onClick ToggleSortDirection
                     , class "ml-2 px-2 py-1 rounded text-gray-600 hover:bg-gray-100"
                     ]
-                    [ text (if model.sortDirection == Ascending then "↑" else "↓") ]
+                    [ text
+                        (if model.sortDirection == Ascending then
+                            "↑"
+
+                         else
+                            "↓"
+                        )
+                    ]
                 ]
             , div [ class "flex items-center" ]
                 [ button
@@ -2427,12 +2749,15 @@ viewFilters model =
 getSortButtonClass : Model -> SortBy -> String
 getSortButtonClass model sortType =
     let
-        baseClass = "px-3 py-1 rounded text-sm"
+        baseClass =
+            "px-3 py-1 rounded text-sm"
     in
     if model.sortBy == sortType then
         baseClass ++ " bg-blue-100 text-blue-800 font-medium"
+
     else
         baseClass ++ " text-gray-600 hover:bg-gray-100"
+
 
 viewSubmissionList : Model -> Html Msg
 viewSubmissionList model =
@@ -2443,6 +2768,7 @@ viewSubmissionList model =
     if List.isEmpty filteredSubmissions then
         div [ class "text-center py-12 bg-white rounded-lg shadow" ]
             [ p [ class "text-gray-500" ] [ text "No submissions found matching your filters." ] ]
+
     else
         div [ class "overflow-x-auto bg-white shadow rounded-lg" ]
             [ table [ class "min-w-full divide-y divide-gray-200" ]
@@ -2464,7 +2790,7 @@ viewSubmissionList model =
 
 viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
-   tr [ class "hover:bg-gray-50" ]
+    tr [ class "hover:bg-gray-50" ]
         [ td [ class "px-6 py-4 whitespace-nowrap" ]
             [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName submission.studentName) ]
             , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ submission.studentId) ]
@@ -2482,7 +2808,14 @@ viewSubmissionRow submission =
                 [ onClick (SelectSubmission submission)
                 , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
                 ]
-                [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+                [ text
+                    (if submission.grade == Nothing then
+                        "Grade"
+
+                     else
+                        "View/Edit"
+                    )
+                ]
             , button
                 [ onClick (ViewStudentRecord submission.studentId)
                 , class "w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
@@ -2502,15 +2835,18 @@ viewGradeBadge maybeGrade =
     case maybeGrade of
         Just grade ->
             let
-                (bgColor, textColor) =
+                ( bgColor, textColor ) =
                     if grade.score >= 90 then
-                        ("bg-green-100", "text-green-800")
+                        ( "bg-green-100", "text-green-800" )
+
                     else if grade.score >= 70 then
-                        ("bg-blue-100", "text-blue-800")
+                        ( "bg-blue-100", "text-blue-800" )
+
                     else if grade.score >= 60 then
-                        ("bg-yellow-100", "text-yellow-800")
+                        ( "bg-yellow-100", "text-yellow-800" )
+
                     else
-                        ("bg-red-100", "text-red-800")
+                        ( "bg-red-100", "text-red-800" )
             in
             span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
                 [ text (String.fromInt grade.score ++ "/100") ]
@@ -2518,6 +2854,7 @@ viewGradeBadge maybeGrade =
         Nothing ->
             span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
                 [ text "Ungraded" ]
+
 
 viewConfirmDeleteSubmissionModal : Submission -> Html Msg
 viewConfirmDeleteSubmissionModal submission =
@@ -2544,6 +2881,7 @@ viewConfirmDeleteSubmissionModal submission =
             ]
         ]
 
+
 viewStudentRecordPage : Model -> Student -> List Submission -> Html Msg
 viewStudentRecordPage model student submissions =
     div [ class "space-y-6" ]
@@ -2551,7 +2889,7 @@ viewStudentRecordPage model student submissions =
             [ div [ class "flex justify-between items-center" ]
                 [ h2 [ class "text-xl font-medium text-gray-900" ]
                     [ text ("Student Record: " ++ formatDisplayName student.name) ]
-               , button
+                , button
                     [ onClick CloseStudentRecord
                     , class "text-gray-500 hover:text-gray-700 flex items-center"
                     ]
@@ -2582,6 +2920,7 @@ viewStudentRecordPage model student submissions =
             , if List.isEmpty submissions then
                 div [ class "p-6 text-center" ]
                     [ p [ class "text-gray-500" ] [ text "No submissions found for this student." ] ]
+
               else
                 div [ class "overflow-x-auto" ]
                     [ table [ class "min-w-full divide-y divide-gray-200" ]
@@ -2601,6 +2940,7 @@ viewStudentRecordPage model student submissions =
             ]
         ]
 
+
 viewStudentSubmissionRow : Submission -> Html Msg
 viewStudentSubmissionRow submission =
     tr [ class "hover:bg-gray-50" ]
@@ -2617,7 +2957,14 @@ viewStudentSubmissionRow submission =
                 [ onClick (SelectSubmission submission)
                 , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
                 ]
-                [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+                [ text
+                    (if submission.grade == Nothing then
+                        "Grade"
+
+                     else
+                        "View/Edit"
+                    )
+                ]
             , button
                 [ onClick (DeleteSubmission submission)
                 , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
@@ -2625,6 +2972,7 @@ viewStudentSubmissionRow submission =
                 [ text "Delete" ]
             ]
         ]
+
 
 viewCreateStudentPage : Model -> Html Msg
 viewCreateStudentPage model =
@@ -2713,7 +3061,14 @@ viewCreateStudentPage model =
                         [ onClick ToggleStudentSortDirection
                         , class "ml-2 px-2 py-1 rounded text-gray-600 hover:bg-gray-100"
                         ]
-                        [ text (if model.studentSortDirection == Ascending then "↑" else "↓") ]
+                        [ text
+                            (if model.studentSortDirection == Ascending then
+                                "↑"
+
+                             else
+                                "↓"
+                            )
+                        ]
                     , span [ class "ml-4 text-sm text-gray-500" ]
                         [ text ("Total: " ++ String.fromInt (List.length (applyStudentFilters model)) ++ " students") ]
                     ]
@@ -2721,9 +3076,11 @@ viewCreateStudentPage model =
             , if model.loading then
                 div [ class "flex justify-center my-12" ]
                     [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+
               else if List.isEmpty (applyStudentFilters model) then
                 div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
                     [ p [ class "text-gray-500" ] [ text "No students found matching your filters." ] ]
+
               else
                 div [ class "overflow-x-auto bg-white" ]
                     [ table [ class "min-w-full divide-y divide-gray-200" ]
@@ -2830,6 +3187,7 @@ viewEditStudentModal model student =
             ]
         ]
 
+
 viewConfirmDeleteModal : Student -> Html Msg
 viewConfirmDeleteModal student =
     div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
@@ -2857,6 +3215,7 @@ viewConfirmDeleteModal student =
             ]
         ]
 
+
 viewBeltManagementPage : Model -> Html Msg
 viewBeltManagementPage model =
     div [ class "space-y-6" ]
@@ -2876,10 +3235,15 @@ viewBeltManagementPage model =
                 [ div [ class "bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200" ]
                     [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
                         [ h3 [ class "text-lg font-medium text-gray-900" ]
-                            [ text (case model.editingBelt of
-                                      Just belt -> "Edit Belt: " ++ belt.name
-                                      Nothing -> "Add New Belt"
-                            ) ]
+                            [ text
+                                (case model.editingBelt of
+                                    Just belt ->
+                                        "Edit Belt: " ++ belt.name
+
+                                    Nothing ->
+                                        "Add New Belt"
+                                )
+                            ]
                         ]
                     , div [ class "p-6" ]
                         [ div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
@@ -2979,7 +3343,8 @@ viewBeltManagementPage model =
                 , if List.isEmpty model.belts then
                     div [ class "text-center py-12 bg-gray-50 rounded-lg border border-gray-200" ]
                         [ p [ class "text-gray-500" ] [ text "No belts configured yet. Add your first belt above." ] ]
-                else
+
+                  else
                     div [ class "bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200" ]
                         [ ul [ class "divide-y divide-gray-200" ]
                             (List.map (viewBeltRow model) (List.sortBy .order model.belts))
@@ -2988,6 +3353,7 @@ viewBeltManagementPage model =
             ]
         ]
 
+
 viewBeltRow : Model -> Belt -> Html Msg
 viewBeltRow model belt =
     li [ class "py-4 px-6 flex items-center justify-between hover:bg-gray-50" ]
@@ -2995,7 +3361,8 @@ viewBeltRow model belt =
             [ div
                 [ class "w-8 h-8 rounded-full border border-gray-300 flex-shrink-0"
                 , style "background-color" belt.color
-                ] []
+                ]
+                []
             , div [ class "flex-1 min-w-0" ]
                 [ div [ class "flex items-center" ]
                     [ p [ class "text-sm font-medium text-gray-900 truncate" ]
@@ -3115,7 +3482,15 @@ viewSubmissionModal model submission =
                         ]
                     , div [ class "space-y-6" ]
                         [ div []
-                            [ h3 [ class "text-lg font-medium text-gray-900 mb-3" ] [ text (if submission.grade == Nothing then "Add Grade" else "Update Grade") ]
+                            [ h3 [ class "text-lg font-medium text-gray-900 mb-3" ]
+                                [ text
+                                    (if submission.grade == Nothing then
+                                        "Add Grade"
+
+                                     else
+                                        "Update Grade"
+                                    )
+                                ]
                             , div [ class "bg-gray-50 rounded-lg p-4 space-y-4" ]
                                 [ div []
                                     [ label [ for "scoreInput", class "block text-sm font-medium text-gray-700" ] [ text "Score (0-100):" ]
@@ -3146,7 +3521,14 @@ viewSubmissionModal model submission =
                                     [ onClick SubmitGrade
                                     , class "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     ]
-                                    [ text (if submission.grade == Nothing then "Submit Grade" else "Update Grade") ]
+                                    [ text
+                                        (if submission.grade == Nothing then
+                                            "Submit Grade"
+
+                                         else
+                                            "Update Grade"
+                                        )
+                                    ]
                                 ]
                             ]
                         ]
