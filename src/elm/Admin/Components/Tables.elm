@@ -14,12 +14,12 @@ viewSubmissionsTable submissions =
         [ table [ class "min-w-full divide-y divide-gray-200" ]
             [ thead [ class "bg-gray-50" ]
                 [ tr []
-                    [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Student" ]
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Game" ]
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Belt" ]
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Submitted" ]
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Grade" ]
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                    [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5" ] [ text "Student" ] -- Added w-1/5 for 20% width
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Game" ] -- Added w-1/6 for ~16% width
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Belt" ] -- Fixed width for belt
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Submitted" ] -- Fixed width for date
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Grade" ] -- Fixed width for grade
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80" ] [ text "Actions" ] -- Wider for action buttons
                     ]
                 ]
             , tbody [ class "bg-white divide-y divide-gray-200" ]
@@ -28,44 +28,57 @@ viewSubmissionsTable submissions =
         ]
 
 
+
+-- Also update the action buttons in viewSubmissionRow to use better spacing:
+
+
 viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
     tr [ class "hover:bg-gray-50" ]
-        [ td [ class "px-6 py-4 whitespace-nowrap" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap w-1/5" ]
+            -- Match header width
             [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName submission.studentName) ]
             , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ submission.studentId) ]
             ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-1/6" ]
+            -- Match header width
             [ div [ class "text-sm text-gray-900" ] [ text submission.gameName ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-24" ]
+            -- Match header width
             [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            -- Match header width
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-24" ]
+            -- Match header width
             [ viewGradeBadge submission.grade ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
-            [ button
-                [ onClick (SelectSubmission submission)
-                , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
-                ]
-                [ text
-                    (if submission.grade == Nothing then
-                        "Grade"
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium w-80" ]
+            -- Match header width
+            [ div [ class "flex items-center space-x-2" ]
+                -- Better flex layout
+                [ button
+                    [ onClick (SelectSubmission submission)
+                    , class "flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center text-sm" -- Made buttons more flexible
+                    ]
+                    [ text
+                        (if submission.grade == Nothing then
+                            "Grade"
 
-                     else
-                        "View/Edit"
-                    )
+                         else
+                            "View/Edit"
+                        )
+                    ]
+                , button
+                    [ onClick (ViewStudentRecord submission.studentId)
+                    , class "flex-1 px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center text-sm"
+                    ]
+                    [ text "Student" ]
+                , button
+                    [ onClick (DeleteSubmission submission)
+                    , class "flex-1 px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center text-sm"
+                    ]
+                    [ text "Delete" ]
                 ]
-            , button
-                [ onClick (ViewStudentRecord submission.studentId)
-                , class "w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
-                ]
-                [ text "Student" ]
-            , button
-                [ onClick (DeleteSubmission submission)
-                , class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center"
-                ]
-                [ text "Delete" ]
             ]
         ]
 
