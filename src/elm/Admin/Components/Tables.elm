@@ -1,13 +1,3 @@
-module Admin exposing (..)
-
--- Re-export the main module
-import Admin.Main
-
-main = Admin.Main.main
-```
-
-## 11. src/elm/Admin/Components/Tables.elm
-```elm
 module Admin.Components.Tables exposing (..)
 
 import Admin.Types exposing (..)
@@ -16,6 +6,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Shared.Types exposing (..)
 import Shared.Utils exposing (..)
+
 
 viewSubmissionsTable : List Submission -> Html Msg
 viewSubmissionsTable submissions =
@@ -35,6 +26,7 @@ viewSubmissionsTable submissions =
                 (List.map viewSubmissionRow submissions)
             ]
         ]
+
 
 viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
@@ -56,7 +48,14 @@ viewSubmissionRow submission =
                 [ onClick (SelectSubmission submission)
                 , class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center"
                 ]
-                [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+                [ text
+                    (if submission.grade == Nothing then
+                        "Grade"
+
+                     else
+                        "View/Edit"
+                    )
+                ]
             , button
                 [ onClick (ViewStudentRecord submission.studentId)
                 , class "w-24 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center"
@@ -70,22 +69,32 @@ viewSubmissionRow submission =
             ]
         ]
 
+
 viewGradeBadge : Maybe Grade -> Html Msg
 viewGradeBadge maybeGrade =
     case maybeGrade of
         Just grade ->
             let
-                (bgColor, textColor) =
-                    if grade.score >= 90 then ("bg-green-100", "text-green-800")
-                    else if grade.score >= 70 then ("bg-blue-100", "text-blue-800")
-                    else if grade.score >= 60 then ("bg-yellow-100", "text-yellow-800")
-                    else ("bg-red-100", "text-red-800")
+                ( bgColor, textColor ) =
+                    if grade.score >= 90 then
+                        ( "bg-green-100", "text-green-800" )
+
+                    else if grade.score >= 70 then
+                        ( "bg-blue-100", "text-blue-800" )
+
+                    else if grade.score >= 60 then
+                        ( "bg-yellow-100", "text-yellow-800" )
+
+                    else
+                        ( "bg-red-100", "text-red-800" )
             in
             span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
                 [ text (String.fromInt grade.score ++ "/100") ]
+
         Nothing ->
             span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
                 [ text "Ungraded" ]
+
 
 viewStudentDirectoryTable : Model -> Html Msg
 viewStudentDirectoryTable model =
@@ -95,9 +104,11 @@ viewStudentDirectoryTable model =
         , if model.loading then
             div [ class "flex justify-center my-12" ]
                 [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" ] [] ]
+
           else if List.isEmpty (applyStudentFilters model) then
             div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
                 [ p [ class "text-gray-500" ] [ text "No students found matching your filters." ] ]
+
           else
             div [ class "overflow-x-auto bg-white" ]
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
@@ -116,6 +127,7 @@ viewStudentDirectoryTable model =
                 ]
         ]
 
+
 viewStudentFiltersAndSort : Model -> Html Msg
 viewStudentFiltersAndSort model =
     div [ class "mb-4" ]
@@ -123,9 +135,14 @@ viewStudentFiltersAndSort model =
             [ div [ class "flex-1 max-w-md" ]
                 [ label [ for "studentFilterText", class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Search Students" ]
                 , input
-                    [ type_ "text", id "studentFilterText", placeholder "Search by name or ID", value model.studentFilterText, onInput UpdateStudentFilterText
+                    [ type_ "text"
+                    , id "studentFilterText"
+                    , placeholder "Search by name or ID"
+                    , value model.studentFilterText
+                    , onInput UpdateStudentFilterText
                     , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    ] []
+                    ]
+                    []
                 ]
             , div [ class "flex items-center ml-4 self-end" ]
                 [ button [ onClick RequestAllStudents, class "flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none" ] [ text "Refresh" ] ]
@@ -136,10 +153,18 @@ viewStudentFiltersAndSort model =
             , button [ onClick (UpdateStudentSortBy ByStudentCreated), class (getStudentSortButtonClass model ByStudentCreated) ] [ text "Created" ]
             , button [ onClick (UpdateStudentSortBy ByStudentLastActive), class (getStudentSortButtonClass model ByStudentLastActive) ] [ text "Last Active" ]
             , button [ onClick ToggleStudentSortDirection, class "ml-2 px-2 py-1 rounded text-gray-600 hover:bg-gray-100" ]
-                [ text (if model.studentSortDirection == Ascending then "↑" else "↓") ]
+                [ text
+                    (if model.studentSortDirection == Ascending then
+                        "↑"
+
+                     else
+                        "↓"
+                    )
+                ]
             , span [ class "ml-4 text-sm text-gray-500" ] [ text ("Total: " ++ String.fromInt (List.length (applyStudentFilters model)) ++ " students") ]
             ]
         ]
+
 
 viewStudentRow : Student -> Html Msg
 viewStudentRow student =
@@ -155,6 +180,7 @@ viewStudentRow student =
             ]
         ]
 
+
 viewStudentSubmissionsTable : List Submission -> Html Msg
 viewStudentSubmissionsTable submissions =
     div [ class "bg-white shadow rounded-lg overflow-hidden" ]
@@ -164,6 +190,7 @@ viewStudentSubmissionsTable submissions =
             ]
         , if List.isEmpty submissions then
             div [ class "p-6 text-center" ] [ p [ class "text-gray-500" ] [ text "No submissions found for this student." ] ]
+
           else
             div [ class "overflow-x-auto" ]
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
@@ -181,6 +208,7 @@ viewStudentSubmissionsTable submissions =
                 ]
         ]
 
+
 viewStudentSubmissionRow : Submission -> Html Msg
 viewStudentSubmissionRow submission =
     tr [ class "hover:bg-gray-50" ]
@@ -190,45 +218,79 @@ viewStudentSubmissionRow submission =
         , td [ class "px-6 py-4 whitespace-nowrap" ] [ viewGradeBadge submission.grade ]
         , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
             [ button [ onClick (SelectSubmission submission), class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center" ]
-                [ text (if submission.grade == Nothing then "Grade" else "View/Edit") ]
+                [ text
+                    (if submission.grade == Nothing then
+                        "Grade"
+
+                     else
+                        "View/Edit"
+                    )
+                ]
             , button [ onClick (DeleteSubmission submission), class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center" ] [ text "Delete" ]
             ]
         ]
 
+
+
 -- Helper functions
+
+
 applyStudentFilters : Model -> List Student
 applyStudentFilters model =
     model.students
         |> List.filter (filterStudentByText model.studentFilterText)
         |> sortStudents model.studentSortBy model.studentSortDirection
 
+
 filterStudentByText : String -> Student -> Bool
 filterStudentByText filterText student =
-    if String.isEmpty filterText then True
+    if String.isEmpty filterText then
+        True
+
     else
         let
-            lowercaseFilter = String.toLower filterText
-            containsFilter text = String.contains lowercaseFilter (String.toLower text)
+            lowercaseFilter =
+                String.toLower filterText
+
+            containsFilter text =
+                String.contains lowercaseFilter (String.toLower text)
         in
         containsFilter student.name || containsFilter student.id
+
 
 sortStudents : StudentSortBy -> SortDirection -> List Student -> List Student
 sortStudents sortBy direction students =
     let
         sortFunction =
             case sortBy of
-                ByStudentName -> \a b -> compare a.name b.name
-                ByStudentCreated -> \a b -> compare a.created b.created
-                ByStudentLastActive -> \a b -> compare a.lastActive b.lastActive
-        sortedList = List.sortWith sortFunction students
+                ByStudentName ->
+                    \a b -> compare a.name b.name
+
+                ByStudentCreated ->
+                    \a b -> compare a.created b.created
+
+                ByStudentLastActive ->
+                    \a b -> compare a.lastActive b.lastActive
+
+        sortedList =
+            List.sortWith sortFunction students
     in
     case direction of
-        Ascending -> sortedList
-        Descending -> List.reverse sortedList
+        Ascending ->
+            sortedList
+
+        Descending ->
+            List.reverse sortedList
+
 
 getStudentSortButtonClass : Model -> StudentSortBy -> String
 getStudentSortButtonClass model sortType =
-    let baseClass = "px-3 py-1 rounded text-sm"
+    let
+        baseClass =
+            "px-3 py-1 rounded text-sm"
     in
-    if model.studentSortBy == sortType then baseClass ++ " bg-blue-100 text-blue-800 font-medium"
-    else baseClass ++ " text-gray-600 hover:bg-gray-100"
+    if model.studentSortBy == sortType then
+        baseClass ++ " bg-blue-100 text-blue-800 font-medium"
+
+    else
+        baseClass ++ " text-gray-600 hover:bg-gray-100"

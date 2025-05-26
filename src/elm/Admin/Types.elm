@@ -1,5 +1,6 @@
 module Admin.Types exposing (..)
 
+import Json.Decode as Decode
 import Shared.Types exposing (..)
 
 

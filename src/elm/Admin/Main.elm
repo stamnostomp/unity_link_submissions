@@ -248,7 +248,7 @@ viewCurrentPage model =
             StudentManagement.view model
 
         StudentRecordPage student submissions ->
-            StudentManagement.viewStudentRecord model student submissions
+            StudentManagement.view model
 
         BeltManagementPage ->
             BeltManagement.view model

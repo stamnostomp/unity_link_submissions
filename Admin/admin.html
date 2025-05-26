@@ -10,7 +10,7 @@
 <body>
   <div id="elm-admin-app"></div>
 
-  <!-- Compiled Elm application -->
+  <!-- Make sure this path is correct -->
   <script src="/Admin/admin.js"></script>
 
   <!-- Import Firebase integration -->
@@ -20,31 +20,18 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Check if Elm is defined
       if (typeof Elm === 'undefined') {
-        console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
-        document.getElementById('elm-admin-app').innerHTML = 
-          '<div style="color: red; padding: 20px;">' +
-          '<h2>Error: Application could not load</h2>' +
-          '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
-          '<p>Error: Elm is not defined</p>' +
-          '</div>';
+        console.error("Error: Elm is not defined. Check the admin.js file path and content.");
         return;
       }
 
-      // Initialize the Elm application
       try {
-        const elmApp = Elm.Admin.init({
+        const elmApp = Elm.Admin.Main.init({
           node: document.getElementById('elm-admin-app')
         });
 
-        // Initialize Firebase with the Elm app
         initializeFirebase(elmApp);
       } catch (e) {
         console.error("Error initializing Elm application:", e);
-        document.getElementById('elm-admin-app').innerHTML = 
-          '<div style="color: red; padding: 20px;">' +
-          '<h2>Error: Application initialization failed</h2>' +
-          '<p>Error details: ' + e.message + '</p>' +
-          '</div>';
       }
     });
   </script>
