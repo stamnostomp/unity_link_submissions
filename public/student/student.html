@@ -15,13 +15,14 @@
 
   <!-- Import Firebase integration -->
   <script type="module">
-    import { initializeFirebase } from '/Student/student-firebase.js';
+    // CHANGE THIS LINE:
+    import { initializeFirebase } from '/src/firebase/integrations/student-integration.js';
 
     document.addEventListener('DOMContentLoaded', function() {
       // Check if Elm is defined
       if (typeof Elm === 'undefined') {
         console.error("Error: Elm is not defined. The Elm application JS file might not be loading correctly.");
-        document.getElementById('elm-app').innerHTML = 
+        document.getElementById('elm-app').innerHTML =
           '<div style="color: red; padding: 20px;">' +
           '<h2>Error: Application could not load</h2>' +
           '<p>The Elm application could not be loaded. This might be due to a deployment issue.</p>' +
@@ -40,7 +41,7 @@
         initializeFirebase(elmApp);
       } catch (e) {
         console.error("Error initializing Elm application:", e);
-        document.getElementById('elm-app').innerHTML = 
+        document.getElementById('elm-app').innerHTML =
           '<div style="color: red; padding: 20px;">' +
           '<h2>Error: Application initialization failed</h2>' +
           '<p>Error details: ' + e.message + '</p>' +

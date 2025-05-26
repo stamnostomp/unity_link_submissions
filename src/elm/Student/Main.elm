@@ -1,4 +1,4 @@
-port module Student exposing (..)
+port module Student.Main exposing (..)
 
 import Browser
 import Html exposing (..)
@@ -6,21 +6,35 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import Time
 import Task
+import Time
+
 
 
 -- PORTS
 
+
 port findStudent : String -> Cmd msg
+
+
 port studentFound : (Decode.Value -> msg) -> Sub msg
+
+
 port saveSubmission : Encode.Value -> Cmd msg
+
+
 port submissionResult : (String -> msg) -> Sub msg
+
+
 port requestBelts : () -> Cmd msg
+
+
 port receiveBelts : (Decode.Value -> msg) -> Sub msg
 
 
+
 -- MAIN
+
 
 main : Program () Model Msg
 main =
@@ -32,7 +46,9 @@ main =
         }
 
 
+
 -- MODEL
+
 
 type alias Student =
     { id : String
@@ -41,6 +57,7 @@ type alias Student =
     , lastActive : String
     , submissions : List Submission
     }
+
 
 type alias Submission =
     { id : String
@@ -53,12 +70,14 @@ type alias Submission =
     , grade : Maybe Grade
     }
 
+
 type alias Grade =
     { score : Int
     , feedback : String
     , gradedBy : String
     , gradingDate : String
     }
+
 
 type alias Belt =
     { id : String
@@ -68,12 +87,14 @@ type alias Belt =
     , gameOptions : List String
     }
 
+
 type Page
     = NamePage
     | StudentProfilePage Student
     | SubmissionFormPage Student
     | SubmissionCompletePage Student Submission
     | LoadingPage String
+
 
 type alias Model =
     { page : Page
@@ -86,6 +107,7 @@ type alias Model =
     , successMessage : Maybe String
     , belts : List Belt
     }
+
 
 init : () -> ( Model, Cmd Msg )
 init _ =
@@ -103,35 +125,55 @@ init _ =
     )
 
 
+
 -- HELPERS
+
 
 isValidNameFormat : String -> Bool
 isValidNameFormat name =
     let
-        parts = String.split "." name
+        parts =
+            String.split "." name
     in
-    List.length parts == 2 &&
-    List.all (\part -> String.length part > 0) parts
+    List.length parts
+        == 2
+        && List.all (\part -> String.length part > 0) parts
+
 
 getGameOptions : String -> List Belt -> List String
 getGameOptions beltId belts =
     case List.filter (\b -> b.id == beltId) belts of
-        [] -> []
-        belt :: _ -> belt.gameOptions
+        [] ->
+            []
+
+        belt :: _ ->
+            belt.gameOptions
+
 
 formatDisplayName : String -> String
 formatDisplayName name =
     let
-        parts = String.split "." name
-        firstName = List.head parts |> Maybe.withDefault ""
-        lastName = List.drop 1 parts |> List.head |> Maybe.withDefault ""
-        capitalizedFirst = String.toUpper (String.left 1 firstName) ++ String.dropLeft 1 firstName
-        capitalizedLast = String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
+        parts =
+            String.split "." name
+
+        firstName =
+            List.head parts |> Maybe.withDefault ""
+
+        lastName =
+            List.drop 1 parts |> List.head |> Maybe.withDefault ""
+
+        capitalizedFirst =
+            String.toUpper (String.left 1 firstName) ++ String.dropLeft 1 firstName
+
+        capitalizedLast =
+            String.toUpper (String.left 1 lastName) ++ String.dropLeft 1 lastName
     in
     capitalizedFirst ++ " " ++ capitalizedLast
 
 
+
 -- BELT COLOR INDICATOR
+
 
 viewBeltColorIndicator : String -> List Belt -> Html Msg
 viewBeltColorIndicator selectedBeltId belts =
@@ -157,7 +199,10 @@ viewBeltColorIndicator selectedBeltId belts =
             -- No belt selected
             text ""
 
+
+
 -- UPDATE
+
 
 type Msg
     = UpdateSearchName String
@@ -175,6 +220,7 @@ type Msg
     | Reset
     | BeltsReceived (Result Decode.Error (List Belt))
 
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -183,16 +229,19 @@ update msg model =
 
         SearchStudent ->
             let
-                trimmedName = String.trim model.searchName
+                trimmedName =
+                    String.trim model.searchName
             in
-                if String.isEmpty trimmedName then
-                    ( { model | errorMessage = Just "Please enter your name to continue" }, Cmd.none )
-                else if not (isValidNameFormat trimmedName) then
-                         ( { model | errorMessage = Just "Please enter your name in the format firstname.lastname (e.g., tyler.smith)" }, Cmd.none )
-                else
-                    ( { model | page = LoadingPage "Searching for your record...", errorMessage = Nothing }
-                    , findStudent trimmedName
-                    )
+            if String.isEmpty trimmedName then
+                ( { model | errorMessage = Just "Please enter your name to continue" }, Cmd.none )
+
+            else if not (isValidNameFormat trimmedName) then
+                ( { model | errorMessage = Just "Please enter your name in the format firstname.lastname (e.g., tyler.smith)" }, Cmd.none )
+
+            else
+                ( { model | page = LoadingPage "Searching for your record...", errorMessage = Nothing }
+                , findStudent trimmedName
+                )
 
         StudentFoundResult result ->
             case result of
@@ -203,31 +252,40 @@ update msg model =
 
                         Nothing ->
                             ( { model
-                              | page = NamePage
-                              , errorMessage = Just "No record found. Please check your name or ask your teacher to create a record for you."
-                              }, Cmd.none )
+                                | page = NamePage
+                                , errorMessage = Just "No record found. Please check your name or ask your teacher to create a record for you."
+                              }
+                            , Cmd.none
+                            )
 
                 Err error ->
                     ( { model
-                      | page = NamePage
-                      , errorMessage = Just ("Error loading record: " ++ Decode.errorToString error)
-                      }, Cmd.none )
+                        | page = NamePage
+                        , errorMessage = Just ("Error loading record: " ++ Decode.errorToString error)
+                      }
+                    , Cmd.none
+                    )
 
         StartNewSubmission student ->
             ( { model
-              | page = SubmissionFormPage student
-              , beltLevel = ""
-              , gameName = ""
-              , githubLink = ""
-              , notes = ""
-              , errorMessage = Nothing
-              }, Cmd.none )
+                | page = SubmissionFormPage student
+                , beltLevel = ""
+                , gameName = ""
+                , githubLink = ""
+                , notes = ""
+                , errorMessage = Nothing
+              }
+            , Cmd.none
+            )
 
         UpdateBeltLevel beltId ->
             let
                 -- Reset game name when belt changes
-                gameOptions = getGameOptions beltId model.belts
-                defaultGame = List.head gameOptions |> Maybe.withDefault ""
+                gameOptions =
+                    getGameOptions beltId model.belts
+
+                defaultGame =
+                    List.head gameOptions |> Maybe.withDefault ""
             in
             ( { model | beltLevel = beltId, gameName = defaultGame }, Cmd.none )
 
@@ -243,10 +301,13 @@ update msg model =
         SubmitForm student ->
             if String.trim model.beltLevel == "" || String.trim model.gameName == "" || String.trim model.githubLink == "" then
                 ( { model | errorMessage = Just "Please fill in all required fields" }, Cmd.none )
+
             else
                 let
                     -- For a real app, you'd want to generate a better ID and use actual date
-                    currentDate = "2025-03-04"
+                    currentDate =
+                        "2025-03-04"
+
                     newSubmission =
                         { id = student.id ++ "-" ++ model.beltLevel ++ "-" ++ String.fromInt (List.length student.submissions + 1)
                         , studentId = student.id
@@ -267,6 +328,7 @@ update msg model =
                 LoadingPage _ ->
                     if String.startsWith "Error:" result then
                         ( { model | errorMessage = Just result, page = NamePage }, Cmd.none )
+
                     else
                         -- Re-search student to get updated record
                         ( model, findStudent model.searchName )
@@ -301,7 +363,10 @@ update msg model =
                 Err error ->
                     ( { model | errorMessage = Just ("Error loading belts: " ++ Decode.errorToString error) }, Cmd.none )
 
+
+
 -- SUBSCRIPTIONS
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -312,7 +377,9 @@ subscriptions _ =
         ]
 
 
+
 -- JSON ENCODERS & DECODERS
+
 
 encodeStudent : Student -> Encode.Value
 encodeStudent student =
@@ -322,6 +389,7 @@ encodeStudent student =
         , ( "created", Encode.string student.created )
         , ( "lastActive", Encode.string student.lastActive )
         ]
+
 
 encodeSubmission : Submission -> Encode.Value
 encodeSubmission submission =
@@ -335,9 +403,11 @@ encodeSubmission submission =
         , ( "submissionDate", Encode.string submission.submissionDate )
         ]
 
+
 decodeStudentResponse : Decode.Value -> Result Decode.Error (Maybe Student)
 decodeStudentResponse value =
     Decode.decodeValue (Decode.nullable studentDecoder) value
+
 
 studentDecoder : Decoder Student
 studentDecoder =
@@ -347,6 +417,7 @@ studentDecoder =
         (Decode.field "created" Decode.string)
         (Decode.field "lastActive" Decode.string)
         (Decode.field "submissions" (Decode.list submissionDecoder))
+
 
 submissionDecoder : Decoder Submission
 submissionDecoder =
@@ -360,6 +431,7 @@ submissionDecoder =
         (Decode.field "submissionDate" Decode.string)
         (Decode.maybe (Decode.field "grade" gradeDecoder))
 
+
 gradeDecoder : Decoder Grade
 gradeDecoder =
     Decode.map4 Grade
@@ -367,6 +439,7 @@ gradeDecoder =
         (Decode.field "feedback" Decode.string)
         (Decode.field "gradedBy" Decode.string)
         (Decode.field "gradingDate" Decode.string)
+
 
 beltDecoder : Decoder Belt
 beltDecoder =
@@ -377,12 +450,15 @@ beltDecoder =
         (Decode.field "order" Decode.int)
         (Decode.field "gameOptions" (Decode.list Decode.string))
 
+
 decodeBeltsResponse : Decode.Value -> Result Decode.Error (List Belt)
 decodeBeltsResponse value =
     Decode.decodeValue (Decode.list beltDecoder) value
 
 
+
 -- VIEW
+
 
 view : Model -> Html Msg
 view model =
@@ -399,6 +475,7 @@ view model =
                 ]
             ]
         ]
+
 
 viewPage : Model -> Html Msg
 viewPage model =
@@ -417,6 +494,7 @@ viewPage model =
 
         LoadingPage message ->
             viewLoading message
+
 
 viewNamePage : Model -> Html Msg
 viewNamePage model =
@@ -451,6 +529,7 @@ viewNamePage model =
             ]
         ]
 
+
 viewStudentProfilePage : Model -> Student -> Html Msg
 viewStudentProfilePage model student =
     div [ class "space-y-6" ]
@@ -477,6 +556,7 @@ viewStudentProfilePage model student =
             , if List.isEmpty student.submissions then
                 div [ class "bg-gray-50 rounded-md p-4 text-center" ]
                     [ p [ class "text-gray-500" ] [ text "No submissions yet. Start by submitting your first game!" ] ]
+
               else
                 div [ class "overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg" ]
                     [ table [ class "min-w-full divide-y divide-gray-300" ]
@@ -495,24 +575,34 @@ viewStudentProfilePage model student =
             ]
         ]
 
+
 viewSubmissionRow : Model -> Submission -> Html Msg
 viewSubmissionRow model submission =
     let
         beltName =
             let
-                matchingBelts = List.filter (\b -> b.id == submission.beltLevel) model.belts
+                matchingBelts =
+                    List.filter (\b -> b.id == submission.beltLevel) model.belts
             in
             case matchingBelts of
-                [] -> submission.beltLevel
-                belt :: _ -> belt.name
+                [] ->
+                    submission.beltLevel
+
+                belt :: _ ->
+                    belt.name
 
         beltColor =
             let
-                matchingBelts = List.filter (\b -> b.id == submission.beltLevel) model.belts
+                matchingBelts =
+                    List.filter (\b -> b.id == submission.beltLevel) model.belts
             in
             case matchingBelts of
-                [] -> "#808080"  -- Default gray if not found
-                belt :: _ -> belt.color
+                [] ->
+                    "#808080"
+
+                -- Default gray if not found
+                belt :: _ ->
+                    belt.color
     in
     tr []
         [ td [ class "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6" ]
@@ -529,20 +619,24 @@ viewSubmissionRow model submission =
             [ viewGradeStatus submission.grade ]
         ]
 
+
 viewGradeStatus : Maybe Grade -> Html Msg
 viewGradeStatus maybeGrade =
     case maybeGrade of
         Just grade ->
             let
-                (bgColor, textColor) =
+                ( bgColor, textColor ) =
                     if grade.score >= 90 then
-                        ("bg-green-100", "text-green-800")
+                        ( "bg-green-100", "text-green-800" )
+
                     else if grade.score >= 70 then
-                        ("bg-blue-100", "text-blue-800")
+                        ( "bg-blue-100", "text-blue-800" )
+
                     else if grade.score >= 60 then
-                        ("bg-yellow-100", "text-yellow-800")
+                        ( "bg-yellow-100", "text-yellow-800" )
+
                     else
-                        ("bg-red-100", "text-red-800")
+                        ( "bg-red-100", "text-red-800" )
             in
             span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
                 [ text (String.fromInt grade.score ++ "/100") ]
@@ -551,14 +645,17 @@ viewGradeStatus maybeGrade =
             span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
                 [ text "Pending" ]
 
+
 viewSubmissionFormPage : Model -> Student -> Html Msg
 viewSubmissionFormPage model student =
     let
         -- Get ordered belts
-        sortedBelts = List.sortBy .order model.belts
+        sortedBelts =
+            List.sortBy .order model.belts
 
         -- Get game options based on selected belt
-        gameOptions = getGameOptions model.beltLevel model.belts
+        gameOptions =
+            getGameOptions model.beltLevel model.belts
     in
     div [ class "space-y-6" ]
         [ h2 [ class "text-xl font-medium text-gray-700" ] [ text ("New Submission for " ++ student.name) ]
@@ -573,13 +670,16 @@ viewSubmissionFormPage model student =
                         , value model.beltLevel
                         , class "mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm pl-8"
                         ]
-                        ([ option [ value "" ] [ text "-- Select Belt --" ] ] ++
-                            List.map (\belt ->
-                                option
-                                    [ value belt.id
-                                    ]
-                                    [ text belt.name ]
-                            ) sortedBelts)
+                        ([ option [ value "" ] [ text "-- Select Belt --" ] ]
+                            ++ List.map
+                                (\belt ->
+                                    option
+                                        [ value belt.id
+                                        ]
+                                        [ text belt.name ]
+                                )
+                                sortedBelts
+                        )
                     , viewBeltColorIndicator model.beltLevel sortedBelts
                     ]
                 ]
@@ -588,9 +688,11 @@ viewSubmissionFormPage model student =
                 , if model.beltLevel == "" then
                     div [ class "mt-1 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-500" ]
                         [ text "Please select a belt level first" ]
+
                   else if List.isEmpty gameOptions then
                     div [ class "mt-1 p-2 bg-yellow-50 border border-yellow-300 rounded-md text-sm text-yellow-700" ]
                         [ text "No games available for this belt. Please contact your instructor." ]
+
                   else
                     select
                         [ id "gameName"
@@ -598,8 +700,9 @@ viewSubmissionFormPage model student =
                         , value model.gameName
                         , class "mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         ]
-                        ([ option [ value "" ] [ text "-- Select Game --" ] ] ++
-                            List.map (\game -> option [ value game ] [ text game ]) gameOptions)
+                        ([ option [ value "" ] [ text "-- Select Game --" ] ]
+                            ++ List.map (\game -> option [ value game ] [ text game ]) gameOptions
+                        )
                 ]
             , div [ class "space-y-2" ]
                 [ label [ for "githubLink", class "block text-sm font-medium text-gray-700" ] [ text "GitHub Repository Link:" ]
@@ -640,16 +743,21 @@ viewSubmissionFormPage model student =
             ]
         ]
 
+
 viewSubmissionCompletePage : Model -> Student -> Submission -> Html Msg
 viewSubmissionCompletePage model student submission =
     let
         beltName =
             let
-                matchingBelts = List.filter (\b -> b.id == submission.beltLevel) model.belts
+                matchingBelts =
+                    List.filter (\b -> b.id == submission.beltLevel) model.belts
             in
             case matchingBelts of
-                [] -> submission.beltLevel
-                belt :: _ -> belt.name
+                [] ->
+                    submission.beltLevel
+
+                belt :: _ ->
+                    belt.name
     in
     div [ class "space-y-6" ]
         [ div [ class "text-center" ]
@@ -695,12 +803,14 @@ viewSubmissionCompletePage model student submission =
             ]
         ]
 
+
 viewLoading : String -> Html Msg
 viewLoading message =
     div [ class "flex flex-col items-center justify-center py-12" ]
         [ div [ class "animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" ] []
         , p [ class "text-gray-600" ] [ text message ]
         ]
+
 
 viewError : Maybe String -> Html Msg
 viewError maybeError =
@@ -719,6 +829,7 @@ viewError maybeError =
 
         Nothing ->
             text ""
+
 
 viewSuccess : Maybe String -> Html Msg
 viewSuccess maybeSuccess =
