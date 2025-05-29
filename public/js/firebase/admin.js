@@ -1,6 +1,6 @@
 // firebase-admin.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, get, update, onValue, set, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, get, update, onValue, set, remove, push } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -67,6 +67,14 @@ function isValidNameFormat(name) {
 }
 
 /**
+ * Get current user helper function
+ * @return {Object} Current user object
+ */
+function getCurrentUser() {
+  return auth.currentUser || { email: 'unknown@example.com' };
+}
+
+/**
  * Initialize the Firebase integration with the Elm app
  * @param {Object} elmApp - The Elm application instance
  */
@@ -79,31 +87,23 @@ export function initializeFirebase(elmApp) {
       sendPasswordResetEmail(auth, email)
         .then(() => {
           console.log("Password reset email sent successfully!");
-          // Make sure this port exists
           if (elmApp.ports.passwordResetResult) {
             elmApp.ports.passwordResetResult.send({
               success: true,
               message: "Password reset email sent! Check your inbox."
             });
-          } else {
-            console.error("passwordResetResult port not found in Elm app");
           }
         })
         .catch((error) => {
           console.error("Error sending password reset email:", error);
-          // Make sure this port exists
           if (elmApp.ports.passwordResetResult) {
             elmApp.ports.passwordResetResult.send({
               success: false,
               message: getPasswordResetErrorMessage(error.code)
             });
-          } else {
-            console.error("passwordResetResult port not found in Elm app");
           }
         });
     });
-  } else {
-    console.warn("requestPasswordReset port not found in Elm app");
   }
 
   onAuthStateChanged(auth, async (user) => {
@@ -120,13 +120,11 @@ export function initializeFirebase(elmApp) {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName || user.email,
-            role: adminData.role || "admin"  // Guarantee a default value
+            role: adminData.role || "admin"
           };
           console.log("User is signed in:", userData);
 
-          // If the admin doesn't have a role set, let's add one
           if (!adminData.role) {
-            // Update the admin record with a default role
             await update(adminRef, { role: "admin" });
             console.log("Added default 'admin' role to existing admin user");
           }
@@ -136,10 +134,8 @@ export function initializeFirebase(elmApp) {
             isSignedIn: true
           });
 
-          // Now that user is signed in, we can start listening for submissions
           setupAdminSubmissionListeners(elmApp);
         } else {
-          // Admin record not found
           console.log("Admin record not found for authenticated user");
           elmApp.ports.receiveAuthState.send({
             user: null,
@@ -154,7 +150,6 @@ export function initializeFirebase(elmApp) {
         });
       }
     } else {
-      // User is signed out
       console.log("User is signed out");
       elmApp.ports.receiveAuthState.send({
         user: null,
@@ -169,7 +164,6 @@ export function initializeFirebase(elmApp) {
 
     signInWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
-        // Successful sign-in is handled by onAuthStateChanged
         elmApp.ports.receiveAuthResult.send({
           success: true,
           message: "Sign in successful!"
@@ -195,7 +189,7 @@ export function initializeFirebase(elmApp) {
       });
   });
 
-  // Other functionality (fetch submissions, save grades) only works when authenticated
+  // Submissions functionality
   elmApp.ports.requestSubmissions.subscribe(function() {
     if (auth.currentUser) {
       fetchAdminSubmissions(elmApp);
@@ -213,7 +207,7 @@ export function initializeFirebase(elmApp) {
     }
   });
 
-  // Handle student record requests
+  // Student management functionality
   elmApp.ports.requestStudentRecord.subscribe(function(studentId) {
     if (auth.currentUser) {
       fetchStudentRecord(studentId, elmApp);
@@ -222,12 +216,29 @@ export function initializeFirebase(elmApp) {
     }
   });
 
-  // Handle student creation
   elmApp.ports.createStudent.subscribe(function(studentData) {
     if (auth.currentUser) {
       createNewStudentRecord(studentData, elmApp);
     } else {
       console.warn("Cannot create student: User not authenticated");
+    }
+  });
+
+  elmApp.ports.requestAllStudents.subscribe(function() {
+    if (auth.currentUser) {
+      fetchAllStudents(elmApp);
+    } else {
+      console.warn("Cannot fetch students: User not authenticated");
+      elmApp.ports.receiveAllStudents.send([]);
+    }
+  });
+
+  elmApp.ports.deleteStudent.subscribe(function(studentId) {
+    if (auth.currentUser) {
+      deleteStudentAndSubmissions(studentId, elmApp);
+    } else {
+      console.warn("Cannot delete student: User not authenticated");
+      elmApp.ports.studentDeleted.send("Error: Not authenticated");
     }
   });
 
@@ -258,7 +269,7 @@ export function initializeFirebase(elmApp) {
     }
   });
 
-  // Handle submission deletion requests
+  // Submission deletion
   elmApp.ports.deleteSubmission.subscribe(function(submissionId) {
     if (auth.currentUser) {
       deleteSubmissionRecord(submissionId, elmApp);
@@ -268,27 +279,7 @@ export function initializeFirebase(elmApp) {
     }
   });
 
-  // Handle student listing requests
-  elmApp.ports.requestAllStudents.subscribe(function() {
-    if (auth.currentUser) {
-      fetchAllStudents(elmApp);
-    } else {
-      console.warn("Cannot fetch students: User not authenticated");
-      elmApp.ports.receiveAllStudents.send([]);
-    }
-  });
-
-  // Handle student deletion (including all submissions)
-  elmApp.ports.deleteStudent.subscribe(function(studentId) {
-    if (auth.currentUser) {
-      deleteStudentAndSubmissions(studentId, elmApp);
-    } else {
-      console.warn("Cannot delete student: User not authenticated");
-      elmApp.ports.studentDeleted.send("Error: Not authenticated");
-    }
-  });
-
-  // Handle admin user creation requests
+  // Admin user management
   if (elmApp.ports.createAdminUser) {
     elmApp.ports.createAdminUser.subscribe(function(userData) {
       if (auth.currentUser) {
@@ -305,7 +296,6 @@ export function initializeFirebase(elmApp) {
     });
   }
 
-  // Admin user management
   if (elmApp.ports.requestAllAdmins) {
     elmApp.ports.requestAllAdmins.subscribe(function() {
       if (auth.currentUser) {
@@ -351,15 +341,288 @@ export function initializeFirebase(elmApp) {
     });
   }
 
+  // POINT MANAGEMENT SYSTEM - Add these port listeners
+  if (elmApp.ports.requestStudentPoints) {
+    elmApp.ports.requestStudentPoints.subscribe(function() {
+      if (auth.currentUser) {
+        requestStudentPoints(elmApp);
+      } else {
+        console.warn("Cannot fetch student points: User not authenticated");
+        elmApp.ports.receiveStudentPoints.send([]);
+      }
+    });
+  }
+
+  if (elmApp.ports.awardPoints) {
+    elmApp.ports.awardPoints.subscribe(function(data) {
+      if (auth.currentUser) {
+        awardPoints(data, elmApp);
+      } else {
+        console.warn("Cannot award points: User not authenticated");
+        elmApp.ports.pointsAwarded.send({
+          success: false,
+          message: "Not authenticated. Please sign in first."
+        });
+      }
+    });
+  }
+
+  if (elmApp.ports.requestPointRedemptions) {
+    elmApp.ports.requestPointRedemptions.subscribe(function() {
+      if (auth.currentUser) {
+        requestPointRedemptions(elmApp);
+      } else {
+        console.warn("Cannot fetch redemptions: User not authenticated");
+        elmApp.ports.receivePointRedemptions.send([]);
+      }
+    });
+  }
+
+  if (elmApp.ports.processRedemption) {
+    elmApp.ports.processRedemption.subscribe(function(data) {
+      if (auth.currentUser) {
+        processRedemption(data, elmApp);
+      } else {
+        console.warn("Cannot process redemption: User not authenticated");
+        elmApp.ports.redemptionProcessed.send({
+          success: false,
+          message: "Not authenticated. Please sign in first."
+        });
+      }
+    });
+  }
+
+  if (elmApp.ports.requestPointRewards) {
+    elmApp.ports.requestPointRewards.subscribe(function() {
+      if (auth.currentUser) {
+        requestPointRewards(elmApp);
+      } else {
+        console.warn("Cannot fetch rewards: User not authenticated");
+        elmApp.ports.receivePointRewards.send([]);
+      }
+    });
+  }
+
+  if (elmApp.ports.savePointReward) {
+    elmApp.ports.savePointReward.subscribe(function(rewardData) {
+      if (auth.currentUser) {
+        savePointReward(rewardData, elmApp);
+      } else {
+        console.warn("Cannot save reward: User not authenticated");
+        elmApp.ports.pointRewardResult.send("Error: Not authenticated");
+      }
+    });
+  }
+
   // If logged in, check if we need to migrate role fields
   if (auth.currentUser) {
     migrateAdminRoles(elmApp);
   }
 }
 
+// POINT MANAGEMENT FUNCTIONS
+
+/**
+ * Request student points data
+ * @param {Object} elmApp - The Elm application instance
+ */
+function requestStudentPoints(elmApp) {
+  const pointsRef = ref(database, 'studentPoints');
+
+  get(pointsRef).then((snapshot) => {
+    const pointsData = [];
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      Object.keys(data).forEach(studentId => {
+        pointsData.push({
+          studentId: studentId,
+          ...data[studentId]
+        });
+      });
+    }
+    elmApp.ports.receiveStudentPoints.send(pointsData);
+  }).catch((error) => {
+    console.error("Error fetching student points:", error);
+    elmApp.ports.receiveStudentPoints.send([]);
+  });
+}
+
+/**
+ * Award points to a student
+ * @param {Object} data - The points data {studentId, points, reason}
+ * @param {Object} elmApp - The Elm application instance
+ */
+function awardPoints(data, elmApp) {
+  const pointsRef = ref(database, `studentPoints/${data.studentId}`);
+
+  get(pointsRef).then((snapshot) => {
+    let currentData = {
+      currentPoints: 0,
+      totalEarned: 0,
+      totalRedeemed: 0
+    };
+
+    if (snapshot.exists()) {
+      currentData = snapshot.val();
+    }
+
+    const updatedData = {
+      ...currentData,
+      currentPoints: currentData.currentPoints + data.points,
+      totalEarned: currentData.totalEarned + data.points,
+      lastUpdated: new Date().toISOString()
+    };
+
+    return set(pointsRef, updatedData);
+  }).then(() => {
+    // Log the point award
+    const historyRef = ref(database, 'pointHistory');
+    const newHistoryRef = push(historyRef);
+    return set(newHistoryRef, {
+      studentId: data.studentId,
+      points: data.points,
+      reason: data.reason,
+      awardedBy: getCurrentUser().email,
+      awardedAt: new Date().toISOString(),
+      type: 'awarded'
+    });
+  }).then(() => {
+    elmApp.ports.pointsAwarded.send({
+      success: true,
+      message: `Successfully awarded ${data.points} points`
+    });
+  }).catch((error) => {
+    console.error("Error awarding points:", error);
+    elmApp.ports.pointsAwarded.send({
+      success: false,
+      message: "Error awarding points: " + error.message
+    });
+  });
+}
+
+/**
+ * Request point redemptions data
+ * @param {Object} elmApp - The Elm application instance
+ */
+function requestPointRedemptions(elmApp) {
+  const redemptionsRef = ref(database, 'pointRedemptions');
+
+  get(redemptionsRef).then((snapshot) => {
+    const redemptions = [];
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      Object.keys(data).forEach(id => {
+        redemptions.push({
+          id: id,
+          ...data[id]
+        });
+      });
+    }
+    elmApp.ports.receivePointRedemptions.send(redemptions);
+  }).catch((error) => {
+    console.error("Error fetching redemptions:", error);
+    elmApp.ports.receivePointRedemptions.send([]);
+  });
+}
+
+/**
+ * Process a point redemption
+ * @param {Object} data - The redemption data {redemptionId, status, processedBy}
+ * @param {Object} elmApp - The Elm application instance
+ */
+function processRedemption(data, elmApp) {
+  const redemptionRef = ref(database, `pointRedemptions/${data.redemptionId}`);
+
+  get(redemptionRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+      throw new Error("Redemption not found");
+    }
+
+    const redemption = snapshot.val();
+    const updates = {
+      status: data.status,
+      processedBy: data.processedBy,
+      processedAt: new Date().toISOString()
+    };
+
+    return update(redemptionRef, updates);
+  }).then(() => {
+    elmApp.ports.redemptionProcessed.send({
+      success: true,
+      message: `Redemption ${data.status} successfully`
+    });
+  }).catch((error) => {
+    console.error("Error processing redemption:", error);
+    elmApp.ports.redemptionProcessed.send({
+      success: false,
+      message: "Error processing redemption: " + error.message
+    });
+  });
+}
+
+/**
+ * Request point rewards data
+ * @param {Object} elmApp - The Elm application instance
+ */
+function requestPointRewards(elmApp) {
+  const rewardsRef = ref(database, 'pointRewards');
+
+  get(rewardsRef).then((snapshot) => {
+    const rewards = [];
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      Object.keys(data).forEach(id => {
+        rewards.push({
+          id: id,
+          ...data[id]
+        });
+      });
+    }
+    elmApp.ports.receivePointRewards.send(rewards);
+  }).catch((error) => {
+    console.error("Error fetching rewards:", error);
+    elmApp.ports.receivePointRewards.send([]);
+  });
+}
+
+/**
+ * Save a point reward
+ * @param {Object} rewardData - The reward data to save
+ * @param {Object} elmApp - The Elm application instance
+ */
+function savePointReward(rewardData, elmApp) {
+  const rewardsRef = ref(database, 'pointRewards');
+
+  let rewardRef;
+  if (rewardData.id && rewardData.id !== "") {
+    // Update existing reward
+    rewardRef = ref(database, `pointRewards/${rewardData.id}`);
+  } else {
+    // Create new reward
+    rewardRef = push(rewardsRef);
+  }
+
+  const rewardToSave = {
+    ...rewardData,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (!rewardData.id || rewardData.id === "") {
+    rewardToSave.createdAt = new Date().toISOString();
+  }
+
+  set(rewardRef, rewardToSave).then(() => {
+    elmApp.ports.pointRewardResult.send("Reward saved successfully");
+  }).catch((error) => {
+    console.error("Error saving reward:", error);
+    elmApp.ports.pointRewardResult.send("Error: " + error.message);
+  });
+}
+
+// ALL OTHER EXISTING FUNCTIONS REMAIN THE SAME...
+
 /**
  * Automatically migrate existing admin records to include role field
- * @param {Object} elmApp - The Elm application instance
  */
 async function migrateAdminRoles(elmApp) {
   try {
@@ -374,11 +637,8 @@ async function migrateAdminRoles(elmApp) {
       for (const uid in adminsData) {
         const admin = adminsData[uid];
 
-        // If role is missing, add it
         if (!admin.role) {
-          // For the first admin, make them a superuser
           const role = migratedCount === 0 ? "superuser" : "admin";
-
           await update(ref(database, `admins/${uid}`), { role });
           console.log(`Migrated admin ${admin.email} to role: ${role}`);
           migratedCount++;
@@ -387,8 +647,6 @@ async function migrateAdminRoles(elmApp) {
 
       if (migratedCount > 0) {
         console.log(`Migrated ${migratedCount} admin records to include role field`);
-      } else {
-        console.log("All admin records already have role field");
       }
     }
   } catch (error) {
@@ -396,13 +654,8 @@ async function migrateAdminRoles(elmApp) {
   }
 }
 
-/**
- * Fetch all admin users from Firebase
- * @param {Object} elmApp - The Elm application instance
- */
 async function fetchAllAdminUsers(elmApp) {
   try {
-    // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
     const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
 
@@ -410,7 +663,6 @@ async function fetchAllAdminUsers(elmApp) {
       throw new Error("Only existing admins can manage admin accounts");
     }
 
-    // Get all admin users
     const adminsRef = ref(database, 'admins');
     const adminsSnapshot = await get(adminsRef);
 
@@ -424,16 +676,14 @@ async function fetchAllAdminUsers(elmApp) {
           uid,
           email: admin.email,
           displayName: admin.displayName || admin.email,
-          role: admin.role || "admin",  // Ensure role has a default value
+          role: admin.role || "admin",
           createdBy: admin.createdBy || null,
           createdAt: admin.createdAt || null
         });
       }
 
-      // Send the admin users to Elm
       elmApp.ports.receiveAllAdmins.send(adminUsers);
     } else {
-      // No admin users found
       elmApp.ports.receiveAllAdmins.send([]);
     }
   } catch (error) {
@@ -442,16 +692,8 @@ async function fetchAllAdminUsers(elmApp) {
   }
 }
 
-/**
- * Update an admin user record
- * @param {Object} adminUserData - The admin user data to update
- * @param {Object} elmApp - The Elm application instance
- */
-// In firebase-admin.js, modify the updateAdminUserRecord function's permission checks:
-
 async function updateAdminUserRecord(adminUserData, elmApp) {
   try {
-    // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
     const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
 
@@ -459,11 +701,9 @@ async function updateAdminUserRecord(adminUserData, elmApp) {
       throw new Error("Only existing admins can manage admin accounts");
     }
 
-    // Get the current user's role
     const currentAdminData = adminSnapshot.val();
     const isCurrentUserSuperuser = currentAdminData.role === "superuser";
 
-    // Make sure regular admins can't update superusers
     const targetAdminRef = ref(database, `admins/${adminUserData.uid}`);
     const targetAdminSnapshot = await get(targetAdminRef);
 
@@ -471,33 +711,23 @@ async function updateAdminUserRecord(adminUserData, elmApp) {
       const targetAdminData = targetAdminSnapshot.val();
       const isTargetSuperuser = targetAdminData.role === "superuser";
 
-      // Check if a non-superuser is trying to update a superuser
       if (isTargetSuperuser && !isCurrentUserSuperuser) {
         throw new Error("Only superusers can modify other superuser accounts");
       }
 
-      // Check if trying to promote to superuser without being a superuser
       if (adminUserData.role === "superuser" && !isCurrentUserSuperuser) {
         throw new Error("Only superusers can promote accounts to superuser status");
       }
-
-      // IMPORTANT: There's no restriction on superusers downgrading other superusers to regular admins
-      // This allows role changes in both directions
     }
 
-    // Check if trying to update your own account
     if (adminUserData.uid === currentUserUid) {
-      // Don't allow superusers to downgrade themselves (prevents lockout situation)
       if (isCurrentUserSuperuser && adminUserData.role !== "superuser") {
         throw new Error("You cannot downgrade your own superuser status");
       }
 
-      // Allow updating display name but not email for current user
-      // This is to prevent locking yourself out
       const adminRef = ref(database, `admins/${adminUserData.uid}`);
       await update(adminRef, {
         displayName: adminUserData.displayName,
-        // Allow updating your own role if you're not downgrading from superuser
         role: adminUserData.role
       });
 
@@ -508,21 +738,16 @@ async function updateAdminUserRecord(adminUserData, elmApp) {
       return;
     }
 
-    // Ensure role is defined with a default value if it's missing
     const roleToUse = adminUserData.role || "admin";
 
-    console.log("Updating admin user with role:", roleToUse);
-
-    // Update the admin record
     await update(targetAdminRef, {
       email: adminUserData.email,
       displayName: adminUserData.displayName,
-      role: roleToUse, // Use the role with fallback to "admin"
+      role: roleToUse,
       updatedBy: auth.currentUser.email,
       updatedAt: new Date().toISOString()
     });
 
-    // Return success
     elmApp.ports.adminUserUpdated.send({
       success: true,
       message: "Success: Admin user updated successfully"
@@ -536,32 +761,18 @@ async function updateAdminUserRecord(adminUserData, elmApp) {
   }
 }
 
-/**
- * Delete an admin user
- * @param {string} adminUserId - The admin user ID to delete
- * @param {Object} elmApp - The Elm application instance
- */
 async function deleteAdminUserRecord(adminUserId, elmApp) {
   try {
-    // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
     const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
-    // Port listeners
-    app.ports.requestStudentPoints.subscribe(requestStudentPoints);
-    app.ports.awardPoints.subscribe(awardPoints);
-    app.ports.requestPointRedemptions.subscribe(requestPointRedemptions);
-    app.ports.processRedemption.subscribe(processRedemption);
-    app.ports.requestPointRewards.subscribe(requestPointRewards);
-    app.ports.savePointReward.subscribe(savePointReward);
+
     if (!adminSnapshot.exists()) {
       throw new Error("Only existing admins can manage admin accounts");
     }
 
-    // Get the current user's role
     const currentAdminData = adminSnapshot.val();
     const isCurrentUserSuperuser = currentAdminData.role === "superuser";
 
-    // Check if trying to delete a superuser
     const targetAdminRef = ref(database, `admins/${adminUserId}`);
     const targetAdminSnapshot = await get(targetAdminRef);
 
@@ -574,12 +785,10 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
       throw new Error("Admin user not found");
     }
 
-    // Check if trying to delete your own account
     if (adminUserId === currentUserUid) {
       throw new Error("You cannot delete your own admin account");
     }
 
-    // Check how many admin users exist (to prevent deleting the last admin)
     const adminsRef = ref(database, 'admins');
     const adminsSnapshot = await get(adminsRef);
 
@@ -587,10 +796,8 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
       throw new Error("Cannot delete the only admin user");
     }
 
-    // Delete the admin record
     await remove(targetAdminRef);
 
-    // Return success
     elmApp.ports.adminUserDeleted.send({
       success: true,
       message: "Success: Admin user deleted successfully"
@@ -604,16 +811,10 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
   }
 }
 
-/**
- * Create a new admin user account
- * @param {Object} userData - The user data {email, password, displayName, role}
- * @param {Object} elmApp - The Elm application instance
- */
 async function createAdminUserAccount(userData, elmApp) {
   try {
     const { email, password, displayName, role } = userData;
 
-    // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
     const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
 
@@ -621,28 +822,24 @@ async function createAdminUserAccount(userData, elmApp) {
       throw new Error("Only existing admins can create new admin accounts");
     }
 
-    // Check if the current user is a superuser before allowing creation of another superuser
     const currentAdminData = adminSnapshot.val();
     const currentUserRole = currentAdminData.role || "admin";
     if (role === "superuser" && currentUserRole !== "superuser") {
       throw new Error("Only superusers can create other superuser accounts");
     }
 
-    // Create the user with Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Save admin record to database
     const adminRef = ref(database, `admins/${user.uid}`);
     await set(adminRef, {
       email: email,
       displayName: displayName || email,
-      role: role || "admin",  // Use the provided role or default to "admin"
+      role: role || "admin",
       createdBy: auth.currentUser.email,
       createdAt: new Date().toISOString()
     });
 
-    // Return success to Elm
     if (elmApp.ports.adminUserCreated) {
       elmApp.ports.adminUserCreated.send({
         success: true,
@@ -660,28 +857,19 @@ async function createAdminUserAccount(userData, elmApp) {
   }
 }
 
-/**
- * Delete a student and all their submissions from Firebase
- * @param {string} studentId - The student ID to delete
- * @param {Object} elmApp - The Elm application instance
- */
 async function deleteStudentAndSubmissions(studentId, elmApp) {
   try {
-    // First fetch all submissions to find those belonging to this student
     const submissionsRef = ref(database, 'submissions');
     const submissionsSnapshot = await get(submissionsRef);
 
     const deletionPromises = [];
 
-    // Delete all submissions for this student
     if (submissionsSnapshot.exists()) {
       const submissionsData = submissionsSnapshot.val();
 
-      // Find all submissions for this student and delete them
       for (const submissionId in submissionsData) {
         const submission = submissionsData[submissionId];
         if (submission.studentId === studentId) {
-          // Add to deletion promises
           const submissionRef = ref(database, `submissions/${submissionId}`);
           deletionPromises.push(remove(submissionRef));
           console.log(`Deleting submission: ${submissionId}`);
@@ -689,14 +877,11 @@ async function deleteStudentAndSubmissions(studentId, elmApp) {
       }
     }
 
-    // Wait for all submission deletions to complete
     await Promise.all(deletionPromises);
 
-    // Finally delete the student record
     const studentRef = ref(database, `students/${studentId}`);
     await remove(studentRef);
 
-    // Send success message back to Elm
     elmApp.ports.studentDeleted.send(studentId);
     console.log(`Student ${studentId} and all their submissions deleted successfully`);
   } catch (error) {
@@ -705,25 +890,17 @@ async function deleteStudentAndSubmissions(studentId, elmApp) {
   }
 }
 
-/**
- * Delete a submission from Firebase
- * @param {string} submissionId - The submission ID to delete
- * @param {Object} elmApp - The Elm application instance
- */
 async function deleteSubmissionRecord(submissionId, elmApp) {
   try {
     const submissionRef = ref(database, `submissions/${submissionId}`);
 
-    // First check if the submission exists
     const snapshot = await get(submissionRef);
     if (!snapshot.exists()) {
       throw new Error("Submission not found");
     }
 
-    // Delete the submission
     await remove(submissionRef);
 
-    // Send success message back to Elm
     elmApp.ports.submissionDeleted.send(submissionId);
     console.log("Submission deleted successfully");
   } catch (error) {
@@ -732,10 +909,6 @@ async function deleteSubmissionRecord(submissionId, elmApp) {
   }
 }
 
-/**
- * Fetch all students from Firebase
- * @param {Object} elmApp - The Elm application instance
- */
 function fetchAllStudents(elmApp) {
   const studentsRef = ref(database, 'students');
 
@@ -743,7 +916,6 @@ function fetchAllStudents(elmApp) {
     .then((snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        // Convert Firebase object to array of students with IDs
         const students = Object.entries(data).map(([id, student]) => {
           return {
             id,
@@ -753,7 +925,6 @@ function fetchAllStudents(elmApp) {
 
         elmApp.ports.receiveAllStudents.send(students);
       } else {
-        // Return empty array if no students
         elmApp.ports.receiveAllStudents.send([]);
       }
     })
@@ -763,10 +934,6 @@ function fetchAllStudents(elmApp) {
     });
 }
 
-/**
- * Fetch all belts from Firebase
- * @param {Object} elmApp - The Elm application instance
- */
 function fetchBelts(elmApp) {
   const beltsRef = ref(database, 'belts');
 
@@ -774,7 +941,6 @@ function fetchBelts(elmApp) {
     .then((snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        // Convert Firebase object to array of belts with IDs
         const belts = Object.entries(data).map(([id, belt]) => {
           return {
             id,
@@ -784,7 +950,6 @@ function fetchBelts(elmApp) {
 
         elmApp.ports.receiveBelts.send(belts);
       } else {
-        // Return empty array if no belts
         elmApp.ports.receiveBelts.send([]);
       }
     })
@@ -794,21 +959,14 @@ function fetchBelts(elmApp) {
     });
 }
 
-/**
- * Save a belt to Firebase
- * @param {Object} beltData - The belt data to save
- * @param {Object} elmApp - The Elm application instance
- */
 function saveBelt(beltData, elmApp) {
   const beltId = beltData.id;
   const beltRef = ref(database, `belts/${beltId}`);
 
-  // Check if the belt already exists
   get(beltRef)
     .then((snapshot) => {
       const isNewBelt = !snapshot.exists();
 
-      // Save the belt data
       set(beltRef, beltData)
         .then(() => {
           elmApp.ports.beltResult.send(isNewBelt ?
@@ -826,15 +984,9 @@ function saveBelt(beltData, elmApp) {
     });
 }
 
-/**
- * Delete a belt from Firebase
- * @param {string} beltId - The belt ID to delete
- * @param {Object} elmApp - The Elm application instance
- */
 function deleteBelt(beltId, elmApp) {
   const beltRef = ref(database, `belts/${beltId}`);
 
-  // First check if the belt is being used in any submissions
   const submissionsRef = ref(database, 'submissions');
   get(submissionsRef)
     .then((snapshot) => {
@@ -850,7 +1002,6 @@ function deleteBelt(beltId, elmApp) {
         }
       }
 
-      // If the belt is not in use, proceed with deletion
       remove(beltRef)
         .then(() => {
           elmApp.ports.beltResult.send("Success: Belt deleted successfully");
@@ -866,14 +1017,8 @@ function deleteBelt(beltId, elmApp) {
     });
 }
 
-/**
- * Fetch a student record and all their submissions
- * @param {string} studentId - The student ID to fetch
- * @param {Object} elmApp - The Elm application instance
- */
 async function fetchStudentRecord(studentId, elmApp) {
   try {
-    // Fetch the student record
     const studentRef = ref(database, `students/${studentId}`);
     const studentSnapshot = await get(studentRef);
 
@@ -886,7 +1031,6 @@ async function fetchStudentRecord(studentId, elmApp) {
       ...studentSnapshot.val()
     };
 
-    // Fetch all submissions for this student
     const submissionsRef = ref(database, 'submissions');
     const submissionsSnapshot = await get(submissionsRef);
 
@@ -895,7 +1039,6 @@ async function fetchStudentRecord(studentId, elmApp) {
     if (submissionsSnapshot.exists()) {
       const submissionsData = submissionsSnapshot.val();
 
-      // Find all submissions for this student
       for (const submissionId in submissionsData) {
         const submission = submissionsData[submissionId];
         if (submission.studentId === studentId) {
@@ -906,13 +1049,11 @@ async function fetchStudentRecord(studentId, elmApp) {
         }
       }
 
-      // Sort submissions by date (newest first)
       studentSubmissions.sort((a, b) => {
         return new Date(b.submissionDate) - new Date(a.submissionDate);
       });
     }
 
-    // Send the data back to Elm
     elmApp.ports.receiveStudentRecord.send({
       student,
       submissions: studentSubmissions
@@ -920,24 +1061,16 @@ async function fetchStudentRecord(studentId, elmApp) {
 
   } catch (error) {
     console.error("Error fetching student record:", error);
-    // In a real app, you'd want to send an error back to Elm
   }
 }
 
-/**
- * Set up listeners for submissions data after authentication
- * @param {Object} elmApp - The Elm application instance
- */
 function setupAdminSubmissionListeners(elmApp) {
-  // Initial fetch
   fetchAdminSubmissions(elmApp);
 
-  // Set up real-time updates
   const submissionsRef = ref(database, 'submissions');
   onValue(submissionsRef, (snapshot) => {
     if (snapshot.exists()) {
       const data = snapshot.val();
-      // Convert Firebase object to array of submissions with IDs
       const submissions = Object.entries(data).map(([id, submission]) => {
         return {
           id,
@@ -952,10 +1085,6 @@ function setupAdminSubmissionListeners(elmApp) {
   });
 }
 
-/**
- * Fetch all submissions from Firebase
- * @param {Object} elmApp - The Elm application instance
- */
 function fetchAdminSubmissions(elmApp) {
   const submissionsRef = ref(database, 'submissions');
 
@@ -963,7 +1092,6 @@ function fetchAdminSubmissions(elmApp) {
     .then((snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        // Convert Firebase object to array of submissions with IDs
         const submissions = Object.entries(data).map(([id, submission]) => {
           return {
             id,
@@ -973,7 +1101,6 @@ function fetchAdminSubmissions(elmApp) {
 
         elmApp.ports.receiveSubmissions.send(submissions);
       } else {
-        // Return empty array if no submissions
         elmApp.ports.receiveSubmissions.send([]);
       }
     })
@@ -983,24 +1110,15 @@ function fetchAdminSubmissions(elmApp) {
     });
 }
 
-/**
- * Save a grade to Firebase
- * @param {Object} data - The grade data to save
- * @param {Object} elmApp - The Elm application instance
- */
 function saveAdminGrade(data, elmApp) {
   const submissionId = data.submissionId;
   const grade = data.grade;
 
-  // Add the current user's email to the grade
   grade.gradedBy = auth.currentUser.email;
-
-  // Add the current date as the grading date
   grade.gradingDate = new Date().toISOString().split('T')[0];
 
   const submissionRef = ref(database, `submissions/${submissionId}`);
 
-  // Update the grade for the submission
   update(submissionRef, { grade })
     .then(() => {
       elmApp.ports.gradeResult.send("Success: Grade saved successfully");
@@ -1011,11 +1129,6 @@ function saveAdminGrade(data, elmApp) {
     });
 }
 
-/**
- * Get a user-friendly error message for authentication errors
- * @param {string} errorCode - The Firebase error code
- * @return {string} A user-friendly error message
- */
 function getAdminAuthErrorMessage(errorCode) {
   switch (errorCode) {
     case 'auth/invalid-email':
@@ -1035,237 +1148,51 @@ function getAdminAuthErrorMessage(errorCode) {
   }
 }
 
-
-// Request student points
-function requestStudentPoints() {
-    const database = getDatabase();
-    const pointsRef = ref(database, 'studentPoints');
-
-    get(pointsRef).then((snapshot) => {
-        const pointsData = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(studentId => {
-                pointsData.push({
-                    studentId: studentId,
-                    ...data[studentId]
-                });
-            });
-        }
-        app.ports.receiveStudentPoints.send(pointsData);
-    }).catch((error) => {
-        console.error("Error fetching student points:", error);
-        app.ports.receiveStudentPoints.send([]);
-    });
+function getPasswordResetErrorMessage(errorCode) {
+  switch (errorCode) {
+    case 'auth/invalid-email':
+      return 'The email address is not valid.';
+    case 'auth/user-not-found':
+      return 'No account found with this email address.';
+    default:
+      return 'An error occurred. Please try again.';
+  }
 }
 
-// Award points to student
-function awardPoints(data) {
-    const database = getDatabase();
-    const pointsRef = ref(database, `studentPoints/${data.studentId}`);
-
-    get(pointsRef).then((snapshot) => {
-        let currentData = {
-            currentPoints: 0,
-            totalEarned: 0,
-            totalRedeemed: 0
-        };
-
-        if (snapshot.exists()) {
-            currentData = snapshot.val();
-        }
-
-        const updatedData = {
-            ...currentData,
-            currentPoints: currentData.currentPoints + data.points,
-            totalEarned: currentData.totalEarned + data.points,
-            lastUpdated: new Date().toISOString()
-        };
-
-        return set(pointsRef, updatedData);
-    }).then(() => {
-        // Log the point award
-        const historyRef = ref(database, 'pointHistory');
-        const newHistoryRef = push(historyRef);
-        return set(newHistoryRef, {
-            studentId: data.studentId,
-            points: data.points,
-            reason: data.reason,
-            awardedBy: getCurrentUser().email,
-            awardedAt: new Date().toISOString(),
-            type: 'awarded'
-        });
-    }).then(() => {
-        app.ports.pointsAwarded.send({
-            success: true,
-            message: `Successfully awarded ${data.points} points`
-        });
-    }).catch((error) => {
-        console.error("Error awarding points:", error);
-        app.ports.pointsAwarded.send({
-            success: false,
-            message: "Error awarding points: " + error.message
-        });
-    });
-}
-
-// Request point redemptions
-function requestPointRedemptions() {
-    const database = getDatabase();
-    const redemptionsRef = ref(database, 'pointRedemptions');
-
-    get(redemptionsRef).then((snapshot) => {
-        const redemptions = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(id => {
-                redemptions.push({
-                    id: id,
-                    ...data[id]
-                });
-            });
-        }
-        app.ports.receivePointRedemptions.send(redemptions);
-    }).catch((error) => {
-        console.error("Error fetching redemptions:", error);
-        app.ports.receivePointRedemptions.send([]);
-    });
-}
-
-// Process redemption
-function processRedemption(data) {
-    const database = getDatabase();
-    const redemptionRef = ref(database, `pointRedemptions/${data.redemptionId}`);
-
-    get(redemptionRef).then((snapshot) => {
-        if (!snapshot.exists()) {
-            throw new Error("Redemption not found");
-        }
-
-        const redemption = snapshot.val();
-        const updates = {
-            status: data.status,
-            processedBy: data.processedBy,
-            processedAt: new Date().toISOString()
-        };
-
-        return update(redemptionRef, updates);
-    }).then(() => {
-        app.ports.redemptionProcessed.send({
-            success: true,
-            message: `Redemption ${data.status} successfully`
-        });
-    }).catch((error) => {
-        console.error("Error processing redemption:", error);
-        app.ports.redemptionProcessed.send({
-            success: false,
-            message: "Error processing redemption: " + error.message
-        });
-    });
-}
-
-// Request point rewards
-function requestPointRewards() {
-    const database = getDatabase();
-    const rewardsRef = ref(database, 'pointRewards');
-
-    get(rewardsRef).then((snapshot) => {
-        const rewards = [];
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            Object.keys(data).forEach(id => {
-                rewards.push({
-                    id: id,
-                    ...data[id]
-                });
-            });
-        }
-        app.ports.receivePointRewards.send(rewards);
-    }).catch((error) => {
-        console.error("Error fetching rewards:", error);
-        app.ports.receivePointRewards.send([]);
-    });
-}
-
-// Save point reward
-function savePointReward(rewardData) {
-    const database = getDatabase();
-    const rewardsRef = ref(database, 'pointRewards');
-
-    let rewardRef;
-    if (rewardData.id && rewardData.id !== "") {
-        // Update existing reward
-        rewardRef = ref(database, `pointRewards/${rewardData.id}`);
-    } else {
-        // Create new reward
-        rewardRef = push(rewardsRef);
-    }
-
-    const rewardToSave = {
-        ...rewardData,
-        updatedAt: new Date().toISOString()
-    };
-
-    if (!rewardData.id || rewardData.id === "") {
-        rewardToSave.createdAt = new Date().toISOString();
-    }
-
-    set(rewardRef, rewardToSave).then(() => {
-        app.ports.pointRewardResult.send("Reward saved successfully");
-    }).catch((error) => {
-        console.error("Error saving reward:", error);
-        app.ports.pointRewardResult.send("Error: " + error.message);
-    });
-}
-
-/**
- * Create a new student record
- * @param {Object} studentData - The student data to create
- * @param {Object} elmApp - The Elm application instance
- */
 async function createNewStudentRecord(studentData, elmApp) {
   try {
     const { name } = studentData;
 
-    // Validate name format
     if (!name || !isValidNameFormat(name)) {
       throw new Error("Student name must be in firstname.lastname format");
     }
 
-    // Use the name as the base for the ID but sanitize it for Firebase
-    // Convert dots to underscores for Firebase path compatibility
     const studentId = sanitizeFirebasePath(name);
     const currentDate = new Date().toISOString().split('T')[0];
 
-    // Create the student record - keep the original name format for display
     const studentRecord = {
-      name: name,  // Keep the original name with dots for display
+      name: name,
       created: currentDate,
       lastActive: currentDate
     };
 
-    // Check if student with this ID already exists
     const studentRef = ref(database, `students/${studentId}`);
     const snapshot = await get(studentRef);
 
     if (snapshot.exists()) {
-      // If exists, generate a unique ID by adding a timestamp
       const timestamp = Date.now();
       const uniqueId = `${studentId}_${timestamp}`;
       const uniqueRef = ref(database, `students/${uniqueId}`);
 
       await set(uniqueRef, studentRecord);
 
-      // Return the created student record with its ID
       elmApp.ports.studentCreated.send({
         id: uniqueId,
         ...studentRecord
       });
     } else {
-      // Save the student record with the sanitized ID
       await set(studentRef, studentRecord);
 
-      // Return the created student record with its ID
       elmApp.ports.studentCreated.send({
         id: studentId,
         ...studentRecord
@@ -1273,7 +1200,6 @@ async function createNewStudentRecord(studentData, elmApp) {
     }
   } catch (error) {
     console.error("Error creating student record:", error);
-    // Send error back to Elm
     elmApp.ports.studentCreated.send({
       error: error.message || "Error creating student record"
     });
