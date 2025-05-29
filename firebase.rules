@@ -1,36 +1,136 @@
 {
   "rules": {
     "students": {
-      ".read": true,
-      ".write": "auth != null",
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
       "$studentId": {
-        ".read": true,
-        ".write": "auth != null",
-        "lastActive": {
-          ".write": true
-        }
+        ".validate": "newData.hasChildren(['name', 'created', 'lastActive'])"
       }
     },
     "submissions": {
-      ".read": true,
-      ".write": true,
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
       "$submissionId": {
-        ".read": true,
-        ".write": true,
-        "grade": {
-          ".write": "auth != null"
-        }
+        ".validate": "newData.hasChildren(['studentId', 'beltLevel', 'gameName', 'githubLink', 'submissionDate'])"
       }
     },
     "belts": {
-      ".read": true,
-      ".write": "auth != null"
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$beltId": {
+        ".validate": "newData.hasChildren(['name', 'color', 'order', 'gameOptions'])"
+      }
     },
     "admins": {
-      ".read": "auth != null",
-      ".write": "auth != null &&
-                ((data.child(auth.uid).exists() && data.child(auth.uid).child('role').val() === 'superuser') ||
-                 (root.child('admins').child(auth.uid).exists() && root.child('admins').child(auth.uid).child('role').val() === 'superuser'))"
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).child('role').val() == 'superuser'",
+      "$adminId": {
+        ".validate": "newData.hasChildren(['email', 'displayName', 'role'])"
+      }
+    },
+    "studentPoints": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$studentId": {
+        ".validate": "newData.hasChildren(['studentId', 'currentPoints', 'totalEarned', 'totalRedeemed', 'lastUpdated'])",
+        "studentId": {
+          ".validate": "newData.isString()"
+        },
+        "currentPoints": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "totalEarned": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "totalRedeemed": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "lastUpdated": {
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    "pointRedemptions": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$redemptionId": {
+        ".validate": "newData.hasChildren(['studentId', 'studentName', 'pointsRedeemed', 'rewardName', 'redemptionDate', 'status'])",
+        "studentId": {
+          ".validate": "newData.isString()"
+        },
+        "studentName": {
+          ".validate": "newData.isString()"
+        },
+        "pointsRedeemed": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "rewardName": {
+          ".validate": "newData.isString()"
+        },
+        "redemptionDate": {
+          ".validate": "newData.isString()"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'pending' || newData.val() == 'approved' || newData.val() == 'fulfilled' || newData.val() == 'cancelled')"
+        }
+      }
+    },
+    "pointRewards": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$rewardId": {
+        ".validate": "newData.hasChildren(['name', 'description', 'pointCost', 'category', 'isActive', 'order'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "description": {
+          ".validate": "newData.isString()"
+        },
+        "pointCost": {
+          ".validate": "newData.isNumber() && newData.val() > 0"
+        },
+        "category": {
+          ".validate": "newData.isString()"
+        },
+        "isActive": {
+          ".validate": "newData.isBoolean()"
+        },
+        "order": {
+          ".validate": "newData.isNumber()"
+        },
+        "stock": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        }
+      }
+    },
+    "pointTransactions": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
+      "$transactionId": {
+        ".validate": "newData.hasChildren(['studentId', 'points', 'reason', 'awardedBy', 'date', 'type'])",
+        "studentId": {
+          ".validate": "newData.isString()"
+        },
+        "points": {
+          ".validate": "newData.isNumber()"
+        },
+        "reason": {
+          ".validate": "newData.isString()"
+        },
+        "awardedBy": {
+          ".validate": "newData.isString()"
+        },
+        "date": {
+          ".validate": "newData.isString()"
+        },
+        "type": {
+          ".validate": "newData.isString() && (newData.val() == 'award' || newData.val() == 'redeem' || newData.val() == 'adjustment')"
+        }
+      }
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
     }
   }
 }
