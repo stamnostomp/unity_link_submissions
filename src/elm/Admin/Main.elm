@@ -4,6 +4,7 @@ import Admin.Components.Navigation as Navigation
 import Admin.Pages.AdminUsers as AdminUsers
 import Admin.Pages.BeltManagement as BeltManagement
 import Admin.Pages.Login as Login
+import Admin.Pages.PointManagement as PointManagement
 import Admin.Pages.StudentManagement as StudentManagement
 import Admin.Pages.Submissions as Submissions
 import Admin.Types exposing (..)
@@ -36,24 +37,40 @@ main =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { appState = NotAuthenticated
+    ( { -- App State
+        appState = NotAuthenticated
       , page = SubmissionsPage
       , loading = False
       , error = Nothing
       , success = Nothing
+
+      -- Authentication
       , loginEmail = ""
       , loginPassword = ""
       , authError = Nothing
+
+      -- Data
       , submissions = []
       , students = []
       , belts = []
       , adminUsers = []
+
+      -- Point Management Data
+      , studentPoints = []
+      , pointRedemptions = []
+      , pointRewards = []
+      , selectedPointRedemption = Nothing
+
+      -- Current Selection/Editing
       , currentSubmission = Nothing
       , currentStudent = Nothing
       , studentSubmissions = []
       , editingStudent = Nothing
       , editingBelt = Nothing
       , editingAdminUser = Nothing
+      , editingReward = Nothing
+
+      -- Filtering and Sorting
       , filterText = ""
       , filterBelt = Nothing
       , filterGraded = Nothing
@@ -62,6 +79,8 @@ init _ =
       , studentFilterText = ""
       , studentSortBy = ByStudentName
       , studentSortDirection = Ascending
+
+      -- Form States
       , tempScore = ""
       , tempFeedback = ""
       , newStudentName = ""
@@ -71,12 +90,35 @@ init _ =
       , newBeltGameOptions = ""
       , adminUserForm = initAdminUserForm
       , showAdminUserForm = False
+
+      -- Point Management Form States
+      , newRewardName = ""
+      , newRewardDescription = ""
+      , newRewardCost = ""
+      , newRewardCategory = ""
+      , newRewardStock = ""
+
+      -- Point Management Modal States
+      , showAwardPointsModal = False
+      , awardPointsStudentId = ""
+      , awardPointsAmount = ""
+      , awardPointsReason = ""
+
+      -- Auto-award settings
+      , autoAwardPoints = True
+
+      -- Confirmation States
       , confirmDeleteStudent = Nothing
       , confirmDeleteSubmission = Nothing
       , confirmDeleteAdmin = Nothing
+      , confirmDeleteReward = Nothing
+
+      -- Result Messages
       , adminUserCreationResult = Nothing
       , adminUserUpdateResult = Nothing
       , adminUserDeletionResult = Nothing
+
+      -- Password Reset
       , showPasswordReset = False
       , passwordResetEmail = ""
       , passwordResetMessage = Nothing
@@ -159,6 +201,15 @@ update msg model =
             else
                 ( { model | error = Just "You don't have permission to access admin management." }, Cmd.none )
 
+        ShowPointManagementPage ->
+            ( { model | page = PointManagementPage, loading = True }
+            , Cmd.batch
+                [ Ports.requestStudentPoints ()
+                , Ports.requestPointRedemptions ()
+                , Ports.requestPointRewards ()
+                ]
+            )
+
         CloseCurrentPage ->
             ( { model | page = SubmissionsPage, currentStudent = Nothing, studentSubmissions = [], editingStudent = Nothing, editingBelt = Nothing, editingAdminUser = Nothing, confirmDeleteStudent = Nothing, confirmDeleteSubmission = Nothing, confirmDeleteAdmin = Nothing, showAdminUserForm = False, error = Nothing, success = Nothing }, Cmd.none )
 
@@ -240,6 +291,9 @@ update msg model =
                 AdminUsersPage ->
                     AdminUsers.update msg model
 
+                PointManagementPage ->
+                    PointManagement.update msg model
+
 
 
 -- VIEW
@@ -290,6 +344,9 @@ viewCurrentPage model =
 
         AdminUsersPage ->
             AdminUsers.view model
+
+        PointManagementPage ->
+            PointManagement.view model
 
 
 viewMessages : Model -> Html Msg
@@ -352,6 +409,14 @@ subscriptions _ =
         , Ports.receiveAllAdmins (decodeAdminUsersResponse >> ReceiveAllAdmins)
         , Ports.adminUserDeleted (decodeAdminActionResult >> AdminUserDeleted)
         , Ports.adminUserUpdated (decodeAdminActionResult >> AdminUserUpdated)
+
+        -- Point Management Subscriptions
+        , Ports.receiveStudentPoints (decodeStudentPointsResponse >> ReceiveStudentPoints)
+        , Ports.pointsAwarded (decodePointsAwardedResponse >> PointsAwarded)
+        , Ports.receivePointRedemptions (decodePointRedemptionsResponse >> ReceivePointRedemptions)
+        , Ports.redemptionProcessed (decodeRedemptionProcessedResponse >> RedemptionProcessed)
+        , Ports.receivePointRewards (decodePointRewardsResponse >> ReceivePointRewards)
+        , Ports.pointRewardResult RewardResult
         ]
 
 
@@ -448,3 +513,42 @@ decodeAdminActionResult value =
 decodePasswordResetResult : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodePasswordResetResult value =
     Decode.decodeValue (Decode.map2 (\success message -> { success = success, message = message }) (Decode.field "success" Decode.bool) (Decode.field "message" Decode.string)) value
+
+
+
+-- Point Management Decoders
+
+
+decodeStudentPointsResponse : Decode.Value -> Result Decode.Error (List StudentPoints)
+decodeStudentPointsResponse value =
+    Decode.decodeValue (Decode.list studentPointsDecoder) value
+
+
+decodePointsAwardedResponse : Decode.Value -> Result Decode.Error { success : Bool, message : String }
+decodePointsAwardedResponse value =
+    Decode.decodeValue
+        (Decode.map2 (\success message -> { success = success, message = message })
+            (Decode.field "success" Decode.bool)
+            (Decode.field "message" Decode.string)
+        )
+        value
+
+
+decodePointRedemptionsResponse : Decode.Value -> Result Decode.Error (List PointRedemption)
+decodePointRedemptionsResponse value =
+    Decode.decodeValue (Decode.list pointRedemptionDecoder) value
+
+
+decodeRedemptionProcessedResponse : Decode.Value -> Result Decode.Error { success : Bool, message : String }
+decodeRedemptionProcessedResponse value =
+    Decode.decodeValue
+        (Decode.map2 (\success message -> { success = success, message = message })
+            (Decode.field "success" Decode.bool)
+            (Decode.field "message" Decode.string)
+        )
+        value
+
+
+decodePointRewardsResponse : Decode.Value -> Result Decode.Error (List PointReward)
+decodePointRewardsResponse value =
+    Decode.decodeValue (Decode.list pointRewardDecoder) value

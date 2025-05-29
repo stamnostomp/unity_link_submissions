@@ -131,3 +131,94 @@ port updateAdminUser : Encode.Value -> Cmd msg
 
 
 port adminUserUpdated : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Request student points data
+
+
+port requestStudentPoints : () -> Cmd msg
+
+
+
+-- Receive student points data
+
+
+port receiveStudentPoints : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Award points to a student
+
+
+port awardPoints : { studentId : String, points : Int, reason : String } -> Cmd msg
+
+
+
+-- Receive result of awarding points
+
+
+port pointsAwarded : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Request point redemptions
+
+
+port requestPointRedemptions : () -> Cmd msg
+
+
+
+-- Receive point redemptions
+
+
+port receivePointRedemptions : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Process a redemption (approve, fulfill, cancel)
+
+
+port processRedemption : { redemptionId : String, status : String, processedBy : String } -> Cmd msg
+
+
+
+-- Receive result of processing redemption
+
+
+port redemptionProcessed : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Request point rewards
+
+
+port requestPointRewards : () -> Cmd msg
+
+
+
+-- Receive point rewards
+
+
+port receivePointRewards : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Save point reward (add/update)
+
+
+port savePointReward : Encode.Value -> Cmd msg
+
+
+
+-- Delete point reward
+
+
+port deletePointReward : String -> Cmd msg
+
+
+
+-- Receive result of reward operations
+
+
+port pointRewardResult : (String -> msg) -> Sub msg

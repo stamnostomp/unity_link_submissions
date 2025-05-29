@@ -222,12 +222,21 @@ viewStudentManagementPage model =
             [ div [ class "flex justify-between items-center" ]
                 [ h2 [ class "text-xl font-medium text-gray-900" ]
                     [ text "Student Management" ]
-                , button
-                    [ onClick CloseCurrentPage
-                    , class "text-gray-500 hover:text-gray-700 flex items-center"
-                    ]
-                    [ span [ class "mr-1" ] [ text "←" ]
-                    , text "Back to Submissions"
+                , div [ class "flex space-x-2" ]
+                    [ button
+                        [ onClick ShowPointManagementPage
+                        , class "inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        ]
+                        [ span [ class "mr-1" ] [ text "🏆" ]
+                        , text "Points System"
+                        ]
+                    , button
+                        [ onClick CloseCurrentPage
+                        , class "text-gray-500 hover:text-gray-700 flex items-center px-3 py-2"
+                        ]
+                        [ span [ class "mr-1" ] [ text "←" ]
+                        , text "Back to Submissions"
+                        ]
                     ]
                 ]
             , div [ class "mt-6 space-y-6" ]

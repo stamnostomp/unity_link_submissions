@@ -157,11 +157,17 @@ userDecoder =
 
 studentDecoder : Decoder Student
 studentDecoder =
-    Decode.map4 Student
+    Decode.map5 Student
+        -- Changed from map4 to map5
         (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "created" Decode.string)
         (Decode.field "lastActive" Decode.string)
+        (Decode.maybe (Decode.field "points" studentPointsDecoder))
+
+
+
+-- Added this line
 
 
 gradeDecoder : Decoder Grade
@@ -250,3 +256,169 @@ adminUserDecoder =
         )
         (Decode.maybe (Decode.field "createdBy" Decode.string))
         (Decode.maybe (Decode.field "createdAt" Decode.string))
+
+
+
+-- POINT SYSTEM DECODERS
+
+
+studentPointsDecoder : Decoder StudentPoints
+studentPointsDecoder =
+    Decode.map5 StudentPoints
+        -- Changed from map6 to map5
+        (Decode.field "studentId" Decode.string)
+        (Decode.field "currentPoints" Decode.int)
+        (Decode.field "totalEarned" Decode.int)
+        (Decode.field "totalRedeemed" Decode.int)
+        (Decode.field "lastUpdated" Decode.string)
+
+
+redemptionStatusDecoder : Decoder RedemptionStatus
+redemptionStatusDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "pending" ->
+                        Decode.succeed Pending
+
+                    "approved" ->
+                        Decode.succeed Approved
+
+                    "fulfilled" ->
+                        Decode.succeed Fulfilled
+
+                    "cancelled" ->
+                        Decode.succeed Cancelled
+
+                    _ ->
+                        Decode.fail ("Unknown redemption status: " ++ str)
+            )
+
+
+pointRedemptionDecoder : Decoder PointRedemption
+pointRedemptionDecoder =
+    Decode.map8
+        (\id studentId studentName pointsRedeemed rewardName rewardDescription redeemedBy redemptionDate ->
+            { id = id
+            , studentId = studentId
+            , studentName = studentName
+            , pointsRedeemed = pointsRedeemed
+            , rewardName = rewardName
+            , rewardDescription = rewardDescription
+            , redeemedBy = redeemedBy
+            , redemptionDate = redemptionDate
+            , status = Pending -- Default status
+            }
+        )
+        (Decode.field "id" Decode.string)
+        (Decode.field "studentId" Decode.string)
+        (Decode.field "studentName" Decode.string)
+        (Decode.field "pointsRedeemed" Decode.int)
+        (Decode.field "rewardName" Decode.string)
+        (Decode.field "rewardDescription" Decode.string)
+        (Decode.field "redeemedBy" Decode.string)
+        (Decode.field "redemptionDate" Decode.string)
+        |> Decode.andThen
+            (\redemption ->
+                Decode.field "status" redemptionStatusDecoder
+                    |> Decode.map (\status -> { redemption | status = status })
+            )
+
+
+pointRewardDecoder : Decoder PointReward
+pointRewardDecoder =
+    Decode.map8 PointReward
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "pointCost" Decode.int)
+        (Decode.field "category" Decode.string)
+        (Decode.field "isActive" Decode.bool)
+        (Decode.maybe (Decode.field "stock" Decode.int))
+        (Decode.field "order" Decode.int)
+
+
+
+-- POINT SYSTEM ENCODERS
+
+
+encodeStudentPoints : StudentPoints -> Encode.Value
+encodeStudentPoints studentPoints =
+    Encode.object
+        [ ( "studentId", Encode.string studentPoints.studentId )
+        , ( "currentPoints", Encode.int studentPoints.currentPoints )
+        , ( "totalEarned", Encode.int studentPoints.totalEarned )
+        , ( "totalRedeemed", Encode.int studentPoints.totalRedeemed )
+        , ( "lastUpdated", Encode.string studentPoints.lastUpdated )
+        ]
+
+
+encodeRedemptionStatus : RedemptionStatus -> Encode.Value
+encodeRedemptionStatus status =
+    case status of
+        Pending ->
+            Encode.string "pending"
+
+        Approved ->
+            Encode.string "approved"
+
+        Fulfilled ->
+            Encode.string "fulfilled"
+
+        Cancelled ->
+            Encode.string "cancelled"
+
+
+encodePointRedemption : PointRedemption -> Encode.Value
+encodePointRedemption redemption =
+    Encode.object
+        [ ( "id", Encode.string redemption.id )
+        , ( "studentId", Encode.string redemption.studentId )
+        , ( "studentName", Encode.string redemption.studentName )
+        , ( "pointsRedeemed", Encode.int redemption.pointsRedeemed )
+        , ( "rewardName", Encode.string redemption.rewardName )
+        , ( "rewardDescription", Encode.string redemption.rewardDescription )
+        , ( "redeemedBy", Encode.string redemption.redeemedBy )
+        , ( "redemptionDate", Encode.string redemption.redemptionDate )
+        , ( "status", encodeRedemptionStatus redemption.status )
+        ]
+
+
+encodePointReward : PointReward -> Encode.Value
+encodePointReward reward =
+    Encode.object
+        [ ( "id", Encode.string reward.id )
+        , ( "name", Encode.string reward.name )
+        , ( "description", Encode.string reward.description )
+        , ( "pointCost", Encode.int reward.pointCost )
+        , ( "category", Encode.string reward.category )
+        , ( "isActive", Encode.bool reward.isActive )
+        , ( "stock"
+          , case reward.stock of
+                Just s ->
+                    Encode.int s
+
+                Nothing ->
+                    Encode.null
+          )
+        , ( "order", Encode.int reward.order )
+        ]
+
+
+encodeAwardPoints : String -> Int -> String -> Encode.Value
+encodeAwardPoints studentId points reason =
+    Encode.object
+        [ ( "studentId", Encode.string studentId )
+        , ( "points", Encode.int points )
+        , ( "reason", Encode.string reason )
+        ]
+
+
+encodeProcessRedemption : String -> String -> String -> Encode.Value
+encodeProcessRedemption redemptionId status processedBy =
+    Encode.object
+        [ ( "redemptionId", Encode.string redemptionId )
+        , ( "status", Encode.string status )
+        , ( "processedBy", Encode.string processedBy )
+        ]

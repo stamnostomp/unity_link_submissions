@@ -546,7 +546,13 @@ async function deleteAdminUserRecord(adminUserId, elmApp) {
     // First check if the current user is an admin
     const currentUserUid = auth.currentUser.uid;
     const adminSnapshot = await get(ref(database, `admins/${currentUserUid}`));
-
+    // Port listeners
+    app.ports.requestStudentPoints.subscribe(requestStudentPoints);
+    app.ports.awardPoints.subscribe(awardPoints);
+    app.ports.requestPointRedemptions.subscribe(requestPointRedemptions);
+    app.ports.processRedemption.subscribe(processRedemption);
+    app.ports.requestPointRewards.subscribe(requestPointRewards);
+    app.ports.savePointReward.subscribe(savePointReward);
     if (!adminSnapshot.exists()) {
       throw new Error("Only existing admins can manage admin accounts");
     }
@@ -1027,6 +1033,189 @@ function getAdminAuthErrorMessage(errorCode) {
     default:
       return 'An error occurred during authentication. Please try again.';
   }
+}
+
+
+// Request student points
+function requestStudentPoints() {
+    const database = getDatabase();
+    const pointsRef = ref(database, 'studentPoints');
+
+    get(pointsRef).then((snapshot) => {
+        const pointsData = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(studentId => {
+                pointsData.push({
+                    studentId: studentId,
+                    ...data[studentId]
+                });
+            });
+        }
+        app.ports.receiveStudentPoints.send(pointsData);
+    }).catch((error) => {
+        console.error("Error fetching student points:", error);
+        app.ports.receiveStudentPoints.send([]);
+    });
+}
+
+// Award points to student
+function awardPoints(data) {
+    const database = getDatabase();
+    const pointsRef = ref(database, `studentPoints/${data.studentId}`);
+
+    get(pointsRef).then((snapshot) => {
+        let currentData = {
+            currentPoints: 0,
+            totalEarned: 0,
+            totalRedeemed: 0
+        };
+
+        if (snapshot.exists()) {
+            currentData = snapshot.val();
+        }
+
+        const updatedData = {
+            ...currentData,
+            currentPoints: currentData.currentPoints + data.points,
+            totalEarned: currentData.totalEarned + data.points,
+            lastUpdated: new Date().toISOString()
+        };
+
+        return set(pointsRef, updatedData);
+    }).then(() => {
+        // Log the point award
+        const historyRef = ref(database, 'pointHistory');
+        const newHistoryRef = push(historyRef);
+        return set(newHistoryRef, {
+            studentId: data.studentId,
+            points: data.points,
+            reason: data.reason,
+            awardedBy: getCurrentUser().email,
+            awardedAt: new Date().toISOString(),
+            type: 'awarded'
+        });
+    }).then(() => {
+        app.ports.pointsAwarded.send({
+            success: true,
+            message: `Successfully awarded ${data.points} points`
+        });
+    }).catch((error) => {
+        console.error("Error awarding points:", error);
+        app.ports.pointsAwarded.send({
+            success: false,
+            message: "Error awarding points: " + error.message
+        });
+    });
+}
+
+// Request point redemptions
+function requestPointRedemptions() {
+    const database = getDatabase();
+    const redemptionsRef = ref(database, 'pointRedemptions');
+
+    get(redemptionsRef).then((snapshot) => {
+        const redemptions = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(id => {
+                redemptions.push({
+                    id: id,
+                    ...data[id]
+                });
+            });
+        }
+        app.ports.receivePointRedemptions.send(redemptions);
+    }).catch((error) => {
+        console.error("Error fetching redemptions:", error);
+        app.ports.receivePointRedemptions.send([]);
+    });
+}
+
+// Process redemption
+function processRedemption(data) {
+    const database = getDatabase();
+    const redemptionRef = ref(database, `pointRedemptions/${data.redemptionId}`);
+
+    get(redemptionRef).then((snapshot) => {
+        if (!snapshot.exists()) {
+            throw new Error("Redemption not found");
+        }
+
+        const redemption = snapshot.val();
+        const updates = {
+            status: data.status,
+            processedBy: data.processedBy,
+            processedAt: new Date().toISOString()
+        };
+
+        return update(redemptionRef, updates);
+    }).then(() => {
+        app.ports.redemptionProcessed.send({
+            success: true,
+            message: `Redemption ${data.status} successfully`
+        });
+    }).catch((error) => {
+        console.error("Error processing redemption:", error);
+        app.ports.redemptionProcessed.send({
+            success: false,
+            message: "Error processing redemption: " + error.message
+        });
+    });
+}
+
+// Request point rewards
+function requestPointRewards() {
+    const database = getDatabase();
+    const rewardsRef = ref(database, 'pointRewards');
+
+    get(rewardsRef).then((snapshot) => {
+        const rewards = [];
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(id => {
+                rewards.push({
+                    id: id,
+                    ...data[id]
+                });
+            });
+        }
+        app.ports.receivePointRewards.send(rewards);
+    }).catch((error) => {
+        console.error("Error fetching rewards:", error);
+        app.ports.receivePointRewards.send([]);
+    });
+}
+
+// Save point reward
+function savePointReward(rewardData) {
+    const database = getDatabase();
+    const rewardsRef = ref(database, 'pointRewards');
+
+    let rewardRef;
+    if (rewardData.id && rewardData.id !== "") {
+        // Update existing reward
+        rewardRef = ref(database, `pointRewards/${rewardData.id}`);
+    } else {
+        // Create new reward
+        rewardRef = push(rewardsRef);
+    }
+
+    const rewardToSave = {
+        ...rewardData,
+        updatedAt: new Date().toISOString()
+    };
+
+    if (!rewardData.id || rewardData.id === "") {
+        rewardToSave.createdAt = new Date().toISOString();
+    }
+
+    set(rewardRef, rewardToSave).then(() => {
+        app.ports.pointRewardResult.send("Reward saved successfully");
+    }).catch((error) => {
+        console.error("Error saving reward:", error);
+        app.ports.pointRewardResult.send("Error: " + error.message);
+    });
 }
 
 /**

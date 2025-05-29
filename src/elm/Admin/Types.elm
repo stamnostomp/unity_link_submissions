@@ -20,6 +20,7 @@ type Page
     | StudentManagementPage
     | BeltManagementPage
     | AdminUsersPage
+    | PointManagementPage
 
 
 
@@ -92,6 +93,12 @@ type alias Model =
     , belts : List Belt
     , adminUsers : List AdminUser
 
+    -- Point Management Data
+    , studentPoints : List StudentPoints
+    , pointRedemptions : List PointRedemption
+    , pointRewards : List PointReward
+    , selectedPointRedemption : Maybe PointRedemption
+
     -- Current Selection/Editing
     , currentSubmission : Maybe Submission
     , currentStudent : Maybe Student
@@ -99,6 +106,7 @@ type alias Model =
     , editingStudent : Maybe Student
     , editingBelt : Maybe Belt
     , editingAdminUser : Maybe AdminUser
+    , editingReward : Maybe PointReward
 
     -- Filtering and Sorting
     , filterText : String
@@ -121,10 +129,27 @@ type alias Model =
     , adminUserForm : AdminUserForm
     , showAdminUserForm : Bool
 
+    -- Point Management Form States
+    , newRewardName : String
+    , newRewardDescription : String
+    , newRewardCost : String
+    , newRewardCategory : String
+    , newRewardStock : String
+
+    -- Point Management Modal States
+    , showAwardPointsModal : Bool
+    , awardPointsStudentId : String
+    , awardPointsAmount : String
+    , awardPointsReason : String
+
+    -- Auto-award settings
+    , autoAwardPoints : Bool
+
     -- Confirmation States
     , confirmDeleteStudent : Maybe Student
     , confirmDeleteSubmission : Maybe Submission
     , confirmDeleteAdmin : Maybe AdminUser
+    , confirmDeleteReward : Maybe PointReward
 
     -- Result Messages
     , adminUserCreationResult : Maybe String
@@ -156,6 +181,7 @@ type
     | ShowStudentManagementPage
     | ShowBeltManagementPage
     | ShowAdminUsersPage
+    | ShowPointManagementPage
     | CloseCurrentPage
       -- Password Reset
     | ShowPasswordReset
@@ -181,6 +207,7 @@ type
     | ConfirmDeleteSubmission Submission
     | CancelDeleteSubmission
     | SubmissionDeleted (Result Decode.Error String)
+    | UpdateAutoAwardPoints Bool
       -- Students
     | ViewStudentRecord String
     | ReceivedStudentRecord (Result Decode.Error { student : Student, submissions : List Submission })
@@ -238,3 +265,34 @@ type
     | ConfirmDeleteAdminUser AdminUser
     | CancelDeleteAdminUser
     | AdminUserDeleted (Result Decode.Error { success : Bool, message : String })
+      -- Point Management
+    | RequestStudentPoints
+    | ReceiveStudentPoints (Result Decode.Error (List StudentPoints))
+    | RequestPointRedemptions
+    | ReceivePointRedemptions (Result Decode.Error (List PointRedemption))
+    | RequestPointRewards
+    | ReceivePointRewards (Result Decode.Error (List PointReward))
+      -- Award Points
+    | ShowAwardPointsModal String
+    | HideAwardPointsModal
+    | UpdateAwardPointsAmount String
+    | UpdateAwardPointsReason String
+    | SubmitAwardPoints
+    | PointsAwarded (Result Decode.Error { success : Bool, message : String })
+      -- Redemption Processing
+    | ProcessRedemption PointRedemption RedemptionStatus
+    | RedemptionProcessed (Result Decode.Error { success : Bool, message : String })
+      -- Reward Management
+    | UpdateNewRewardName String
+    | UpdateNewRewardDescription String
+    | UpdateNewRewardCost String
+    | UpdateNewRewardCategory String
+    | UpdateNewRewardStock String
+    | AddNewReward
+    | EditReward PointReward
+    | CancelEditReward
+    | UpdateReward
+    | DeleteReward PointReward
+    | ConfirmDeleteReward PointReward
+    | CancelDeleteReward
+    | RewardResult String

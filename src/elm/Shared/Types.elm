@@ -8,6 +8,7 @@ type alias Student =
     , name : String
     , created : String
     , lastActive : String
+    , points : Maybe StudentPoints -- Add this line
     }
 
 
@@ -56,4 +57,45 @@ type alias AdminUser =
     , role : String
     , createdBy : Maybe String
     , createdAt : Maybe String
+    }
+
+
+type alias StudentPoints =
+    { studentId : String
+    , currentPoints : Int
+    , totalEarned : Int
+    , totalRedeemed : Int
+    , lastUpdated : String
+    }
+
+
+type alias PointRedemption =
+    { id : String
+    , studentId : String
+    , studentName : String
+    , pointsRedeemed : Int
+    , rewardName : String
+    , rewardDescription : String
+    , redeemedBy : String -- Admin who processed the redemption
+    , redemptionDate : String
+    , status : RedemptionStatus
+    }
+
+
+type RedemptionStatus
+    = Pending
+    | Approved
+    | Fulfilled
+    | Cancelled
+
+
+type alias PointReward =
+    { id : String
+    , name : String
+    , description : String
+    , pointCost : Int
+    , category : String
+    , isActive : Bool
+    , stock : Maybe Int -- Nothing means unlimited
+    , order : Int
     }

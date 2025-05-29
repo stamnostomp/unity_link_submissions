@@ -1,0 +1,502 @@
+module Admin.Pages.PointsSystem exposing (update, view)
+
+import Admin.Types exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
+import Shared.Types exposing (..)
+import Shared.Utils exposing (..)
+
+
+
+-- LOCAL TYPES
+-- UPDATE
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        -- Points System Messages
+        ShowPointsSystemPage ->
+            ( { model
+                | page = PointsSystemPage
+                , pointsView = LeaderboardView
+                , selectedPointStudent = Nothing
+                , pointCategory = "completion"
+                , pointAmount = "10"
+                , pointReason = ""
+                , error = Nothing
+                , success = Nothing
+              }
+            , Cmd.none
+            )
+
+        ChangePointsView pointsView ->
+            ( { model | pointsView = pointsView }, Cmd.none )
+
+        SelectPointStudent studentId ->
+            let
+                student =
+                    List.filter (\s -> s.id == studentId) model.students |> List.head
+            in
+            ( { model | selectedPointStudent = student }, Cmd.none )
+
+        UpdatePointCategory category ->
+            ( { model | pointCategory = category }, Cmd.none )
+
+        UpdatePointAmount amount ->
+            -- Validate that it's a number
+            case String.toInt amount of
+                Just _ ->
+                    ( { model | pointAmount = amount }, Cmd.none )
+
+                Nothing ->
+                    if amount == "" then
+                        ( { model | pointAmount = "" }, Cmd.none )
+
+                    else
+                        ( model, Cmd.none )
+
+        UpdatePointReason reason ->
+            ( { model | pointReason = reason }, Cmd.none )
+
+        AwardPoints ->
+            case ( model.selectedPointStudent, String.toInt model.pointAmount ) of
+                ( Just student, Just points ) ->
+                    if points <= 0 then
+                        ( { model | error = Just "Points must be greater than 0" }, Cmd.none )
+
+                    else if String.trim model.pointReason == "" then
+                        ( { model | error = Just "Please provide a reason for awarding points" }, Cmd.none )
+
+                    else
+                        -- For now, just show success (no Firebase)
+                        let
+                            newTransaction =
+                                { id = "demo-" ++ student.id ++ "-" ++ String.fromInt (List.length model.pointTransactions)
+                                , studentId = student.id
+                                , studentName = student.name
+                                , points = points
+                                , category = model.pointCategory
+                                , reason = model.pointReason
+                                , awardedBy = getUserEmail model
+                                , date = "2025-03-04"
+                                }
+                        in
+                        ( { model
+                            | success = Just ("Successfully awarded " ++ String.fromInt points ++ " points to " ++ formatDisplayName student.name ++ "!")
+                            , error = Nothing
+                            , pointTransactions = newTransaction :: model.pointTransactions
+                            , pointAmount = "10"
+                            , pointReason = ""
+                            , selectedPointStudent = Nothing
+                          }
+                        , Cmd.none
+                        )
+
+                ( Nothing, _ ) ->
+                    ( { model | error = Just "Please select a student" }, Cmd.none )
+
+                ( _, Nothing ) ->
+                    ( { model | error = Just "Please enter a valid point amount" }, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view model =
+    div [ class "space-y-6" ]
+        [ viewHeader model
+        , viewPointsContent model
+        ]
+
+
+viewHeader : Model -> Html Msg
+viewHeader model =
+    div [ class "bg-white shadow rounded-lg p-6" ]
+        [ div [ class "flex justify-between items-center" ]
+            [ h2 [ class "text-xl font-medium text-gray-900" ] [ text "Student Points System" ]
+            , button
+                [ onClick CloseCurrentPage
+                , class "text-gray-500 hover:text-gray-700 flex items-center"
+                ]
+                [ span [ class "mr-1" ] [ text "←" ]
+                , text "Back to Student Management"
+                ]
+            ]
+        , div [ class "mt-4 border-b border-gray-200" ]
+            [ nav [ class "-mb-px flex space-x-8" ]
+                [ viewTab "Leaderboard" LeaderboardView model.pointsView
+                , viewTab "Award Points" AwardPointsView model.pointsView
+                , viewTab "History" HistoryView model.pointsView
+                ]
+            ]
+        ]
+
+
+viewTab : String -> PointsView -> PointsView -> Html Msg
+viewTab label targetView currentView =
+    let
+        isActive =
+            targetView == currentView
+
+        baseClass =
+            "py-2 px-1 border-b-2 font-medium text-sm cursor-pointer"
+
+        activeClass =
+            baseClass ++ " border-blue-500 text-blue-600"
+
+        inactiveClass =
+            baseClass ++ " border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+    in
+    button
+        [ onClick (ChangePointsView targetView)
+        , class
+            (if isActive then
+                activeClass
+
+             else
+                inactiveClass
+            )
+        ]
+        [ text label ]
+
+
+viewPointsContent : Model -> Html Msg
+viewPointsContent model =
+    case model.pointsView of
+        LeaderboardView ->
+            viewLeaderboard model
+
+        AwardPointsView ->
+            viewAwardPoints model
+
+        HistoryView ->
+            viewHistory model
+
+
+viewLeaderboard : Model -> Html Msg
+viewLeaderboard model =
+    let
+        -- Calculate points for each student (demo data)
+        studentPointsList =
+            model.students
+                |> List.map (calculateStudentPoints model.pointTransactions)
+                |> List.sortBy .totalPoints
+                |> List.reverse
+    in
+    div [ class "bg-white shadow rounded-lg overflow-hidden" ]
+        [ div [ class "px-6 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500" ]
+            [ h3 [ class "text-lg font-medium text-white" ] [ text "🏆 Points Leaderboard" ] ]
+        , if List.isEmpty studentPointsList then
+            div [ class "p-12 text-center" ]
+                [ p [ class "text-gray-500" ] [ text "No points have been awarded yet." ] ]
+
+          else
+            div [ class "overflow-x-auto" ]
+                [ table [ class "min-w-full divide-y divide-gray-200" ]
+                    [ thead [ class "bg-gray-50" ]
+                        [ tr []
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16" ] [ text "Rank" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Student" ]
+                            , th [ class "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Total Points" ]
+                            , th [ class "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28" ] [ text "Completion" ]
+                            , th [ class "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28" ] [ text "Creativity" ]
+                            , th [ class "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28" ] [ text "Collaboration" ]
+                            , th [ class "px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28" ] [ text "Bonus" ]
+                            ]
+                        ]
+                    , tbody [ class "bg-white divide-y divide-gray-200" ]
+                        (List.indexedMap viewLeaderboardRow studentPointsList)
+                    ]
+                ]
+        ]
+
+
+viewLeaderboardRow : Int -> StudentPoints -> Html Msg
+viewLeaderboardRow index studentPoints =
+    let
+        rank =
+            index + 1
+
+        medalEmoji =
+            case rank of
+                1 ->
+                    "🥇"
+
+                2 ->
+                    "🥈"
+
+                3 ->
+                    "🥉"
+
+                _ ->
+                    ""
+    in
+    tr
+        [ class
+            (if rank <= 3 then
+                "bg-yellow-50"
+
+             else
+                "hover:bg-gray-50"
+            )
+        ]
+        [ td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" ]
+            [ text (medalEmoji ++ " " ++ String.fromInt rank) ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName studentPoints.studentName) ]
+            , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ studentPoints.studentId) ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-center" ]
+            [ span [ class "text-lg font-bold text-blue-600" ] [ text (String.fromInt studentPoints.totalPoints) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500" ]
+            [ text (String.fromInt studentPoints.completionPoints) ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500" ]
+            [ text (String.fromInt studentPoints.creativityPoints) ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500" ]
+            [ text (String.fromInt studentPoints.collaborationPoints) ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500" ]
+            [ text (String.fromInt studentPoints.bonusPoints) ]
+        ]
+
+
+viewAwardPoints : Model -> Html Msg
+viewAwardPoints model =
+    div [ class "bg-white shadow rounded-lg p-6" ]
+        [ h3 [ class "text-lg font-medium text-gray-900 mb-6" ] [ text "Award Points to Student" ]
+        , div [ class "space-y-6" ]
+            [ -- Student Selection
+              div []
+                [ label [ class "block text-sm font-medium text-gray-700 mb-2" ] [ text "Select Student" ]
+                , select
+                    [ onInput SelectPointStudent
+                    , value (Maybe.map .id model.selectedPointStudent |> Maybe.withDefault "")
+                    , class "w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    ]
+                    (option [ value "" ] [ text "-- Select a student --" ]
+                        :: (model.students
+                                |> List.sortBy .name
+                                |> List.map (\s -> option [ value s.id ] [ text (formatDisplayName s.name) ])
+                           )
+                    )
+                ]
+
+            -- Point Category
+            , div []
+                [ label [ class "block text-sm font-medium text-gray-700 mb-2" ] [ text "Point Category" ]
+                , div [ class "grid grid-cols-2 md:grid-cols-4 gap-3" ]
+                    [ viewCategoryButton "completion" "📋 Completion" model.pointCategory
+                    , viewCategoryButton "creativity" "🎨 Creativity" model.pointCategory
+                    , viewCategoryButton "collaboration" "🤝 Collaboration" model.pointCategory
+                    , viewCategoryButton "bonus" "⭐ Bonus" model.pointCategory
+                    ]
+                ]
+
+            -- Point Amount
+            , div []
+                [ label [ for "pointAmount", class "block text-sm font-medium text-gray-700 mb-2" ] [ text "Points to Award" ]
+                , div [ class "mt-1 relative rounded-md shadow-sm" ]
+                    [ input
+                        [ type_ "number"
+                        , id "pointAmount"
+                        , value model.pointAmount
+                        , onInput UpdatePointAmount
+                        , placeholder "10"
+                        , Html.Attributes.min "1"
+                        , Html.Attributes.max "100"
+                        , class "block w-full pr-12 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        ]
+                        []
+                    , div [ class "absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none" ]
+                        [ span [ class "text-gray-500 sm:text-sm" ] [ text "pts" ] ]
+                    ]
+                , p [ class "mt-1 text-xs text-gray-500" ] [ text "Common values: 5 (small task), 10 (standard), 25 (exceptional)" ]
+                ]
+
+            -- Reason
+            , div []
+                [ label [ for "pointReason", class "block text-sm font-medium text-gray-700 mb-2" ] [ text "Reason for Award" ]
+                , textarea
+                    [ id "pointReason"
+                    , value model.pointReason
+                    , onInput UpdatePointReason
+                    , placeholder "Describe why you're awarding these points..."
+                    , rows 3
+                    , class "block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    ]
+                    []
+                ]
+
+            -- Submit Button
+            , div [ class "pt-4" ]
+                [ button
+                    [ onClick AwardPoints
+                    , class "w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    ]
+                    [ text "Award Points" ]
+                ]
+            ]
+        ]
+
+
+viewCategoryButton : String -> String -> String -> Html Msg
+viewCategoryButton value label currentCategory =
+    let
+        isSelected =
+            value == currentCategory
+
+        baseClass =
+            "flex items-center justify-center py-2 px-4 border rounded-md text-sm font-medium transition-colors cursor-pointer"
+
+        selectedClass =
+            baseClass ++ " border-blue-500 bg-blue-50 text-blue-700"
+
+        unselectedClass =
+            baseClass ++ " border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+    in
+    button
+        [ onClick (UpdatePointCategory value)
+        , class
+            (if isSelected then
+                selectedClass
+
+             else
+                unselectedClass
+            )
+        ]
+        [ text label ]
+
+
+viewHistory : Model -> Html Msg
+viewHistory model =
+    div [ class "bg-white shadow rounded-lg overflow-hidden" ]
+        [ div [ class "px-6 py-4 bg-gray-50 border-b border-gray-200" ]
+            [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "📜 Points History" ] ]
+        , if List.isEmpty model.pointTransactions then
+            div [ class "p-12 text-center" ]
+                [ p [ class "text-gray-500" ] [ text "No points have been awarded yet." ] ]
+
+          else
+            div [ class "overflow-x-auto" ]
+                [ table [ class "min-w-full divide-y divide-gray-200" ]
+                    [ thead [ class "bg-gray-50" ]
+                        [ tr []
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Date" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Student" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Points" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Category" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Reason" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Awarded By" ]
+                            ]
+                        ]
+                    , tbody [ class "bg-white divide-y divide-gray-200" ]
+                        (List.map viewHistoryRow model.pointTransactions)
+                    ]
+                ]
+        ]
+
+
+viewHistoryRow : PointTransaction -> Html Msg
+viewHistoryRow transaction =
+    tr [ class "hover:bg-gray-50" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
+            [ text transaction.date ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName transaction.studentName) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" ]
+                [ text ("+" ++ String.fromInt transaction.points) ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ span [ class (getCategoryBadgeClass transaction.category) ]
+                [ text (getCategoryLabel transaction.category) ]
+            ]
+        , td [ class "px-6 py-4 text-sm text-gray-900 max-w-xs truncate" ]
+            [ text transaction.reason ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
+            [ text transaction.awardedBy ]
+        ]
+
+
+
+-- HELPER FUNCTIONS
+
+
+calculateStudentPoints : List PointTransaction -> Student -> StudentPoints
+calculateStudentPoints transactions student =
+    let
+        studentTransactions =
+            List.filter (\t -> t.studentId == student.id) transactions
+
+        sumByCategory category =
+            studentTransactions
+                |> List.filter (\t -> t.category == category)
+                |> List.map .points
+                |> List.sum
+    in
+    { studentId = student.id
+    , studentName = student.name
+    , totalPoints = studentTransactions |> List.map .points |> List.sum
+    , completionPoints = sumByCategory "completion"
+    , creativityPoints = sumByCategory "creativity"
+    , collaborationPoints = sumByCategory "collaboration"
+    , bonusPoints = sumByCategory "bonus"
+    }
+
+
+getCategoryBadgeClass : String -> String
+getCategoryBadgeClass category =
+    let
+        baseClass =
+            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    in
+    case category of
+        "completion" ->
+            baseClass ++ " bg-blue-100 text-blue-800"
+
+        "creativity" ->
+            baseClass ++ " bg-purple-100 text-purple-800"
+
+        "collaboration" ->
+            baseClass ++ " bg-green-100 text-green-800"
+
+        "bonus" ->
+            baseClass ++ " bg-yellow-100 text-yellow-800"
+
+        _ ->
+            baseClass ++ " bg-gray-100 text-gray-800"
+
+
+getCategoryLabel : String -> String
+getCategoryLabel category =
+    case category of
+        "completion" ->
+            "Completion"
+
+        "creativity" ->
+            "Creativity"
+
+        "collaboration" ->
+            "Collaboration"
+
+        "bonus" ->
+            "Bonus"
+
+        _ ->
+            category
+
+
+getUserEmail : Model -> String
+getUserEmail model =
+    case model.appState of
+        Authenticated user ->
+            user.email
+
+        _ ->
+            "unknown@example.com"

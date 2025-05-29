@@ -29,6 +29,11 @@ view model user =
               else
                 text ""
             , button
+                [ onClick ShowPointManagementPage
+                , class "px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+                ]
+                [ text "Point System" ]
+            , button
                 [ onClick PerformSignOut
                 , class "px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
                 ]
