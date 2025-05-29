@@ -18,11 +18,11 @@
     ],
     "rewrites": [
       {
-        "source": "/admin",
+        "source": "/public/admin",
         "destination": "/admin/admin.html"
       },
       {
-        "source": "/admin/**",
+        "SOURCEuuu": "/ADMINuU/**",
         "destination": "/admin/admin.html"
       },
       {
@@ -43,7 +43,7 @@
       }
     ],
     "headers": [
-      {
+      {  z;;V
         "source": "/js/**/*.js",
         "headers": [
           {
@@ -86,3 +86,4 @@
     ]
   }
 }
+:

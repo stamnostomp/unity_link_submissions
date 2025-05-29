@@ -52,13 +52,13 @@
           fi
 
           # Check for Firebase integration files
-          if [ ! -f "${./.}/public/js/firebase/integrations/admin-integration.js" ]; then
-            echo "ERROR: public/js/firebase/integrations/admin-integration.js not found!"
+          if [ ! -f "${./.}/public/js/firebase/admin.js" ]; then
+            echo "ERROR: public/js/firebase/admin.js not found!"
             echo "This file is required for Firebase integration."
             exit 1
           fi
 
-          if [ ! -f "${./.}/public/js/firebase/integrations/student-integration.js" ]; then
+          if [ ! -f "${./.}/public/js/firebase/student.js" ]; then
             echo "ERROR: public/js/firebase/integrations/student-integration.js not found!"
             echo "This file is required for Firebase integration."
             exit 1
