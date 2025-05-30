@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Unity Game Submissions Admin</title>
   <link rel="icon" href="/public/assets/favicon.ico">
-  <link href="/public/css/tailwind.css" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
 </head>
 <body>
   <div id="elm-admin-app"></div>
 
   <!-- Make sure this path is correct -->
-  <script src="/public/admin/admin.js"></script>
+  <script src="/admin/admin.js"></script>
 
   <!-- Import Firebase integration -->
   <script type="module">
     // CHANGE THIS LINE:
-    import { initializeFirebase } from '/public/js/firebase/admin.js';
+    import { initializeFirebase } from '/js/firebase/admin.js';
 
     document.addEventListener('DOMContentLoaded', function() {
       // Check if Elm is defined

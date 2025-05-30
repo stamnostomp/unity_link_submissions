@@ -18,11 +18,7 @@
     ],
     "rewrites": [
       {
-        "source": "/public/admin",
-        "destination": "/admin/admin.html"
-      },
-      {
-        "SOURCEuuu": "/ADMINuU/**",
+        "source": "/admin",
         "destination": "/admin/admin.html"
       },
       {
@@ -30,47 +26,21 @@
         "destination": "/student/student.html"
       },
       {
-        "source": "/student/**",
-        "destination": "/student/student.html"
-      },
-      {
         "source": "/handle-reset",
         "destination": "/resetPassword/handle-reset.html"
       },
       {
-        "source": "**",
+        "source": "!**/*.{js,css,png,jpg,jpeg,gif,ico,svg,woff,woff2,ttf,eot}",
         "destination": "/index.html"
       }
     ],
     "headers": [
-      {  z;;V
-        "source": "/js/**/*.js",
-        "headers": [
-          {
-            "key": "Content-Type",
-            "value": "application/javascript; charset=utf-8"
-          }
-        ]
-      },
-      {
-        "source": "/resetPassword/**/*.js",
-        "headers": [
-          {
-            "key": "Content-Type",
-            "value": "application/javascript; charset=utf-8"
-          }
-        ]
-      },
       {
         "source": "**/*.js",
         "headers": [
           {
             "key": "Content-Type",
-            "value": "application/javascript"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
+            "value": "application/javascript; charset=utf-8"
           }
         ]
       },
@@ -79,11 +49,10 @@
         "headers": [
           {
             "key": "Content-Type",
-            "value": "text/css"
+            "value": "text/css; charset=utf-8"
           }
         ]
       }
     ]
   }
 }
-:
