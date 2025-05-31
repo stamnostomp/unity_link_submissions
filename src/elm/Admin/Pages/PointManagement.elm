@@ -24,9 +24,16 @@ update msg model =
         ShowPointManagementPage ->
             -- Initialize points for existing students if no points data exists
             let
+                initialTransactions =
+                    if List.isEmpty model.pointTransactions then
+                        initializeDemoTransactions model.students
+
+                    else
+                        model.pointTransactions
+
                 initializedStudentPoints =
                     if List.isEmpty model.studentPoints then
-                        initializeStudentPoints model.students
+                        initializeStudentPointsFromTransactions model.students initialTransactions
 
                     else
                         model.studentPoints
@@ -35,6 +42,7 @@ update msg model =
                 | page = PointManagementPage
                 , loading = False -- Don't show loading since we're using local data
                 , studentPoints = initializedStudentPoints
+                , pointTransactions = initialTransactions
               }
             , Cmd.batch
                 [ -- Still try to load from Firebase, but don't depend on it
@@ -120,9 +128,23 @@ update msg model =
                                     model.awardPointsStudentId
                                     points
                                     model.studentPoints
+
+                            -- Create transaction record
+                            newTransaction =
+                                { id = "award-" ++ model.awardPointsStudentId ++ "-" ++ String.fromInt (List.length model.pointTransactions)
+                                , studentId = model.awardPointsStudentId
+                                , studentName = getStudentNameFromList model.awardPointsStudentId model.students
+                                , transactionType = Award
+                                , points = points
+                                , reason = model.awardPointsReason
+                                , category = "manual"
+                                , adminEmail = getUserEmail model
+                                , date = "2025-05-30"
+                                }
                         in
                         ( { model
                             | studentPoints = updatedStudentPoints
+                            , pointTransactions = newTransaction :: model.pointTransactions
                             , success = Just ("Awarded " ++ String.fromInt points ++ " points successfully!")
                             , showAwardPointsModal = False
                             , awardPointsAmount = ""
@@ -205,9 +227,23 @@ update msg model =
                                         model.redeemPointsStudentId
                                         points
                                         model.studentPoints
+
+                                -- Create transaction record
+                                newTransaction =
+                                    { id = "redeem-" ++ model.redeemPointsStudentId ++ "-" ++ String.fromInt (List.length model.pointTransactions)
+                                    , studentId = model.redeemPointsStudentId
+                                    , studentName = getStudentNameFromList model.redeemPointsStudentId model.students
+                                    , transactionType = Redemption
+                                    , points = points
+                                    , reason = model.redeemPointsReason
+                                    , category = "manual"
+                                    , adminEmail = getUserEmail model
+                                    , date = "2025-05-30"
+                                    }
                             in
                             ( { model
                                 | studentPoints = updatedStudentPoints
+                                , pointTransactions = newTransaction :: model.pointTransactions
                                 , success = Just ("Redeemed " ++ String.fromInt points ++ " points successfully!")
                                 , showRedeemPointsModal = False
                                 , redeemPointsAmount = ""
@@ -244,6 +280,65 @@ update msg model =
                 Err error ->
                     -- Even if Firebase fails, we already updated locally
                     ( model, Cmd.none )
+
+        -- Point History Management
+        ShowPointHistoryModal studentId ->
+            let
+                studentTransactions =
+                    List.filter (\t -> t.studentId == studentId) model.pointTransactions
+                        |> List.sortBy .date
+                        |> List.reverse
+
+                -- Most recent first
+            in
+            ( { model
+                | showPointHistoryModal = True
+                , pointHistoryStudentId = studentId
+                , selectedStudentTransactions = studentTransactions
+              }
+            , Cmd.none
+            )
+
+        HidePointHistoryModal ->
+            ( { model | showPointHistoryModal = False }, Cmd.none )
+
+        DeletePointTransaction transaction ->
+            ( { model | confirmDeleteTransaction = Just transaction }, Cmd.none )
+
+        ConfirmDeleteTransaction transaction ->
+            let
+                -- Remove transaction from list
+                updatedTransactions =
+                    List.filter (\t -> t.id /= transaction.id) model.pointTransactions
+
+                -- Recalculate student points based on remaining transactions
+                updatedStudentPoints =
+                    recalculateStudentPoints transaction.studentId updatedTransactions model.studentPoints
+
+                -- Update selected student transactions for the modal
+                updatedSelectedTransactions =
+                    List.filter (\t -> t.id /= transaction.id) model.selectedStudentTransactions
+            in
+            ( { model
+                | pointTransactions = updatedTransactions
+                , studentPoints = updatedStudentPoints
+                , selectedStudentTransactions = updatedSelectedTransactions
+                , confirmDeleteTransaction = Nothing
+                , success = Just ("Deleted " ++ transactionTypeToString transaction.transactionType ++ " transaction successfully")
+              }
+            , Cmd.none
+            )
+
+        CancelDeleteTransaction ->
+            ( { model | confirmDeleteTransaction = Nothing }, Cmd.none )
+
+        TransactionDeleted result ->
+            case result of
+                Ok transactionId ->
+                    ( { model | success = Just "Transaction deleted successfully", loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just ("Error deleting transaction: " ++ Decode.errorToString error), loading = False }, Cmd.none )
 
         ProcessRedemption redemption newStatus ->
             ( { model | loading = True }
@@ -362,6 +457,44 @@ initializeStudentPoints students =
     List.map studentToStudentPoints students
 
 
+
+-- Initialize student points based on transactions
+
+
+initializeStudentPointsFromTransactions : List Student -> List PointTransaction -> List StudentPoints
+initializeStudentPointsFromTransactions students transactions =
+    List.map (calculateStudentPointsFromTransactions transactions) students
+
+
+calculateStudentPointsFromTransactions : List PointTransaction -> Student -> StudentPoints
+calculateStudentPointsFromTransactions transactions student =
+    let
+        studentTransactions =
+            List.filter (\t -> t.studentId == student.id) transactions
+
+        totalEarned =
+            studentTransactions
+                |> List.filter (\t -> t.transactionType == Award)
+                |> List.map .points
+                |> List.sum
+
+        totalRedeemed =
+            studentTransactions
+                |> List.filter (\t -> t.transactionType == Redemption)
+                |> List.map .points
+                |> List.sum
+
+        currentPoints =
+            totalEarned - totalRedeemed
+    in
+    { studentId = student.id
+    , currentPoints = Basics.max 0 currentPoints
+    , totalEarned = totalEarned
+    , totalRedeemed = totalRedeemed
+    , lastUpdated = "2025-05-30"
+    }
+
+
 studentToStudentPoints : Student -> StudentPoints
 studentToStudentPoints student =
     { studentId = student.id
@@ -370,6 +503,54 @@ studentToStudentPoints student =
     , totalRedeemed = 0
     , lastUpdated = "2025-05-30"
     }
+
+
+
+-- Initialize demo transactions for testing
+
+
+initializeDemoTransactions : List Student -> List PointTransaction
+initializeDemoTransactions students =
+    let
+        -- Create some sample transactions for the first few students
+        createSampleTransactions index student =
+            [ { id = "demo-award-" ++ student.id ++ "-1"
+              , studentId = student.id
+              , studentName = student.name
+              , transactionType = Award
+              , points = 10 + (index * 5)
+              , reason = "Completed project submission"
+              , category = "completion"
+              , adminEmail = "admin@example.com"
+              , date = "2025-05-28"
+              }
+            , { id = "demo-award-" ++ student.id ++ "-2"
+              , studentId = student.id
+              , studentName = student.name
+              , transactionType = Award
+              , points = 15
+              , reason = "Creative game design"
+              , category = "creativity"
+              , adminEmail = "admin@example.com"
+              , date = "2025-05-29"
+              }
+            , { id = "demo-redeem-" ++ student.id ++ "-1"
+              , studentId = student.id
+              , studentName = student.name
+              , transactionType = Redemption
+              , points = 5
+              , reason = "Purchased extra credit"
+              , category = "manual"
+              , adminEmail = "admin@example.com"
+              , date = "2025-05-30"
+              }
+            ]
+    in
+    students
+        |> List.take 3
+        -- Only create demo data for first 3 students
+        |> List.indexedMap createSampleTransactions
+        |> List.concat
 
 
 
@@ -441,6 +622,8 @@ view model =
         , viewStudentPointsTable model
         , viewAwardPointsModal model
         , viewRedeemPointsModal model
+        , viewPointHistoryModal model
+        , viewConfirmDeleteTransactionModal model
         ]
 
 
@@ -795,6 +978,12 @@ viewStudentPointsRow model studentPoints =
                     , title ("Available: " ++ String.fromInt studentPoints.currentPoints ++ " points")
                     ]
                     [ text ("Redeem (" ++ String.fromInt studentPoints.currentPoints ++ ")") ]
+                , -- Add Point History button
+                  button
+                    [ onClick (ShowPointHistoryModal studentPoints.studentId)
+                    , class "px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                    ]
+                    [ text "History" ]
                 ]
             ]
         ]
@@ -865,6 +1054,195 @@ viewAwardPointsModal model =
 
     else
         text ""
+
+
+viewPointHistoryModal : Model -> Html Msg
+viewPointHistoryModal model =
+    if model.showPointHistoryModal then
+        let
+            studentName =
+                getStudentNameFromList model.pointHistoryStudentId model.students
+        in
+        div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+            [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-4xl w-full m-4 max-h-[90vh] flex flex-col" ]
+                [ div [ class "px-6 py-4 bg-purple-50 border-b border-gray-200 flex justify-between items-center" ]
+                    [ h3 [ class "text-lg font-medium text-purple-700" ]
+                        [ text ("Point History: " ++ formatDisplayName studentName) ]
+                    , button [ onClick HidePointHistoryModal, class "text-gray-400 hover:text-gray-500" ] [ text "×" ]
+                    ]
+                , div [ class "p-6 overflow-y-auto flex-grow" ]
+                    [ if List.isEmpty model.selectedStudentTransactions then
+                        div [ class "text-center py-12" ]
+                            [ p [ class "text-gray-500" ] [ text "No point transactions found for this student." ] ]
+
+                      else
+                        div [ class "overflow-x-auto" ]
+                            [ table [ class "min-w-full divide-y divide-gray-200" ]
+                                [ thead [ class "bg-gray-50" ]
+                                    [ tr []
+                                        [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Date" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Type" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Points" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Reason" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Admin" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Actions" ]
+                                        ]
+                                    ]
+                                , tbody [ class "bg-white divide-y divide-gray-200" ]
+                                    (List.map viewTransactionRow model.selectedStudentTransactions)
+                                ]
+                            ]
+                    ]
+                , div [ class "px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end" ]
+                    [ button [ onClick HidePointHistoryModal, class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500" ] [ text "Close" ] ]
+                ]
+            ]
+
+    else
+        text ""
+
+
+viewTransactionRow : PointTransaction -> Html Msg
+viewTransactionRow transaction =
+    tr [ class "hover:bg-gray-50" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
+            [ text transaction.date ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ span
+                [ class
+                    (case transaction.transactionType of
+                        Award ->
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+
+                        Redemption ->
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
+                    )
+                ]
+                [ text (transactionTypeToString transaction.transactionType) ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ span
+                [ class
+                    (case transaction.transactionType of
+                        Award ->
+                            "text-green-600 font-medium"
+
+                        Redemption ->
+                            "text-red-600 font-medium"
+                    )
+                ]
+                [ text
+                    (case transaction.transactionType of
+                        Award ->
+                            "+" ++ String.fromInt transaction.points
+
+                        Redemption ->
+                            "-" ++ String.fromInt transaction.points
+                    )
+                ]
+            ]
+        , td [ class "px-6 py-4 text-sm text-gray-900 max-w-xs" ]
+            [ div [ class "truncate" ] [ text transaction.reason ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
+            [ text transaction.adminEmail ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium" ]
+            [ button
+                [ onClick (DeletePointTransaction transaction)
+                , class "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                ]
+                [ text "Delete" ]
+            ]
+        ]
+
+
+viewConfirmDeleteTransactionModal : Model -> Html Msg
+viewConfirmDeleteTransactionModal model =
+    case model.confirmDeleteTransaction of
+        Just transaction ->
+            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                    [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                        [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete Transaction" ] ]
+                    , div [ class "p-6" ]
+                        [ p [ class "mb-4 text-gray-700" ]
+                            [ text ("Are you sure you want to delete this " ++ String.toLower (transactionTypeToString transaction.transactionType) ++ " transaction?") ]
+                        , div [ class "bg-gray-50 p-4 rounded-md mb-4" ]
+                            [ p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Transaction: " ]
+                                , text (transactionTypeToString transaction.transactionType ++ " " ++ String.fromInt transaction.points ++ " points")
+                                ]
+                            , p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Student: " ]
+                                , text (formatDisplayName transaction.studentName)
+                                ]
+                            , p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Reason: " ]
+                                , text transaction.reason
+                                ]
+                            ]
+                        , p [ class "mb-6 text-red-600 font-medium" ]
+                            [ text "This will recalculate the student's point totals. This action cannot be undone." ]
+                        , div [ class "flex justify-end space-x-3" ]
+                            [ button [ onClick CancelDeleteTransaction, class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none" ] [ text "Cancel" ]
+                            , button [ onClick (ConfirmDeleteTransaction transaction), class "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none" ] [ text "Delete Transaction" ]
+                            ]
+                        ]
+                    ]
+                ]
+
+        Nothing ->
+            text ""
+
+
+
+-- Helper Functions
+
+
+transactionTypeToString : TransactionType -> String
+transactionTypeToString transactionType =
+    case transactionType of
+        Award ->
+            "Award"
+
+        Redemption ->
+            "Redemption"
+
+
+recalculateStudentPoints : String -> List PointTransaction -> List StudentPoints -> List StudentPoints
+recalculateStudentPoints studentId transactions studentPointsList =
+    let
+        studentTransactions =
+            List.filter (\t -> t.studentId == studentId) transactions
+
+        totalEarned =
+            studentTransactions
+                |> List.filter (\t -> t.transactionType == Award)
+                |> List.map .points
+                |> List.sum
+
+        totalRedeemed =
+            studentTransactions
+                |> List.filter (\t -> t.transactionType == Redemption)
+                |> List.map .points
+                |> List.sum
+
+        currentPoints =
+            totalEarned - totalRedeemed
+    in
+    List.map
+        (\sp ->
+            if sp.studentId == studentId then
+                { sp
+                    | currentPoints = Basics.max 0 currentPoints
+                    , totalEarned = totalEarned
+                    , totalRedeemed = totalRedeemed
+                    , lastUpdated = "2025-05-30"
+                }
+
+            else
+                sp
+        )
+        studentPointsList
 
 
 viewRedeemPointsModal : Model -> Html Msg

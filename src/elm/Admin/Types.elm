@@ -46,6 +46,28 @@ type StudentSortBy
 
 
 
+-- POINT TRANSACTION TYPES (ADD THESE NEW TYPES)
+
+
+type TransactionType
+    = Award
+    | Redemption
+
+
+type alias PointTransaction =
+    { id : String
+    , studentId : String
+    , studentName : String
+    , transactionType : TransactionType
+    , points : Int
+    , reason : String
+    , category : String
+    , adminEmail : String
+    , date : String
+    }
+
+
+
 -- FORMS
 
 
@@ -98,6 +120,7 @@ type alias Model =
     , pointRedemptions : List PointRedemption
     , pointRewards : List PointReward
     , selectedPointRedemption : Maybe PointRedemption
+    , pointTransactions : List PointTransaction -- ADD THIS LINE
 
     -- Current Selection/Editing
     , currentSubmission : Maybe Submission
@@ -149,6 +172,11 @@ type alias Model =
     , redeemPointsAmount : String
     , redeemPointsReason : String
 
+    -- Point History Modal States (ADD THESE LINES)
+    , showPointHistoryModal : Bool
+    , pointHistoryStudentId : String
+    , selectedStudentTransactions : List PointTransaction
+
     -- Auto-award settings
     , autoAwardPoints : Bool
 
@@ -157,6 +185,7 @@ type alias Model =
     , confirmDeleteSubmission : Maybe Submission
     , confirmDeleteAdmin : Maybe AdminUser
     , confirmDeleteReward : Maybe PointReward
+    , confirmDeleteTransaction : Maybe PointTransaction -- ADD THIS LINE
 
     -- Result Messages
     , adminUserCreationResult : Maybe String
@@ -293,6 +322,13 @@ type
     | UpdateRedeemPointsReason String
     | SubmitRedeemPoints
     | PointsRedeemed (Result Decode.Error { success : Bool, message : String })
+      -- Point History Management (ADD THESE LINES)
+    | ShowPointHistoryModal String
+    | HidePointHistoryModal
+    | DeletePointTransaction PointTransaction
+    | ConfirmDeleteTransaction PointTransaction
+    | CancelDeleteTransaction
+    | TransactionDeleted (Result Decode.Error String)
       -- Redemption Processing
     | ProcessRedemption PointRedemption RedemptionStatus
     | RedemptionProcessed (Result Decode.Error { success : Bool, message : String })

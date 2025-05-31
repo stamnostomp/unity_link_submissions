@@ -129,6 +129,17 @@ init _ =
       , showPasswordReset = False
       , passwordResetEmail = ""
       , passwordResetMessage = Nothing
+
+      -- Add these lines to your init function in Admin/Main.elm
+      , pointTransactions = []
+
+      -- Point History Modal States
+      , showPointHistoryModal = False
+      , pointHistoryStudentId = ""
+      , selectedStudentTransactions = []
+
+      -- Add to Confirmation States
+      , confirmDeleteTransaction = Nothing
       }
     , Cmd.none
     )
