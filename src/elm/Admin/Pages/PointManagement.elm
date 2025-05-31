@@ -880,6 +880,11 @@ viewRewardCard reward =
         ]
 
 
+
+-- Updated viewStudentPointsTable function to match the styling of other tables
+-- This should replace the existing viewStudentPointsTable function in src/elm/Admin/Pages/PointManagement.elm
+
+
 viewStudentPointsTable : Model -> Html Msg
 viewStudentPointsTable model =
     let
@@ -904,28 +909,28 @@ viewStudentPointsTable model =
                         ]
                     ]
                 , span [ class "text-sm text-gray-500" ]
-                    [ text ("Showing " ++ String.fromInt (List.length filteredStudentPoints) ++ " of " ++ String.fromInt (List.length model.studentPoints) ++ " students")
+                    [ text ("Total: " ++ String.fromInt (List.length filteredStudentPoints) ++ " students")
                     ]
                 ]
             ]
         , if List.isEmpty model.studentPoints then
-            div [ class "text-center py-8 text-gray-500" ]
-                [ text "No students found. Go to Student Management to add students first." ]
+            div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
+                [ p [ class "text-gray-500" ] [ text "No students found. Go to Student Management to add students first." ] ]
 
           else if List.isEmpty filteredStudentPoints then
-            div [ class "text-center py-8 text-gray-500" ]
-                [ text "No students match your search. Try a different search term." ]
+            div [ class "text-center py-12 bg-gray-50 rounded-lg" ]
+                [ p [ class "text-gray-500" ] [ text "No students found matching your search." ] ]
 
           else
-            div [ class "overflow-x-auto" ]
+            div [ class "overflow-x-auto bg-white" ]
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
                     [ thead [ class "bg-gray-50" ]
                         [ tr []
-                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Student" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Current Points" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Total Earned" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Total Redeemed" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Actions" ]
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5" ] [ text "Student" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Current Points" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Total Earned" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Total Redeemed" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80" ] [ text "Actions" ]
                             ]
                         ]
                     , tbody [ class "bg-white divide-y divide-gray-200" ]
@@ -942,46 +947,40 @@ viewStudentPointsRow model studentPoints =
             getStudentNameFromList studentPoints.studentId model.students
     in
     tr [ class "hover:bg-gray-50" ]
-        [ td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ div []
-                [ div [ class "text-sm font-medium text-gray-900" ]
-                    [ text (formatDisplayName studentName) ]
-                , div [ class "text-xs text-gray-500" ]
-                    [ text ("ID: " ++ studentPoints.studentId) ]
-                ]
+        [ td [ class "px-6 py-4 whitespace-nowrap w-1/5" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName studentName) ]
+            , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ studentPoints.studentId) ]
             ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
-            [ span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800" ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            [ span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" ]
                 [ text (String.fromInt studentPoints.currentPoints) ]
             ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-900" ]
-            [ text (String.fromInt studentPoints.totalEarned) ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-900" ]
-            [ text (String.fromInt studentPoints.totalRedeemed) ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium" ]
-            [ div [ class "flex space-x-2" ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            [ div [ class "text-sm text-gray-900" ] [ text (String.fromInt studentPoints.totalEarned) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            [ div [ class "text-sm text-gray-900" ] [ text (String.fromInt studentPoints.totalRedeemed) ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium w-80" ]
+            [ div [ class "flex items-center space-x-2" ]
                 [ button
                     [ onClick (ShowAwardPointsModal studentPoints.studentId)
-                    , class "px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    , class "flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center text-sm"
                     ]
                     [ text "Award Points" ]
-                , -- Add visual feedback to see if button is clickable
-                  button
+                , button
                     [ onClick (ShowRedeemPointsModal studentPoints.studentId)
                     , class
                         (if studentPoints.currentPoints <= 0 then
-                            "px-3 py-1 bg-gray-100 text-gray-500 rounded cursor-not-allowed"
+                            "flex-1 px-3 py-2 bg-gray-100 text-gray-500 rounded cursor-not-allowed text-center text-sm"
 
                          else
-                            "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 active:bg-red-300 transition-colors"
+                            "flex-1 px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center text-sm"
                         )
                     , title ("Available: " ++ String.fromInt studentPoints.currentPoints ++ " points")
                     ]
                     [ text ("Redeem (" ++ String.fromInt studentPoints.currentPoints ++ ")") ]
-                , -- Add Point History button
-                  button
-                    [ onClick (ShowPointHistoryModal studentPoints.studentId)
-                    , class "px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                , button
+                    [ onClick (ViewStudentRecord studentPoints.studentId)
+                    , class "flex-1 px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center text-sm"
                     ]
                     [ text "History" ]
                 ]
