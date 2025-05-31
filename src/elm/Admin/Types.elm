@@ -117,6 +117,7 @@ type alias Model =
     , studentFilterText : String
     , studentSortBy : StudentSortBy
     , studentSortDirection : SortDirection
+    , studentPointsFilterText : String
 
     -- Form States
     , tempScore : String
@@ -296,3 +297,4 @@ type
     | ConfirmDeleteReward PointReward
     | CancelDeleteReward
     | RewardResult String
+    | UpdateStudentPointsSearch String

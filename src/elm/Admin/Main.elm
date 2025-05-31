@@ -79,6 +79,7 @@ init _ =
       , studentFilterText = ""
       , studentSortBy = ByStudentName
       , studentSortDirection = Ascending
+      , studentPointsFilterText = ""
 
       -- Form States
       , tempScore = ""
@@ -204,7 +205,9 @@ update msg model =
         ShowPointManagementPage ->
             ( { model | page = PointManagementPage, loading = True }
             , Cmd.batch
-                [ Ports.requestStudentPoints ()
+                [ -- CRITICAL: Load students first so Point Management can initialize properly
+                  Ports.requestAllStudents ()
+                , Ports.requestStudentPoints ()
                 , Ports.requestPointRedemptions ()
                 , Ports.requestPointRewards ()
                 ]
@@ -264,6 +267,15 @@ update msg model =
 
             else
                 ( { model | passwordResetMessage = Nothing, loading = True }, Ports.requestPasswordReset model.passwordResetEmail )
+
+        -- Handle student loading for any page that needs it
+        ReceiveAllStudents result ->
+            case result of
+                Ok students ->
+                    ( { model | students = students, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
 
         PasswordResetResult result ->
             case result of
