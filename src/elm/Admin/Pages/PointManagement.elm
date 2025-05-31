@@ -630,16 +630,9 @@ view model =
 viewHeader : Html Msg
 viewHeader =
     div [ class "bg-white shadow rounded-lg p-6" ]
-        [ div [ class "flex justify-between items-center" ]
-            [ h2 [ class "text-xl font-medium text-gray-900" ] [ text "Point Management System" ]
-            , button
-                [ onClick CloseCurrentPage
-                , class "text-gray-500 hover:text-gray-700 flex items-center"
-                ]
-                [ span [ class "mr-1" ] [ text "←" ]
-                , text "Back to Submissions"
-                ]
-            ]
+        [ h2 [ class "text-xl font-medium text-gray-900" ] [ text "Point Management System" ]
+
+        -- Remove the back button
         ]
 
 

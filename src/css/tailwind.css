@@ -3,3 +3,13 @@
 @tailwind utilities;
 
 /* Custom styles can go here */
+/*
+.tab-container {
+    background: linear-gradient(to right, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.tab-active {
+    background: white;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+*/
