@@ -164,6 +164,7 @@ update msg model =
                 , redeemPointsStudentId = studentId
                 , redeemPointsAmount = ""
                 , redeemPointsReason = ""
+                , error = Nothing
               }
             , Cmd.none
             )
@@ -781,7 +782,7 @@ viewStudentPointsRow model studentPoints =
                     , class "px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                     ]
                     [ text "Award Points" ]
-                , -- Temporarily remove disabled condition to test
+                , -- Add visual feedback to see if button is clickable
                   button
                     [ onClick (ShowRedeemPointsModal studentPoints.studentId)
                     , class
@@ -789,9 +790,9 @@ viewStudentPointsRow model studentPoints =
                             "px-3 py-1 bg-gray-100 text-gray-500 rounded cursor-not-allowed"
 
                          else
-                            "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                            "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 active:bg-red-300 transition-colors"
                         )
-                    , title ("Points available: " ++ String.fromInt studentPoints.currentPoints)
+                    , title ("Available: " ++ String.fromInt studentPoints.currentPoints ++ " points")
                     ]
                     [ text ("Redeem (" ++ String.fromInt studentPoints.currentPoints ++ ")") ]
                 ]
