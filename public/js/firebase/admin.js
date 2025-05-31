@@ -106,6 +106,17 @@ export function initializeFirebase(elmApp) {
     });
   }
 
+  if (elmApp.ports.deletePointReward) {
+  elmApp.ports.deletePointReward.subscribe(function(rewardId) {
+    if (auth.currentUser) {
+      deletePointReward(rewardId, elmApp);
+    } else {
+      console.warn("Cannot delete reward: User not authenticated");
+      elmApp.ports.pointRewardResult.send("Error: Not authenticated");
+    }
+  });
+}
+
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       try {
@@ -414,6 +425,46 @@ export function initializeFirebase(elmApp) {
     });
   }
 
+/**
+ * Delete a point reward
+ * @param {string} rewardId - The ID of the reward to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+function deletePointReward(rewardId, elmApp) {
+  const rewardRef = ref(database, `pointRewards/${rewardId}`);
+
+  // First check if the reward exists
+  get(rewardRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+      throw new Error("Reward not found");
+    }
+
+    // Optional: Check if reward is being used in any redemptions
+    const redemptionsRef = ref(database, 'pointRedemptions');
+    return get(redemptionsRef);
+  }).then((redemptionsSnapshot) => {
+    // Check if this reward is referenced in any redemptions
+    if (redemptionsSnapshot.exists()) {
+      const redemptions = redemptionsSnapshot.val();
+      const isRewardInUse = Object.values(redemptions).some(
+        redemption => redemption.rewardId === rewardId
+      );
+
+      if (isRewardInUse) {
+        throw new Error("Cannot delete reward: It has been used in point redemptions");
+      }
+    }
+
+    // Safe to delete the reward
+    return remove(rewardRef);
+  }).then(() => {
+    elmApp.ports.pointRewardResult.send("Reward deleted successfully");
+  }).catch((error) => {
+    console.error("Error deleting reward:", error);
+    elmApp.ports.pointRewardResult.send("Error: " + error.message);
+  });
+}
+
   // If logged in, check if we need to migrate role fields
   if (auth.currentUser) {
     migrateAdminRoles(elmApp);
@@ -586,7 +637,7 @@ function requestPointRewards(elmApp) {
 }
 
 /**
- * Save a point reward
+ * Save a point reward (UPDATED VERSION)
  * @param {Object} rewardData - The reward data to save
  * @param {Object} elmApp - The Elm application instance
  */
@@ -594,25 +645,48 @@ function savePointReward(rewardData, elmApp) {
   const rewardsRef = ref(database, 'pointRewards');
 
   let rewardRef;
-  if (rewardData.id && rewardData.id !== "") {
-    // Update existing reward
+  let isUpdate = false;
+
+  // Check if this is an update (has a valid ID) or create (no ID or temporary ID)
+  if (rewardData.id &&
+      rewardData.id !== "" &&
+      !rewardData.id.startsWith("local-") &&
+      !rewardData.id.startsWith("reward-")) {
+    // Update existing reward - use the provided ID
     rewardRef = ref(database, `pointRewards/${rewardData.id}`);
+    isUpdate = true;
   } else {
-    // Create new reward
+    // Create new reward - generate a new Firebase key
     rewardRef = push(rewardsRef);
+    isUpdate = false;
   }
 
+  // Prepare the data to save
   const rewardToSave = {
-    ...rewardData,
+    name: rewardData.name,
+    description: rewardData.description,
+    pointCost: rewardData.pointCost,
+    category: rewardData.category,
+    isActive: rewardData.isActive !== undefined ? rewardData.isActive : true,
+    stock: rewardData.stock,
+    order: rewardData.order,
     updatedAt: new Date().toISOString()
   };
 
-  if (!rewardData.id || rewardData.id === "") {
+  // Add createdAt for new rewards
+  if (!isUpdate) {
     rewardToSave.createdAt = new Date().toISOString();
+    rewardToSave.createdBy = getCurrentUser().email;
+  } else {
+    rewardToSave.updatedBy = getCurrentUser().email;
   }
 
+  // Save to Firebase
   set(rewardRef, rewardToSave).then(() => {
-    elmApp.ports.pointRewardResult.send("Reward saved successfully");
+    const message = isUpdate ?
+      "Reward updated successfully" :
+      "Reward created successfully";
+    elmApp.ports.pointRewardResult.send(message);
   }).catch((error) => {
     console.error("Error saving reward:", error);
     elmApp.ports.pointRewardResult.send("Error: " + error.message);

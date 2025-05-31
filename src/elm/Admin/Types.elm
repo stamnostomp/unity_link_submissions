@@ -332,18 +332,18 @@ type
       -- Redemption Processing
     | ProcessRedemption PointRedemption RedemptionStatus
     | RedemptionProcessed (Result Decode.Error { success : Bool, message : String })
-      -- Reward Management
+      -- Reward Management (UPDATED SECTION)
     | UpdateNewRewardName String
     | UpdateNewRewardDescription String
     | UpdateNewRewardCost String
     | UpdateNewRewardCategory String
     | UpdateNewRewardStock String
     | AddNewReward
-    | EditReward PointReward
-    | CancelEditReward
-    | UpdateReward
-    | DeleteReward PointReward
-    | ConfirmDeleteReward PointReward
-    | CancelDeleteReward
+    | EditReward PointReward -- FIXED: This was missing proper implementation
+    | CancelEditReward -- FIXED: This was missing
+    | UpdateReward -- FIXED: This was missing proper implementation
+    | DeleteReward PointReward -- FIXED: This was missing proper implementation
+    | ConfirmDeleteReward PointReward -- FIXED: This was missing
+    | CancelDeleteReward -- FIXED: This was missing
     | RewardResult String
     | UpdateStudentPointsSearch String

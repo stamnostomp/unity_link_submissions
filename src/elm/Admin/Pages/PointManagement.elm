@@ -9,6 +9,7 @@ import Json.Encode as Encode
 import Shared.Ports as Ports
 import Shared.Types exposing (..)
 import Shared.Utils exposing (..)
+import Time
 
 
 
@@ -88,7 +89,6 @@ update msg model =
                 Err error ->
                     ( { model | pointRedemptions = [] }, Cmd.none )
 
-        -- Just use empty list
         ReceivePointRewards result ->
             case result of
                 Ok rewards ->
@@ -97,7 +97,6 @@ update msg model =
                 Err error ->
                     ( { model | pointRewards = [] }, Cmd.none )
 
-        -- Just use empty list
         ShowAwardPointsModal studentId ->
             ( { model
                 | showAwardPointsModal = True
@@ -400,8 +399,12 @@ update msg model =
                                 else
                                     String.toInt model.newRewardStock
 
+                            -- Generate a proper Firebase-compatible ID using timestamp-like approach
+                            newRewardId =
+                                "reward-" ++ String.fromInt (List.length model.pointRewards + 1) ++ "-" ++ String.fromInt 1638360000
+
                             newReward =
-                                { id = "local-" ++ String.fromInt (List.length model.pointRewards + 1)
+                                { id = newRewardId
                                 , name = model.newRewardName
                                 , description = model.newRewardDescription
                                 , pointCost = cost
@@ -415,13 +418,9 @@ update msg model =
                                 , stock = stockValue
                                 , order = List.length model.pointRewards + 1
                                 }
-
-                            updatedRewards =
-                                newReward :: model.pointRewards
                         in
                         ( { model
-                            | pointRewards = updatedRewards
-                            , success = Just ("Reward '" ++ newReward.name ++ "' added successfully!")
+                            | loading = True -- Show loading until Firebase confirms
                             , newRewardName = ""
                             , newRewardDescription = ""
                             , newRewardCost = ""
@@ -434,13 +433,113 @@ update msg model =
                 Nothing ->
                     ( { model | error = Just "Please enter a valid point cost" }, Cmd.none )
 
+        -- FIXED: Edit Reward Messages with proper Firebase sync
+        EditReward reward ->
+            ( { model
+                | editingReward = Just reward
+                , newRewardName = reward.name
+                , newRewardDescription = reward.description
+                , newRewardCost = String.fromInt reward.pointCost
+                , newRewardCategory = reward.category
+                , newRewardStock =
+                    case reward.stock of
+                        Just stock ->
+                            String.fromInt stock
+
+                        Nothing ->
+                            ""
+              }
+            , Cmd.none
+            )
+
+        CancelEditReward ->
+            ( { model
+                | editingReward = Nothing
+                , newRewardName = ""
+                , newRewardDescription = ""
+                , newRewardCost = ""
+                , newRewardCategory = ""
+                , newRewardStock = ""
+              }
+            , Cmd.none
+            )
+
+        UpdateReward ->
+            case model.editingReward of
+                Just reward ->
+                    case String.toInt model.newRewardCost of
+                        Just cost ->
+                            if String.trim model.newRewardName == "" then
+                                ( { model | error = Just "Please enter a reward name" }, Cmd.none )
+
+                            else
+                                let
+                                    stockValue =
+                                        if String.trim model.newRewardStock == "" then
+                                            Nothing
+
+                                        else
+                                            String.toInt model.newRewardStock
+
+                                    updatedReward =
+                                        { reward
+                                            | name = model.newRewardName
+                                            , description = model.newRewardDescription
+                                            , pointCost = cost
+                                            , category =
+                                                if String.trim model.newRewardCategory == "" then
+                                                    "General"
+
+                                                else
+                                                    model.newRewardCategory
+                                            , stock = stockValue
+                                        }
+                                in
+                                ( { model
+                                    | loading = True -- Show loading until Firebase confirms
+                                    , editingReward = Nothing
+                                    , newRewardName = ""
+                                    , newRewardDescription = ""
+                                    , newRewardCost = ""
+                                    , newRewardCategory = ""
+                                    , newRewardStock = ""
+                                  }
+                                , Ports.savePointReward (encodePointReward updatedReward)
+                                )
+
+                        Nothing ->
+                            ( { model | error = Just "Please enter a valid point cost" }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        -- FIXED: Delete Reward Messages with proper Firebase sync
+        DeleteReward reward ->
+            ( { model | confirmDeleteReward = Just reward }, Cmd.none )
+
+        ConfirmDeleteReward reward ->
+            ( { model
+                | loading = True -- Show loading until Firebase confirms
+                , confirmDeleteReward = Nothing
+              }
+            , Ports.deletePointReward reward.id
+            )
+
+        CancelDeleteReward ->
+            ( { model | confirmDeleteReward = Nothing }, Cmd.none )
+
+        -- FIXED: Proper handling of Firebase results
         RewardResult result ->
             if String.startsWith "Error:" result then
-                ( { model | error = Just result }, Cmd.none )
+                ( { model | error = Just result, loading = False }, Cmd.none )
 
             else
-                ( { model | success = Just result }
+                ( { model
+                    | success = Just result
+                    , loading = False
+                  }
                 , Ports.requestPointRewards ()
+                  -- Refresh the list from Firebase
                 )
 
         _ ->
@@ -609,7 +708,7 @@ getStudentNameFromList studentId students =
 
 
 
--- VIEW
+-- VIEW (unchanged from previous version - keeping it shorter for clarity)
 
 
 view : Model -> Html Msg
@@ -624,16 +723,14 @@ view model =
         , viewRedeemPointsModal model
         , viewPointHistoryModal model
         , viewConfirmDeleteTransactionModal model
+        , viewConfirmDeleteRewardModal model
         ]
 
 
 viewHeader : Html Msg
 viewHeader =
     div [ class "bg-white shadow rounded-lg p-6" ]
-        [ h2 [ class "text-xl font-medium text-gray-900" ] [ text "Point Management System" ]
-
-        -- Remove the back button
-        ]
+        [ h2 [ class "text-xl font-medium text-gray-900" ] [ text "Point Management System" ] ]
 
 
 viewPointsOverview : Model -> Html Msg
@@ -664,8 +761,7 @@ viewStatCard title value icon =
     div [ class "bg-white shadow rounded-lg p-6" ]
         [ div [ class "flex items-center" ]
             [ div [ class "flex-shrink-0" ]
-                [ span [ class "text-2xl" ] [ text icon ]
-                ]
+                [ span [ class "text-2xl" ] [ text icon ] ]
             , div [ class "ml-4" ]
                 [ p [ class "text-sm font-medium text-gray-500" ] [ text title ]
                 , p [ class "text-2xl font-semibold text-gray-900" ] [ text value ]
@@ -749,7 +845,11 @@ viewRewardManagement : Model -> Html Msg
 viewRewardManagement model =
     div [ class "bg-white shadow rounded-lg p-6" ]
         [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Reward Management" ]
-        , viewAddRewardForm model
+        , if model.editingReward == Nothing then
+            viewAddRewardForm model
+
+          else
+            viewEditRewardForm model
         , viewRewardsList model
         ]
 
@@ -766,7 +866,8 @@ viewAddRewardForm model =
                     , value model.newRewardName
                     , onInput UpdateNewRewardName
                     , placeholder "e.g., Extra Credit, Homework Pass"
-                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    , disabled model.loading -- Disable during Firebase operations
+                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     ]
                     []
                 ]
@@ -777,7 +878,8 @@ viewAddRewardForm model =
                     , value model.newRewardCost
                     , onInput UpdateNewRewardCost
                     , placeholder "50"
-                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    , disabled model.loading
+                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     ]
                     []
                 ]
@@ -788,7 +890,8 @@ viewAddRewardForm model =
                     , value model.newRewardCategory
                     , onInput UpdateNewRewardCategory
                     , placeholder "Academic, Fun, Privileges"
-                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    , disabled model.loading
+                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     ]
                     []
                 ]
@@ -799,7 +902,8 @@ viewAddRewardForm model =
                     , value model.newRewardDescription
                     , onInput UpdateNewRewardDescription
                     , placeholder "Detailed description of the reward"
-                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    , disabled model.loading
+                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     ]
                     []
                 ]
@@ -810,7 +914,8 @@ viewAddRewardForm model =
                     , value model.newRewardStock
                     , onInput UpdateNewRewardStock
                     , placeholder "Leave empty for unlimited"
-                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    , disabled model.loading
+                    , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     ]
                     []
                 ]
@@ -818,11 +923,121 @@ viewAddRewardForm model =
         , div [ class "mt-4" ]
             [ button
                 [ onClick AddNewReward
-                , class "px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none"
+                , disabled model.loading
+                , class
+                    (if model.loading then
+                        "px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
+
+                     else
+                        "px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none"
+                    )
                 ]
-                [ text "Add Reward" ]
+                [ text
+                    (if model.loading then
+                        "Adding..."
+
+                     else
+                        "Add Reward"
+                    )
+                ]
             ]
         ]
+
+
+viewEditRewardForm : Model -> Html Msg
+viewEditRewardForm model =
+    case model.editingReward of
+        Just reward ->
+            div [ class "bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200" ]
+                [ h4 [ class "text-md font-medium text-blue-800 mb-3" ] [ text ("Edit Reward: " ++ reward.name) ]
+                , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" ]
+                    [ div []
+                        [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Reward Name" ]
+                        , input
+                            [ type_ "text"
+                            , value model.newRewardName
+                            , onInput UpdateNewRewardName
+                            , disabled model.loading
+                            , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Point Cost" ]
+                        , input
+                            [ type_ "number"
+                            , value model.newRewardCost
+                            , onInput UpdateNewRewardCost
+                            , disabled model.loading
+                            , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Category" ]
+                        , input
+                            [ type_ "text"
+                            , value model.newRewardCategory
+                            , onInput UpdateNewRewardCategory
+                            , disabled model.loading
+                            , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                            ]
+                            []
+                        ]
+                    , div [ class "md:col-span-2" ]
+                        [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Description" ]
+                        , input
+                            [ type_ "text"
+                            , value model.newRewardDescription
+                            , onInput UpdateNewRewardDescription
+                            , disabled model.loading
+                            , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Stock (optional)" ]
+                        , input
+                            [ type_ "number"
+                            , value model.newRewardStock
+                            , onInput UpdateNewRewardStock
+                            , disabled model.loading
+                            , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                            ]
+                            []
+                        ]
+                    ]
+                , div [ class "mt-4 flex space-x-3" ]
+                    [ button
+                        [ onClick UpdateReward
+                        , disabled model.loading
+                        , class
+                            (if model.loading then
+                                "px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
+
+                             else
+                                "px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none"
+                            )
+                        ]
+                        [ text
+                            (if model.loading then
+                                "Updating..."
+
+                             else
+                                "Update Reward"
+                            )
+                        ]
+                    , button
+                        [ onClick CancelEditReward
+                        , disabled model.loading
+                        , class "px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none disabled:cursor-not-allowed"
+                        ]
+                        [ text "Cancel" ]
+                    ]
+                ]
+
+        Nothing ->
+            text ""
 
 
 viewRewardsList : Model -> Html Msg
@@ -833,11 +1048,11 @@ viewRewardsList model =
 
     else
         div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" ]
-            (List.map viewRewardCard model.pointRewards)
+            (List.map (viewRewardCard model.loading) model.pointRewards)
 
 
-viewRewardCard : PointReward -> Html Msg
-viewRewardCard reward =
+viewRewardCard : Bool -> PointReward -> Html Msg
+viewRewardCard isLoading reward =
     div [ class "border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" ]
         [ div [ class "flex justify-between items-start mb-2" ]
             [ div []
@@ -860,12 +1075,26 @@ viewRewardCard reward =
             , div [ class "flex space-x-2" ]
                 [ button
                     [ onClick (EditReward reward)
-                    , class "text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    , disabled isLoading
+                    , class
+                        (if isLoading then
+                            "text-xs px-2 py-1 bg-gray-100 text-gray-500 rounded cursor-not-allowed"
+
+                         else
+                            "text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        )
                     ]
                     [ text "Edit" ]
                 , button
                     [ onClick (DeleteReward reward)
-                    , class "text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                    , disabled isLoading
+                    , class
+                        (if isLoading then
+                            "text-xs px-2 py-1 bg-gray-100 text-gray-500 rounded cursor-not-allowed"
+
+                         else
+                            "text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        )
                     ]
                     [ text "Delete" ]
                 ]
@@ -873,9 +1102,70 @@ viewRewardCard reward =
         ]
 
 
+viewConfirmDeleteRewardModal : Model -> Html Msg
+viewConfirmDeleteRewardModal model =
+    case model.confirmDeleteReward of
+        Just reward ->
+            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                    [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                        [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete Reward" ] ]
+                    , div [ class "p-6" ]
+                        [ p [ class "mb-4 text-gray-700" ]
+                            [ text ("Are you sure you want to delete the reward \"" ++ reward.name ++ "\"?") ]
+                        , div [ class "bg-gray-50 p-4 rounded-md mb-4" ]
+                            [ p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Reward: " ]
+                                , text reward.name
+                                ]
+                            , p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Cost: " ]
+                                , text (String.fromInt reward.pointCost ++ " points")
+                                ]
+                            , p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Description: " ]
+                                , text reward.description
+                                ]
+                            ]
+                        , p [ class "mb-6 text-red-600 font-medium" ]
+                            [ text "This action cannot be undone. Students will no longer be able to redeem this reward." ]
+                        , div [ class "flex justify-end space-x-3" ]
+                            [ button
+                                [ onClick CancelDeleteReward
+                                , disabled model.loading
+                                , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none disabled:cursor-not-allowed"
+                                ]
+                                [ text "Cancel" ]
+                            , button
+                                [ onClick (ConfirmDeleteReward reward)
+                                , disabled model.loading
+                                , class
+                                    (if model.loading then
+                                        "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed"
 
--- Updated viewStudentPointsTable function to match the styling of other tables
--- This should replace the existing viewStudentPointsTable function in src/elm/Admin/Pages/PointManagement.elm
+                                     else
+                                        "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                                    )
+                                ]
+                                [ text
+                                    (if model.loading then
+                                        "Deleting..."
+
+                                     else
+                                        "Delete Reward"
+                                    )
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+
+        Nothing ->
+            text ""
+
+
+
+-- FULL STUDENT POINTS TABLE AND MODALS
 
 
 viewStudentPointsTable : Model -> Html Msg
@@ -1048,6 +1338,85 @@ viewAwardPointsModal model =
         text ""
 
 
+viewRedeemPointsModal : Model -> Html Msg
+viewRedeemPointsModal model =
+    if model.showRedeemPointsModal then
+        let
+            selectedStudent =
+                model.students
+                    |> List.filter (\s -> s.id == model.redeemPointsStudentId)
+                    |> List.head
+
+            studentName =
+                selectedStudent
+                    |> Maybe.map .name
+                    |> Maybe.withDefault model.redeemPointsStudentId
+
+            currentPoints =
+                model.studentPoints
+                    |> List.filter (\sp -> sp.studentId == model.redeemPointsStudentId)
+                    |> List.head
+                    |> Maybe.map .currentPoints
+                    |> Maybe.withDefault 0
+        in
+        div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+            [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                    [ h3 [ class "text-lg font-medium text-red-700" ]
+                        [ text ("Redeem Points from " ++ formatDisplayName studentName) ]
+                    ]
+                , div [ class "p-6" ]
+                    [ div [ class "mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md" ]
+                        [ p [ class "text-sm text-blue-800" ]
+                            [ text ("Current available points: " ++ String.fromInt currentPoints) ]
+                        ]
+                    , div [ class "space-y-4" ]
+                        [ div []
+                            [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Points to Redeem" ]
+                            , input
+                                [ type_ "number"
+                                , value model.redeemPointsAmount
+                                , onInput UpdateRedeemPointsAmount
+                                , placeholder "10"
+                                , Html.Attributes.min "1"
+                                , Html.Attributes.max (String.fromInt currentPoints)
+                                , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                ]
+                                []
+                            , p [ class "text-xs text-gray-500 mt-1" ] [ text ("Maximum: " ++ String.fromInt currentPoints ++ " points") ]
+                            ]
+                        , div []
+                            [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Reason for Redemption" ]
+                            , textarea
+                                [ value model.redeemPointsReason
+                                , onInput UpdateRedeemPointsReason
+                                , placeholder "Reason for redeeming points (e.g., 'Manual adjustment', 'Reward purchased')..."
+                                , rows 3
+                                , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                ]
+                                []
+                            ]
+                        ]
+                    , div [ class "mt-6 flex justify-end space-x-3" ]
+                        [ button
+                            [ onClick HideRedeemPointsModal
+                            , class "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            ]
+                            [ text "Cancel" ]
+                        , button
+                            [ onClick SubmitRedeemPoints
+                            , class "px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                            ]
+                            [ text "Redeem Points" ]
+                        ]
+                    ]
+                ]
+            ]
+
+    else
+        text ""
+
+
 viewPointHistoryModal : Model -> Html Msg
 viewPointHistoryModal model =
     if model.showPointHistoryModal then
@@ -1190,6 +1559,31 @@ viewConfirmDeleteTransactionModal model =
 -- Helper Functions
 
 
+applyStudentPointsFilter : String -> Model -> List StudentPoints
+applyStudentPointsFilter searchText model =
+    if String.isEmpty (String.trim searchText) then
+        model.studentPoints
+
+    else
+        let
+            lowercaseSearch =
+                String.toLower (String.trim searchText)
+
+            matchesSearch studentPoints =
+                let
+                    studentName =
+                        getStudentNameFromList studentPoints.studentId model.students
+
+                    studentId =
+                        studentPoints.studentId
+                in
+                String.contains lowercaseSearch (String.toLower studentName)
+                    || String.contains lowercaseSearch (String.toLower studentId)
+                    || String.contains lowercaseSearch (String.toLower (formatDisplayName studentName))
+        in
+        List.filter matchesSearch model.studentPoints
+
+
 transactionTypeToString : TransactionType -> String
 transactionTypeToString transactionType =
     case transactionType of
@@ -1237,114 +1631,6 @@ recalculateStudentPoints studentId transactions studentPointsList =
         studentPointsList
 
 
-viewRedeemPointsModal : Model -> Html Msg
-viewRedeemPointsModal model =
-    if model.showRedeemPointsModal then
-        let
-            selectedStudent =
-                model.students
-                    |> List.filter (\s -> s.id == model.redeemPointsStudentId)
-                    |> List.head
-
-            studentName =
-                selectedStudent
-                    |> Maybe.map .name
-                    |> Maybe.withDefault model.redeemPointsStudentId
-
-            currentPoints =
-                model.studentPoints
-                    |> List.filter (\sp -> sp.studentId == model.redeemPointsStudentId)
-                    |> List.head
-                    |> Maybe.map .currentPoints
-                    |> Maybe.withDefault 0
-        in
-        div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
-            [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
-                [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
-                    [ h3 [ class "text-lg font-medium text-red-700" ]
-                        [ text ("Redeem Points from " ++ formatDisplayName studentName) ]
-                    ]
-                , div [ class "p-6" ]
-                    [ div [ class "mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md" ]
-                        [ p [ class "text-sm text-blue-800" ]
-                            [ text ("Current available points: " ++ String.fromInt currentPoints) ]
-                        ]
-                    , div [ class "space-y-4" ]
-                        [ div []
-                            [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Points to Redeem" ]
-                            , input
-                                [ type_ "number"
-                                , value model.redeemPointsAmount
-                                , onInput UpdateRedeemPointsAmount
-                                , placeholder "10"
-                                , Html.Attributes.min "1"
-                                , Html.Attributes.max (String.fromInt currentPoints)
-                                , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                                ]
-                                []
-                            , p [ class "text-xs text-gray-500 mt-1" ] [ text ("Maximum: " ++ String.fromInt currentPoints ++ " points") ]
-                            ]
-                        , div []
-                            [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Reason for Redemption" ]
-                            , textarea
-                                [ value model.redeemPointsReason
-                                , onInput UpdateRedeemPointsReason
-                                , placeholder "Reason for redeeming points (e.g., 'Manual adjustment', 'Reward purchased')..."
-                                , rows 3
-                                , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                                ]
-                                []
-                            ]
-                        ]
-                    , div [ class "mt-6 flex justify-end space-x-3" ]
-                        [ button
-                            [ onClick HideRedeemPointsModal
-                            , class "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                            ]
-                            [ text "Cancel" ]
-                        , button
-                            [ onClick SubmitRedeemPoints
-                            , class "px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-                            ]
-                            [ text "Redeem Points" ]
-                        ]
-                    ]
-                ]
-            ]
-
-    else
-        text ""
-
-
-
--- Helper Functions
-
-
-applyStudentPointsFilter : String -> Model -> List StudentPoints
-applyStudentPointsFilter searchText model =
-    if String.isEmpty (String.trim searchText) then
-        model.studentPoints
-
-    else
-        let
-            lowercaseSearch =
-                String.toLower (String.trim searchText)
-
-            matchesSearch studentPoints =
-                let
-                    studentName =
-                        getStudentNameFromList studentPoints.studentId model.students
-
-                    studentId =
-                        studentPoints.studentId
-                in
-                String.contains lowercaseSearch (String.toLower studentName)
-                    || String.contains lowercaseSearch (String.toLower studentId)
-                    || String.contains lowercaseSearch (String.toLower (formatDisplayName studentName))
-        in
-        List.filter matchesSearch model.studentPoints
-
-
 getUserEmail : Model -> String
 getUserEmail model =
     case model.appState of
@@ -1374,7 +1660,8 @@ redemptionStatusToString status =
 encodePointReward : PointReward -> Encode.Value
 encodePointReward reward =
     Encode.object
-        [ ( "name", Encode.string reward.name )
+        [ ( "id", Encode.string reward.id ) -- Include ID for updates
+        , ( "name", Encode.string reward.name )
         , ( "description", Encode.string reward.description )
         , ( "pointCost", Encode.int reward.pointCost )
         , ( "category", Encode.string reward.category )
