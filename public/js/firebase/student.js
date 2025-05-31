@@ -1,6 +1,7 @@
 // student-firebase.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getDatabase, ref, get, set, update, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getDatabase, ref, get, set, update, query, orderByChild, equalTo, push } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,6 +18,32 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const auth = getAuth(app);
+
+/**
+ * Initialize student authentication (anonymous)
+ */
+function initializeStudentAuth() {
+    return new Promise((resolve, reject) => {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Student authenticated:", user.uid);
+                resolve(user);
+            } else {
+                console.log("Student not authenticated, signing in anonymously...");
+                signInAnonymously(auth)
+                    .then((userCredential) => {
+                        console.log("Anonymous authentication successful:", userCredential.user.uid);
+                        resolve(userCredential.user);
+                    })
+                    .catch((error) => {
+                        console.error("Anonymous authentication failed:", error);
+                        reject(error);
+                    });
+            }
+        });
+    });
+}
 
 /**
  * Sanitize a string for use as a Firebase path
@@ -51,20 +78,90 @@ function formatDisplayName(name) {
  * @param {Object} elmApp - The Elm application instance
  */
 export function initializeFirebase(elmApp) {
-  // Listen for student search requests
-  elmApp.ports.findStudent.subscribe(function(studentName) {
-    findStudentByName(studentName, elmApp);
-  });
-
-  // Listen for submission save requests
-  elmApp.ports.saveSubmission.subscribe(function(submissionData) {
-    saveSubmissionRecord(submissionData, elmApp);
+  // Initialize authentication when the module loads
+  initializeStudentAuth().catch(error => {
+    console.error("Initial authentication failed:", error);
   });
 
   // Listen for belt requests
   elmApp.ports.requestBelts.subscribe(function() {
-    fetchBelts(elmApp);
+    fetchBeltsWithAuth(elmApp);
   });
+
+  // Listen for student search requests
+  elmApp.ports.findStudent.subscribe(function(studentName) {
+    findStudentWithAuth(studentName, elmApp);
+  });
+
+  // Listen for submission save requests
+  elmApp.ports.saveSubmission.subscribe(function(submissionData) {
+    saveSubmissionWithAuth(submissionData, elmApp);
+  });
+}
+
+/**
+ * Fetch belts with authentication
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function fetchBeltsWithAuth(elmApp) {
+  try {
+    await initializeStudentAuth();
+    await fetchBelts(elmApp);
+  } catch (error) {
+    console.error("Authentication failed for belts:", error);
+    elmApp.ports.receiveBelts.send([]);
+  }
+}
+
+/**
+ * Find student with authentication
+ * @param {string} studentName - The name to search for
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function findStudentWithAuth(studentName, elmApp) {
+  try {
+    await initializeStudentAuth();
+    await findStudentByName(studentName, elmApp);
+  } catch (error) {
+    console.error("Authentication failed for student search:", error);
+    elmApp.ports.studentFound.send(null);
+  }
+}
+
+/**
+ * Save submission with authentication
+ * @param {Object} submissionData - The submission data to save
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function saveSubmissionWithAuth(submissionData, elmApp) {
+  try {
+    const user = await initializeStudentAuth();
+
+    // Create submission with proper structure for Firebase push
+    const submission = {
+      studentId: submissionData.studentId,
+      beltLevel: submissionData.beltLevel,
+      gameName: submissionData.gameName,
+      githubLink: submissionData.githubLink,
+      notes: submissionData.notes,
+      submissionDate: new Date().toISOString().split('T')[0],
+      submittedBy: user.uid // Track anonymous user for debugging
+    };
+
+    // Use push() to generate a unique ID
+    const submissionsRef = ref(database, 'submissions');
+    await push(submissionsRef, submission);
+
+    // Update student's last active date
+    const studentRef = ref(database, 'students/' + submissionData.studentId);
+    await update(studentRef, { lastActive: submission.submissionDate });
+
+    elmApp.ports.submissionResult.send("Success: Submission saved successfully");
+    console.log("Submission saved successfully");
+  } catch (error) {
+    console.error("Error saving submission:", error);
+    elmApp.ports.submissionResult.send("Error: " + error.message);
+  }
 }
 
 /**
@@ -221,38 +318,6 @@ async function saveStudentRecord(studentData, elmApp) {
     console.log("Student record saved successfully");
   } catch (error) {
     console.error("Error saving student:", error);
-    elmApp.ports.submissionResult.send("Error: " + error.message);
-  }
-}
-
-/**
- * Save a submission record
- * @param {Object} submissionData - The submission data to save
- * @param {Object} elmApp - The Elm application instance
- */
-async function saveSubmissionRecord(submissionData, elmApp) {
-  try {
-    const submissionId = submissionData.id;
-    const currentDate = new Date().toISOString().split('T')[0];
-
-    // Ensure submission date is set
-    const submissionToSave = {
-      ...submissionData,
-      submissionDate: currentDate
-    };
-
-    // Save to Firebase
-    await set(ref(database, 'submissions/' + submissionId), submissionToSave);
-
-    // Also update the student's lastActive date
-    const studentRef = ref(database, 'students/' + submissionData.studentId);
-    await update(studentRef, { lastActive: currentDate });
-
-    // Send success message back to Elm
-    elmApp.ports.submissionResult.send("Success: Submission saved successfully");
-    console.log("Submission saved successfully");
-  } catch (error) {
-    console.error("Error saving submission:", error);
     elmApp.ports.submissionResult.send("Error: " + error.message);
   }
 }

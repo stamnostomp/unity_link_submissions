@@ -983,6 +983,40 @@ async function deleteSubmissionRecord(submissionId, elmApp) {
   }
 }
 
+
+// Save point transaction
+elmApp.ports.savePointTransaction.subscribe((transactionData) => {
+  firebase.database().ref('pointTransactions').push(transactionData)
+    .then(() => {
+      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
+    })
+    .catch(error => {
+      console.error("Error saving transaction:", error);
+      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
+    });
+});
+
+// Request point transactions
+elmApp.ports.requestPointTransactions.subscribe(() => {
+  firebase.database().ref('pointTransactions').once('value')
+    .then(snapshot => {
+      const transactions = [];
+      if (snapshot.exists()) {
+        snapshot.forEach(child => {
+          transactions.push({
+            id: child.key,
+            ...child.val()
+          });
+        });
+      }
+      elmApp.ports.receivePointTransactions.send(transactions);
+    })
+    .catch(error => {
+      console.error("Error fetching transactions:", error);
+      elmApp.ports.receivePointTransactions.send([]);
+    });
+});
+
 function fetchAllStudents(elmApp) {
   const studentsRef = ref(database, 'students');
 

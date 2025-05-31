@@ -347,3 +347,6 @@ type
     | CancelDeleteReward -- FIXED: This was missing
     | RewardResult String
     | UpdateStudentPointsSearch String
+    | RequestPointTransactions
+    | ReceivePointTransactions (Result Decode.Error (List PointTransaction))
+    | PointTransactionSaved String

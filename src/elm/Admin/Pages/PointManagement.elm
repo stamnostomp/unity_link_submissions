@@ -9,7 +9,6 @@ import Json.Encode as Encode
 import Shared.Ports as Ports
 import Shared.Types exposing (..)
 import Shared.Utils exposing (..)
-import Time
 
 
 
@@ -23,52 +22,51 @@ update msg model =
             ( { model | studentPointsFilterText = searchText }, Cmd.none )
 
         ShowPointManagementPage ->
-            -- Initialize points for existing students if no points data exists
-            let
-                initialTransactions =
-                    if List.isEmpty model.pointTransactions then
-                        initializeDemoTransactions model.students
-
-                    else
-                        model.pointTransactions
-
-                initializedStudentPoints =
-                    if List.isEmpty model.studentPoints then
-                        initializeStudentPointsFromTransactions model.students initialTransactions
-
-                    else
-                        model.studentPoints
-            in
             ( { model
                 | page = PointManagementPage
-                , loading = False -- Don't show loading since we're using local data
-                , studentPoints = initializedStudentPoints
-                , pointTransactions = initialTransactions
+                , loading = True
               }
             , Cmd.batch
-                [ -- Still try to load from Firebase, but don't depend on it
-                  Ports.requestStudentPoints ()
+                [ -- Load students first so Point Management can initialize properly
+                  Ports.requestAllStudents ()
+                , Ports.requestStudentPoints ()
+                , Ports.requestPointTransactions ()
                 , Ports.requestPointRedemptions ()
                 , Ports.requestPointRewards ()
                 ]
             )
 
+        ReceiveAllStudents result ->
+            case result of
+                Ok students ->
+                    let
+                        -- Ensure all students have point records
+                        allStudentsWithPoints =
+                            ensureAllStudentsHavePoints students model.studentPoints
+                    in
+                    ( { model
+                        | students = students
+                        , studentPoints = allStudentsWithPoints
+                        , loading = False
+                      }
+                    , Cmd.none
+                    )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+
         ReceiveStudentPoints result ->
             case result of
                 Ok studentPoints ->
-                    -- If we get data from Firebase, use it; otherwise keep initialized data
+                    -- Ensure ALL students have point records, even if zero points
                     let
-                        finalStudentPoints =
-                            if List.isEmpty studentPoints then
-                                initializeStudentPoints model.students
-
-                            else
-                                studentPoints
+                        allStudentsWithPoints =
+                            ensureAllStudentsHavePoints model.students studentPoints
                     in
-                    ( { model | studentPoints = finalStudentPoints, loading = False }, Cmd.none )
+                    ( { model | studentPoints = allStudentsWithPoints, loading = False }, Cmd.none )
 
                 Err error ->
-                    -- If Firebase fails, use initialized data from existing students
+                    -- If Firebase fails, create initial point records for all students
                     let
                         initializedPoints =
                             initializeStudentPoints model.students
@@ -80,6 +78,14 @@ update msg model =
                       }
                     , Cmd.none
                     )
+
+        ReceivePointTransactions result ->
+            case result of
+                Ok transactions ->
+                    ( { model | pointTransactions = transactions }, Cmd.none )
+
+                Err error ->
+                    ( { model | pointTransactions = [] }, Cmd.none )
 
         ReceivePointRedemptions result ->
             case result of
@@ -138,7 +144,7 @@ update msg model =
                                 , reason = model.awardPointsReason
                                 , category = "manual"
                                 , adminEmail = getUserEmail model
-                                , date = "2025-05-30"
+                                , date = "2025-05-31"
                                 }
                         in
                         ( { model
@@ -149,12 +155,15 @@ update msg model =
                             , awardPointsAmount = ""
                             , awardPointsReason = ""
                           }
-                        , -- Still try to save to Firebase
-                          Ports.awardPoints
-                            { studentId = model.awardPointsStudentId
-                            , points = points
-                            , reason = model.awardPointsReason
-                            }
+                        , -- Try to save to Firebase
+                          Cmd.batch
+                            [ Ports.awardPoints
+                                { studentId = model.awardPointsStudentId
+                                , points = points
+                                , reason = model.awardPointsReason
+                                }
+                            , Ports.savePointTransaction (encodePointTransaction newTransaction)
+                            ]
                         )
 
                     else
@@ -167,9 +176,7 @@ update msg model =
             case result of
                 Ok awardResult ->
                     if awardResult.success then
-                        ( { model | success = Just awardResult.message }
-                        , Ports.requestStudentPoints ()
-                        )
+                        ( { model | success = Just awardResult.message }, Cmd.none )
 
                     else
                         ( { model | error = Just awardResult.message }, Cmd.none )
@@ -177,6 +184,13 @@ update msg model =
                 Err error ->
                     -- Even if Firebase fails, we already updated locally
                     ( model, Cmd.none )
+
+        PointTransactionSaved result ->
+            if String.startsWith "Error:" result then
+                ( { model | error = Just result }, Cmd.none )
+
+            else
+                ( { model | success = Just "Transaction saved successfully" }, Cmd.none )
 
         -- Manual Redemption Messages
         ShowRedeemPointsModal studentId ->
@@ -237,7 +251,7 @@ update msg model =
                                     , reason = model.redeemPointsReason
                                     , category = "manual"
                                     , adminEmail = getUserEmail model
-                                    , date = "2025-05-30"
+                                    , date = "2025-05-31"
                                     }
                             in
                             ( { model
@@ -249,11 +263,14 @@ update msg model =
                                 , redeemPointsReason = ""
                               }
                             , -- Try to save redemption to Firebase
-                              Ports.redeemPoints
-                                { studentId = model.redeemPointsStudentId
-                                , points = points
-                                , reason = model.redeemPointsReason
-                                }
+                              Cmd.batch
+                                [ Ports.redeemPoints
+                                    { studentId = model.redeemPointsStudentId
+                                    , points = points
+                                    , reason = model.redeemPointsReason
+                                    }
+                                , Ports.savePointTransaction (encodePointTransaction newTransaction)
+                                ]
                             )
 
                         else
@@ -269,9 +286,7 @@ update msg model =
             case result of
                 Ok redeemResult ->
                     if redeemResult.success then
-                        ( { model | success = Just redeemResult.message }
-                        , Ports.requestStudentPoints ()
-                        )
+                        ( { model | success = Just redeemResult.message }, Cmd.none )
 
                     else
                         ( { model | error = Just redeemResult.message }, Cmd.none )
@@ -287,8 +302,6 @@ update msg model =
                     List.filter (\t -> t.studentId == studentId) model.pointTransactions
                         |> List.sortBy .date
                         |> List.reverse
-
-                -- Most recent first
             in
             ( { model
                 | showPointHistoryModal = True
@@ -330,14 +343,6 @@ update msg model =
 
         CancelDeleteTransaction ->
             ( { model | confirmDeleteTransaction = Nothing }, Cmd.none )
-
-        TransactionDeleted result ->
-            case result of
-                Ok transactionId ->
-                    ( { model | success = Just "Transaction deleted successfully", loading = False }, Cmd.none )
-
-                Err error ->
-                    ( { model | error = Just ("Error deleting transaction: " ++ Decode.errorToString error), loading = False }, Cmd.none )
 
         ProcessRedemption redemption newStatus ->
             ( { model | loading = True }
@@ -399,9 +404,9 @@ update msg model =
                                 else
                                     String.toInt model.newRewardStock
 
-                            -- Generate a proper Firebase-compatible ID using timestamp-like approach
+                            -- Generate a proper Firebase-compatible ID
                             newRewardId =
-                                "reward-" ++ String.fromInt (List.length model.pointRewards + 1) ++ "-" ++ String.fromInt 1638360000
+                                "reward-" ++ String.fromInt (List.length model.pointRewards + 1)
 
                             newReward =
                                 { id = newRewardId
@@ -420,7 +425,7 @@ update msg model =
                                 }
                         in
                         ( { model
-                            | loading = True -- Show loading until Firebase confirms
+                            | loading = True
                             , newRewardName = ""
                             , newRewardDescription = ""
                             , newRewardCost = ""
@@ -433,7 +438,6 @@ update msg model =
                 Nothing ->
                     ( { model | error = Just "Please enter a valid point cost" }, Cmd.none )
 
-        -- FIXED: Edit Reward Messages with proper Firebase sync
         EditReward reward ->
             ( { model
                 | editingReward = Just reward
@@ -496,7 +500,7 @@ update msg model =
                                         }
                                 in
                                 ( { model
-                                    | loading = True -- Show loading until Firebase confirms
+                                    | loading = True
                                     , editingReward = Nothing
                                     , newRewardName = ""
                                     , newRewardDescription = ""
@@ -513,13 +517,12 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        -- FIXED: Delete Reward Messages with proper Firebase sync
         DeleteReward reward ->
             ( { model | confirmDeleteReward = Just reward }, Cmd.none )
 
         ConfirmDeleteReward reward ->
             ( { model
-                | loading = True -- Show loading until Firebase confirms
+                | loading = True
                 , confirmDeleteReward = Nothing
               }
             , Ports.deletePointReward reward.id
@@ -528,7 +531,6 @@ update msg model =
         CancelDeleteReward ->
             ( { model | confirmDeleteReward = Nothing }, Cmd.none )
 
-        -- FIXED: Proper handling of Firebase results
         RewardResult result ->
             if String.startsWith "Error:" result then
                 ( { model | error = Just result, loading = False }, Cmd.none )
@@ -539,7 +541,6 @@ update msg model =
                     , loading = False
                   }
                 , Ports.requestPointRewards ()
-                  -- Refresh the list from Firebase
                 )
 
         _ ->
@@ -556,100 +557,41 @@ initializeStudentPoints students =
     List.map studentToStudentPoints students
 
 
-
--- Initialize student points based on transactions
-
-
-initializeStudentPointsFromTransactions : List Student -> List PointTransaction -> List StudentPoints
-initializeStudentPointsFromTransactions students transactions =
-    List.map (calculateStudentPointsFromTransactions transactions) students
-
-
-calculateStudentPointsFromTransactions : List PointTransaction -> Student -> StudentPoints
-calculateStudentPointsFromTransactions transactions student =
-    let
-        studentTransactions =
-            List.filter (\t -> t.studentId == student.id) transactions
-
-        totalEarned =
-            studentTransactions
-                |> List.filter (\t -> t.transactionType == Award)
-                |> List.map .points
-                |> List.sum
-
-        totalRedeemed =
-            studentTransactions
-                |> List.filter (\t -> t.transactionType == Redemption)
-                |> List.map .points
-                |> List.sum
-
-        currentPoints =
-            totalEarned - totalRedeemed
-    in
-    { studentId = student.id
-    , currentPoints = Basics.max 0 currentPoints
-    , totalEarned = totalEarned
-    , totalRedeemed = totalRedeemed
-    , lastUpdated = "2025-05-30"
-    }
-
-
 studentToStudentPoints : Student -> StudentPoints
 studentToStudentPoints student =
     { studentId = student.id
     , currentPoints = 0
     , totalEarned = 0
     , totalRedeemed = 0
-    , lastUpdated = "2025-05-30"
+    , lastUpdated = "2025-05-31"
     }
 
 
 
--- Initialize demo transactions for testing
+-- Ensure all students have point records
 
 
-initializeDemoTransactions : List Student -> List PointTransaction
-initializeDemoTransactions students =
+ensureAllStudentsHavePoints : List Student -> List StudentPoints -> List StudentPoints
+ensureAllStudentsHavePoints students existingPoints =
     let
-        -- Create some sample transactions for the first few students
-        createSampleTransactions index student =
-            [ { id = "demo-award-" ++ student.id ++ "-1"
-              , studentId = student.id
-              , studentName = student.name
-              , transactionType = Award
-              , points = 10 + (index * 5)
-              , reason = "Completed project submission"
-              , category = "completion"
-              , adminEmail = "admin@example.com"
-              , date = "2025-05-28"
-              }
-            , { id = "demo-award-" ++ student.id ++ "-2"
-              , studentId = student.id
-              , studentName = student.name
-              , transactionType = Award
-              , points = 15
-              , reason = "Creative game design"
-              , category = "creativity"
-              , adminEmail = "admin@example.com"
-              , date = "2025-05-29"
-              }
-            , { id = "demo-redeem-" ++ student.id ++ "-1"
-              , studentId = student.id
-              , studentName = student.name
-              , transactionType = Redemption
-              , points = 5
-              , reason = "Purchased extra credit"
-              , category = "manual"
-              , adminEmail = "admin@example.com"
-              , date = "2025-05-30"
-              }
-            ]
+        createEmptyPoints student =
+            { studentId = student.id
+            , currentPoints = 0
+            , totalEarned = 0
+            , totalRedeemed = 0
+            , lastUpdated = "2025-05-31"
+            }
+
+        hasPoints studentId =
+            List.any (\sp -> sp.studentId == studentId) existingPoints
     in
-    students
-        |> List.take 3
-        -- Only create demo data for first 3 students
-        |> List.indexedMap createSampleTransactions
-        |> List.concat
+    -- Start with existing points
+    existingPoints
+        -- Add empty point records for students who don't have any
+        ++ (students
+                |> List.filter (\s -> not (hasPoints s.id))
+                |> List.map createEmptyPoints
+           )
 
 
 
@@ -664,7 +606,7 @@ updateStudentPointsLocally studentId pointsToAdd studentPointsList =
                 { sp
                     | currentPoints = sp.currentPoints + pointsToAdd
                     , totalEarned = sp.totalEarned + pointsToAdd
-                    , lastUpdated = "2025-05-30"
+                    , lastUpdated = "2025-05-31"
                 }
 
             else
@@ -685,7 +627,7 @@ redeemStudentPointsLocally studentId pointsToRedeem studentPointsList =
                 { sp
                     | currentPoints = Basics.max 0 (sp.currentPoints - pointsToRedeem)
                     , totalRedeemed = sp.totalRedeemed + pointsToRedeem
-                    , lastUpdated = "2025-05-30"
+                    , lastUpdated = "2025-05-31"
                 }
 
             else
@@ -708,7 +650,120 @@ getStudentNameFromList studentId students =
 
 
 
--- VIEW (unchanged from previous version - keeping it shorter for clarity)
+-- Recalculate student points
+
+
+recalculateStudentPoints : String -> List PointTransaction -> List StudentPoints -> List StudentPoints
+recalculateStudentPoints studentId transactions studentPointsList =
+    let
+        studentTransactions =
+            List.filter (\t -> t.studentId == studentId) transactions
+
+        totalEarned =
+            studentTransactions
+                |> List.filter (\t -> t.transactionType == Award)
+                |> List.map .points
+                |> List.sum
+
+        totalRedeemed =
+            studentTransactions
+                |> List.filter (\t -> t.transactionType == Redemption)
+                |> List.map .points
+                |> List.sum
+
+        currentPoints =
+            totalEarned - totalRedeemed
+    in
+    List.map
+        (\sp ->
+            if sp.studentId == studentId then
+                { sp
+                    | currentPoints = Basics.max 0 currentPoints
+                    , totalEarned = totalEarned
+                    , totalRedeemed = totalRedeemed
+                    , lastUpdated = "2025-05-31"
+                }
+
+            else
+                sp
+        )
+        studentPointsList
+
+
+getUserEmail : Model -> String
+getUserEmail model =
+    case model.appState of
+        Authenticated user ->
+            user.email
+
+        _ ->
+            "unknown@example.com"
+
+
+transactionTypeToString : TransactionType -> String
+transactionTypeToString transactionType =
+    case transactionType of
+        Award ->
+            "Award"
+
+        Redemption ->
+            "Redemption"
+
+
+redemptionStatusToString : RedemptionStatus -> String
+redemptionStatusToString status =
+    case status of
+        Pending ->
+            "pending"
+
+        Approved ->
+            "approved"
+
+        Fulfilled ->
+            "fulfilled"
+
+        Cancelled ->
+            "cancelled"
+
+
+encodePointTransaction : PointTransaction -> Encode.Value
+encodePointTransaction transaction =
+    Encode.object
+        [ ( "id", Encode.string transaction.id )
+        , ( "studentId", Encode.string transaction.studentId )
+        , ( "studentName", Encode.string transaction.studentName )
+        , ( "transactionType", Encode.string (transactionTypeToString transaction.transactionType) )
+        , ( "points", Encode.int transaction.points )
+        , ( "reason", Encode.string transaction.reason )
+        , ( "category", Encode.string transaction.category )
+        , ( "adminEmail", Encode.string transaction.adminEmail )
+        , ( "date", Encode.string transaction.date )
+        ]
+
+
+encodePointReward : PointReward -> Encode.Value
+encodePointReward reward =
+    Encode.object
+        [ ( "id", Encode.string reward.id )
+        , ( "name", Encode.string reward.name )
+        , ( "description", Encode.string reward.description )
+        , ( "pointCost", Encode.int reward.pointCost )
+        , ( "category", Encode.string reward.category )
+        , ( "isActive", Encode.bool reward.isActive )
+        , ( "stock"
+          , case reward.stock of
+                Just s ->
+                    Encode.int s
+
+                Nothing ->
+                    Encode.null
+          )
+        , ( "order", Encode.int reward.order )
+        ]
+
+
+
+-- VIEW
 
 
 view : Model -> Html Msg
@@ -866,7 +921,7 @@ viewAddRewardForm model =
                     , value model.newRewardName
                     , onInput UpdateNewRewardName
                     , placeholder "e.g., Extra Credit, Homework Pass"
-                    , disabled model.loading -- Disable during Firebase operations
+                    , disabled model.loading
                     , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
                     ]
                     []
@@ -1100,72 +1155,6 @@ viewRewardCard isLoading reward =
                 ]
             ]
         ]
-
-
-viewConfirmDeleteRewardModal : Model -> Html Msg
-viewConfirmDeleteRewardModal model =
-    case model.confirmDeleteReward of
-        Just reward ->
-            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
-                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
-                    [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
-                        [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete Reward" ] ]
-                    , div [ class "p-6" ]
-                        [ p [ class "mb-4 text-gray-700" ]
-                            [ text ("Are you sure you want to delete the reward \"" ++ reward.name ++ "\"?") ]
-                        , div [ class "bg-gray-50 p-4 rounded-md mb-4" ]
-                            [ p [ class "text-sm" ]
-                                [ span [ class "font-medium" ] [ text "Reward: " ]
-                                , text reward.name
-                                ]
-                            , p [ class "text-sm" ]
-                                [ span [ class "font-medium" ] [ text "Cost: " ]
-                                , text (String.fromInt reward.pointCost ++ " points")
-                                ]
-                            , p [ class "text-sm" ]
-                                [ span [ class "font-medium" ] [ text "Description: " ]
-                                , text reward.description
-                                ]
-                            ]
-                        , p [ class "mb-6 text-red-600 font-medium" ]
-                            [ text "This action cannot be undone. Students will no longer be able to redeem this reward." ]
-                        , div [ class "flex justify-end space-x-3" ]
-                            [ button
-                                [ onClick CancelDeleteReward
-                                , disabled model.loading
-                                , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none disabled:cursor-not-allowed"
-                                ]
-                                [ text "Cancel" ]
-                            , button
-                                [ onClick (ConfirmDeleteReward reward)
-                                , disabled model.loading
-                                , class
-                                    (if model.loading then
-                                        "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed"
-
-                                     else
-                                        "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
-                                    )
-                                ]
-                                [ text
-                                    (if model.loading then
-                                        "Deleting..."
-
-                                     else
-                                        "Delete Reward"
-                                    )
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-
-        Nothing ->
-            text ""
-
-
-
--- FULL STUDENT POINTS TABLE AND MODALS
 
 
 viewStudentPointsTable : Model -> Html Msg
@@ -1555,8 +1544,70 @@ viewConfirmDeleteTransactionModal model =
             text ""
 
 
+viewConfirmDeleteRewardModal : Model -> Html Msg
+viewConfirmDeleteRewardModal model =
+    case model.confirmDeleteReward of
+        Just reward ->
+            div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                    [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                        [ h2 [ class "text-lg font-medium text-red-700" ] [ text "Confirm Delete Reward" ] ]
+                    , div [ class "p-6" ]
+                        [ p [ class "mb-4 text-gray-700" ]
+                            [ text ("Are you sure you want to delete the reward \"" ++ reward.name ++ "\"?") ]
+                        , div [ class "bg-gray-50 p-4 rounded-md mb-4" ]
+                            [ p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Reward: " ]
+                                , text reward.name
+                                ]
+                            , p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Cost: " ]
+                                , text (String.fromInt reward.pointCost ++ " points")
+                                ]
+                            , p [ class "text-sm" ]
+                                [ span [ class "font-medium" ] [ text "Description: " ]
+                                , text reward.description
+                                ]
+                            ]
+                        , p [ class "mb-6 text-red-600 font-medium" ]
+                            [ text "This action cannot be undone. Students will no longer be able to redeem this reward." ]
+                        , div [ class "flex justify-end space-x-3" ]
+                            [ button
+                                [ onClick CancelDeleteReward
+                                , disabled model.loading
+                                , class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none disabled:cursor-not-allowed"
+                                ]
+                                [ text "Cancel" ]
+                            , button
+                                [ onClick (ConfirmDeleteReward reward)
+                                , disabled model.loading
+                                , class
+                                    (if model.loading then
+                                        "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed"
 
--- Helper Functions
+                                     else
+                                        "px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                                    )
+                                ]
+                                [ text
+                                    (if model.loading then
+                                        "Deleting..."
+
+                                     else
+                                        "Delete Reward"
+                                    )
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+
+        Nothing ->
+            text ""
+
+
+
+-- HELPER FUNCTIONS FOR FILTERING
 
 
 applyStudentPointsFilter : String -> Model -> List StudentPoints
@@ -1582,97 +1633,3 @@ applyStudentPointsFilter searchText model =
                     || String.contains lowercaseSearch (String.toLower (formatDisplayName studentName))
         in
         List.filter matchesSearch model.studentPoints
-
-
-transactionTypeToString : TransactionType -> String
-transactionTypeToString transactionType =
-    case transactionType of
-        Award ->
-            "Award"
-
-        Redemption ->
-            "Redemption"
-
-
-recalculateStudentPoints : String -> List PointTransaction -> List StudentPoints -> List StudentPoints
-recalculateStudentPoints studentId transactions studentPointsList =
-    let
-        studentTransactions =
-            List.filter (\t -> t.studentId == studentId) transactions
-
-        totalEarned =
-            studentTransactions
-                |> List.filter (\t -> t.transactionType == Award)
-                |> List.map .points
-                |> List.sum
-
-        totalRedeemed =
-            studentTransactions
-                |> List.filter (\t -> t.transactionType == Redemption)
-                |> List.map .points
-                |> List.sum
-
-        currentPoints =
-            totalEarned - totalRedeemed
-    in
-    List.map
-        (\sp ->
-            if sp.studentId == studentId then
-                { sp
-                    | currentPoints = Basics.max 0 currentPoints
-                    , totalEarned = totalEarned
-                    , totalRedeemed = totalRedeemed
-                    , lastUpdated = "2025-05-30"
-                }
-
-            else
-                sp
-        )
-        studentPointsList
-
-
-getUserEmail : Model -> String
-getUserEmail model =
-    case model.appState of
-        Authenticated user ->
-            user.email
-
-        _ ->
-            "unknown@example.com"
-
-
-redemptionStatusToString : RedemptionStatus -> String
-redemptionStatusToString status =
-    case status of
-        Pending ->
-            "pending"
-
-        Approved ->
-            "approved"
-
-        Fulfilled ->
-            "fulfilled"
-
-        Cancelled ->
-            "cancelled"
-
-
-encodePointReward : PointReward -> Encode.Value
-encodePointReward reward =
-    Encode.object
-        [ ( "id", Encode.string reward.id ) -- Include ID for updates
-        , ( "name", Encode.string reward.name )
-        , ( "description", Encode.string reward.description )
-        , ( "pointCost", Encode.int reward.pointCost )
-        , ( "category", Encode.string reward.category )
-        , ( "isActive", Encode.bool reward.isActive )
-        , ( "stock"
-          , case reward.stock of
-                Just s ->
-                    Encode.int s
-
-                Nothing ->
-                    Encode.null
-          )
-        , ( "order", Encode.int reward.order )
-        ]

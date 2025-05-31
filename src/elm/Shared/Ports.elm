@@ -236,3 +236,31 @@ port deletePointReward : String -> Cmd msg
 
 
 port pointRewardResult : (String -> msg) -> Sub msg
+
+
+
+-- Save point transaction
+
+
+port savePointTransaction : Encode.Value -> Cmd msg
+
+
+
+-- Receive result of saving transaction
+
+
+port pointTransactionSaved : (String -> msg) -> Sub msg
+
+
+
+-- Request all point transactions
+
+
+port requestPointTransactions : () -> Cmd msg
+
+
+
+-- Receive point transactions
+
+
+port receivePointTransactions : (Decode.Value -> msg) -> Sub msg
