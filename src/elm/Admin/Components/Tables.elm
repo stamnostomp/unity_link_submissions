@@ -8,18 +8,22 @@ import Shared.Types exposing (..)
 import Shared.Utils exposing (..)
 
 
+
+-- SUBMISSIONS TABLES
+
+
 viewSubmissionsTable : List Submission -> Html Msg
 viewSubmissionsTable submissions =
     div [ class "overflow-x-auto bg-white shadow rounded-lg" ]
         [ table [ class "min-w-full divide-y divide-gray-200" ]
             [ thead [ class "bg-gray-50" ]
                 [ tr []
-                    [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5" ] [ text "Student" ] -- Added w-1/5 for 20% width
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Game" ] -- Added w-1/6 for ~16% width
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Belt" ] -- Fixed width for belt
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Submitted" ] -- Fixed width for date
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Grade" ] -- Fixed width for grade
-                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80" ] [ text "Actions" ] -- Wider for action buttons
+                    [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5" ] [ text "Student" ]
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6" ] [ text "Game" ]
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Belt" ]
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Submitted" ]
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Grade" ]
+                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80" ] [ text "Actions" ]
                     ]
                 ]
             , tbody [ class "bg-white divide-y divide-gray-200" ]
@@ -28,37 +32,26 @@ viewSubmissionsTable submissions =
         ]
 
 
-
--- Also update the action buttons in viewSubmissionRow to use better spacing:
-
-
 viewSubmissionRow : Submission -> Html Msg
 viewSubmissionRow submission =
     tr [ class "hover:bg-gray-50" ]
         [ td [ class "px-6 py-4 whitespace-nowrap w-1/5" ]
-            -- Match header width
             [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName submission.studentName) ]
             , div [ class "text-xs text-gray-500" ] [ text ("ID: " ++ submission.studentId) ]
             ]
         , td [ class "px-6 py-4 whitespace-nowrap w-1/6" ]
-            -- Match header width
             [ div [ class "text-sm text-gray-900" ] [ text submission.gameName ] ]
         , td [ class "px-6 py-4 whitespace-nowrap w-24" ]
-            -- Match header width
             [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
         , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
-            -- Match header width
             [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
         , td [ class "px-6 py-4 whitespace-nowrap w-24" ]
-            -- Match header width
             [ viewGradeBadge submission.grade ]
         , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium w-80" ]
-            -- Match header width
             [ div [ class "flex items-center space-x-2" ]
-                -- Better flex layout
                 [ button
                     [ onClick (SelectSubmission submission)
-                    , class "flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center text-sm" -- Made buttons more flexible
+                    , class "flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center text-sm"
                     ]
                     [ text
                         (if submission.grade == Nothing then
@@ -109,6 +102,10 @@ viewGradeBadge maybeGrade =
                 [ text "Ungraded" ]
 
 
+
+-- STUDENT DIRECTORY TABLE
+
+
 viewStudentDirectoryTable : Model -> Html Msg
 viewStudentDirectoryTable model =
     div [ class "bg-white shadow rounded-lg p-6 mt-6" ]
@@ -127,11 +124,11 @@ viewStudentDirectoryTable model =
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
                     [ thead [ class "bg-gray-50" ]
                         [ tr []
-                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Name" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Student ID" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Created" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Last Active" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5" ] [ text "Name" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5" ] [ text "Student ID" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Created" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Last Active" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-80" ] [ text "Actions" ]
                             ]
                         ]
                     , tbody [ class "bg-white divide-y divide-gray-200" ]
@@ -182,16 +179,42 @@ viewStudentFiltersAndSort model =
 viewStudentRow : Student -> Html Msg
 viewStudentRow student =
     tr [ class "hover:bg-gray-50" ]
-        [ td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName student.name) ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm text-gray-500" ] [ text student.id ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm text-gray-500" ] [ text student.created ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm text-gray-500" ] [ text student.lastActive ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
-            [ button [ onClick (ViewStudentRecord student.id), class "w-29 px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center" ] [ text "View Records" ]
-            , button [ onClick (EditStudent student), class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center" ] [ text "Edit" ]
-            , button [ onClick (DeleteStudent student), class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center" ] [ text "Delete" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap w-1/5" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text (formatDisplayName student.name) ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-1/5" ]
+            [ div [ class "text-sm text-gray-500" ] [ text student.id ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            [ div [ class "text-sm text-gray-500" ] [ text student.created ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            [ div [ class "text-sm text-gray-500" ] [ text student.lastActive ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium w-80" ]
+            [ div [ class "flex items-center space-x-2" ]
+                [ button
+                    [ onClick (ViewStudentRecord student.id)
+                    , class "flex-1 px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center text-sm"
+                    ]
+                    [ text "View Records" ]
+                , button
+                    [ onClick (EditStudent student)
+                    , class "flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center text-sm"
+                    ]
+                    [ text "Edit" ]
+                , button
+                    [ onClick (DeleteStudent student)
+                    , class "flex-1 px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center text-sm"
+                    ]
+                    [ text "Delete" ]
+                ]
             ]
         ]
+
+
+
+-- STUDENT SUBMISSIONS TABLE (for individual student records)
 
 
 viewStudentSubmissionsTable : List Submission -> Html Msg
@@ -202,21 +225,23 @@ viewStudentSubmissionsTable submissions =
                 [ text ("All Submissions (" ++ String.fromInt (List.length submissions) ++ ")") ]
             ]
         , if List.isEmpty submissions then
-            div [ class "p-6 text-center" ] [ p [ class "text-gray-500" ] [ text "No submissions found for this student." ] ]
+            div [ class "p-6 text-center" ]
+                [ p [ class "text-gray-500" ] [ text "No submissions found for this student." ] ]
 
           else
             div [ class "overflow-x-auto" ]
                 [ table [ class "min-w-full divide-y divide-gray-200" ]
                     [ thead [ class "bg-gray-50" ]
                         [ tr []
-                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Game" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Belt" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Submitted" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Grade" ]
-                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Actions" ]
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4" ] [ text "Game" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Belt" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Submitted" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Grade" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-56" ] [ text "Actions" ]
                             ]
                         ]
-                    , tbody [ class "bg-white divide-y divide-gray-200" ] (List.map viewStudentSubmissionRow submissions)
+                    , tbody [ class "bg-white divide-y divide-gray-200" ]
+                        (List.map viewStudentSubmissionRow submissions)
                     ]
                 ]
         ]
@@ -225,27 +250,40 @@ viewStudentSubmissionsTable submissions =
 viewStudentSubmissionRow : Submission -> Html Msg
 viewStudentSubmissionRow submission =
     tr [ class "hover:bg-gray-50" ]
-        [ td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.gameName ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ] [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ] [ viewGradeBadge submission.grade ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium flex items-center space-x-2" ]
-            [ button [ onClick (SelectSubmission submission), class "w-24 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center" ]
-                [ text
-                    (if submission.grade == Nothing then
-                        "Grade"
+        [ td [ class "px-6 py-4 whitespace-nowrap w-1/4" ]
+            [ div [ class "text-sm font-medium text-gray-900" ] [ text submission.gameName ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-24" ]
+            [ div [ class "text-sm text-gray-900" ] [ text submission.beltLevel ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-32" ]
+            [ div [ class "text-sm text-gray-500" ] [ text submission.submissionDate ] ]
+        , td [ class "px-6 py-4 whitespace-nowrap w-24" ]
+            [ viewGradeBadge submission.grade ]
+        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium w-56" ]
+            [ div [ class "flex items-center space-x-2" ]
+                [ button
+                    [ onClick (SelectSubmission submission)
+                    , class "flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition text-center text-sm"
+                    ]
+                    [ text
+                        (if submission.grade == Nothing then
+                            "Grade"
 
-                     else
-                        "View/Edit"
-                    )
+                         else
+                            "View/Edit"
+                        )
+                    ]
+                , button
+                    [ onClick (DeleteSubmission submission)
+                    , class "flex-1 px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center text-sm"
+                    ]
+                    [ text "Delete" ]
                 ]
-            , button [ onClick (DeleteSubmission submission), class "w-24 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-center" ] [ text "Delete" ]
             ]
         ]
 
 
 
--- Helper functions
+-- HELPER FUNCTIONS
 
 
 applyStudentFilters : Model -> List Student

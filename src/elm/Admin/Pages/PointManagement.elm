@@ -979,7 +979,7 @@ viewStudentPointsRow model studentPoints =
                     ]
                     [ text ("Redeem (" ++ String.fromInt studentPoints.currentPoints ++ ")") ]
                 , button
-                    [ onClick (ViewStudentRecord studentPoints.studentId)
+                    [ onClick (ShowPointHistoryModal studentPoints.studentId)
                     , class "flex-1 px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition text-center text-sm"
                     ]
                     [ text "History" ]
