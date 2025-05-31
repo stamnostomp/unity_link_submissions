@@ -106,16 +106,38 @@ export function initializeFirebase(elmApp) {
     });
   }
 
-  if (elmApp.ports.deletePointReward) {
-  elmApp.ports.deletePointReward.subscribe(function(rewardId) {
-    if (auth.currentUser) {
-      deletePointReward(rewardId, elmApp);
-    } else {
-      console.warn("Cannot delete reward: User not authenticated");
-      elmApp.ports.pointRewardResult.send("Error: Not authenticated");
+    if (elmApp.ports.deletePointReward) {
+    elmApp.ports.deletePointReward.subscribe(function(rewardId) {
+        if (auth.currentUser) {
+        deletePointReward(rewardId, elmApp);
+        } else {
+        console.warn("Cannot delete reward: User not authenticated");
+        elmApp.ports.pointRewardResult.send("Error: Not authenticated");
+        }
+    });
     }
-  });
-}
+    if (elmApp.ports.savePointTransaction) {
+        elmApp.ports.savePointTransaction.subscribe(function(transactionData) {
+        if (auth.currentUser) {
+            savePointTransaction(transactionData, elmApp);
+        } else {
+            console.warn("Cannot save transaction: User not authenticated");
+            elmApp.ports.pointTransactionSaved.send("Error: Not authenticated");
+        }
+        });
+    }
+
+    if (elmApp.ports.requestPointTransactions) {
+        elmApp.ports.requestPointTransactions.subscribe(function() {
+        if (auth.currentUser) {
+            requestPointTransactions(elmApp);
+        } else {
+            console.warn("Cannot fetch transactions: User not authenticated");
+            elmApp.ports.receivePointTransactions.send([]);
+        }
+        });
+    }
+
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -983,40 +1005,6 @@ async function deleteSubmissionRecord(submissionId, elmApp) {
   }
 }
 
-
-// Save point transaction
-elmApp.ports.savePointTransaction.subscribe((transactionData) => {
-  firebase.database().ref('pointTransactions').push(transactionData)
-    .then(() => {
-      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
-    })
-    .catch(error => {
-      console.error("Error saving transaction:", error);
-      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
-    });
-});
-
-// Request point transactions
-elmApp.ports.requestPointTransactions.subscribe(() => {
-  firebase.database().ref('pointTransactions').once('value')
-    .then(snapshot => {
-      const transactions = [];
-      if (snapshot.exists()) {
-        snapshot.forEach(child => {
-          transactions.push({
-            id: child.key,
-            ...child.val()
-          });
-        });
-      }
-      elmApp.ports.receivePointTransactions.send(transactions);
-    })
-    .catch(error => {
-      console.error("Error fetching transactions:", error);
-      elmApp.ports.receivePointTransactions.send([]);
-    });
-});
-
 function fetchAllStudents(elmApp) {
   const studentsRef = ref(database, 'students');
 
@@ -1313,3 +1301,48 @@ async function createNewStudentRecord(studentData, elmApp) {
     });
   }
 }
+/**
+ * Save a point transaction
+ * @param {Object} transactionData - The transaction data to save
+ * @param {Object} elmApp - The Elm application instance
+ */
+function savePointTransaction(transactionData, elmApp) {
+  const transactionsRef = ref(database, 'pointTransactions');
+  const newTransactionRef = push(transactionsRef);
+
+  set(newTransactionRef, transactionData)
+    .then(() => {
+      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
+    })
+    .catch((error) => {
+      console.error("Error saving transaction:", error);
+      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
+    });
+}
+
+/**
+ * Request all point transactions
+ * @param {Object} elmApp - The Elm application instance
+ */
+function requestPointTransactions(elmApp) {
+  const transactionsRef = ref(database, 'pointTransactions');
+
+  get(transactionsRef)
+    .then((snapshot) => {
+      const transactions = [];
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        Object.keys(data).forEach(id => {
+          transactions.push({
+            id: id,
+            ...data[id]
+          });
+        });
+      }
+      elmApp.ports.receivePointTransactions.send(transactions);
+    })
+    .catch((error) => {
+      console.error("Error fetching transactions:", error);
+      elmApp.ports.receivePointTransactions.send([]);
+    });
+  }
