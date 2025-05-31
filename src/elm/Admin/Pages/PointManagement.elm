@@ -157,6 +157,93 @@ update msg model =
                     -- Even if Firebase fails, we already updated locally
                     ( model, Cmd.none )
 
+        -- Manual Redemption Messages
+        ShowRedeemPointsModal studentId ->
+            ( { model
+                | showRedeemPointsModal = True
+                , redeemPointsStudentId = studentId
+                , redeemPointsAmount = ""
+                , redeemPointsReason = ""
+              }
+            , Cmd.none
+            )
+
+        HideRedeemPointsModal ->
+            ( { model | showRedeemPointsModal = False }, Cmd.none )
+
+        UpdateRedeemPointsAmount amount ->
+            ( { model | redeemPointsAmount = amount }, Cmd.none )
+
+        UpdateRedeemPointsReason reason ->
+            ( { model | redeemPointsReason = reason }, Cmd.none )
+
+        SubmitRedeemPoints ->
+            case String.toInt model.redeemPointsAmount of
+                Just points ->
+                    if points > 0 then
+                        -- Check if student has enough points
+                        let
+                            studentPoints =
+                                model.studentPoints
+                                    |> List.filter (\sp -> sp.studentId == model.redeemPointsStudentId)
+                                    |> List.head
+
+                            hasEnoughPoints =
+                                case studentPoints of
+                                    Just sp ->
+                                        sp.currentPoints >= points
+
+                                    Nothing ->
+                                        False
+                        in
+                        if hasEnoughPoints then
+                            -- Update local student points immediately
+                            let
+                                updatedStudentPoints =
+                                    redeemStudentPointsLocally
+                                        model.redeemPointsStudentId
+                                        points
+                                        model.studentPoints
+                            in
+                            ( { model
+                                | studentPoints = updatedStudentPoints
+                                , success = Just ("Redeemed " ++ String.fromInt points ++ " points successfully!")
+                                , showRedeemPointsModal = False
+                                , redeemPointsAmount = ""
+                                , redeemPointsReason = ""
+                              }
+                            , -- Try to save redemption to Firebase
+                              Ports.redeemPoints
+                                { studentId = model.redeemPointsStudentId
+                                , points = points
+                                , reason = model.redeemPointsReason
+                                }
+                            )
+
+                        else
+                            ( { model | error = Just "Student doesn't have enough points for this redemption" }, Cmd.none )
+
+                    else
+                        ( { model | error = Just "Points must be a positive number" }, Cmd.none )
+
+                Nothing ->
+                    ( { model | error = Just "Please enter a valid number of points" }, Cmd.none )
+
+        PointsRedeemed result ->
+            case result of
+                Ok redeemResult ->
+                    if redeemResult.success then
+                        ( { model | success = Just redeemResult.message }
+                        , Ports.requestStudentPoints ()
+                        )
+
+                    else
+                        ( { model | error = Just redeemResult.message }, Cmd.none )
+
+                Err error ->
+                    -- Even if Firebase fails, we already updated locally
+                    ( model, Cmd.none )
+
         ProcessRedemption redemption newStatus ->
             ( { model | loading = True }
             , Ports.processRedemption
@@ -306,6 +393,27 @@ updateStudentPointsLocally studentId pointsToAdd studentPointsList =
 
 
 
+-- Redeem student points locally
+
+
+redeemStudentPointsLocally : String -> Int -> List StudentPoints -> List StudentPoints
+redeemStudentPointsLocally studentId pointsToRedeem studentPointsList =
+    List.map
+        (\sp ->
+            if sp.studentId == studentId then
+                { sp
+                    | currentPoints = Basics.max 0 (sp.currentPoints - pointsToRedeem)
+                    , totalRedeemed = sp.totalRedeemed + pointsToRedeem
+                    , lastUpdated = "2025-05-30"
+                }
+
+            else
+                sp
+        )
+        studentPointsList
+
+
+
 -- Get student name from the students list
 
 
@@ -331,6 +439,7 @@ view model =
         , viewRewardManagement model
         , viewStudentPointsTable model
         , viewAwardPointsModal model
+        , viewRedeemPointsModal model
         ]
 
 
@@ -666,11 +775,26 @@ viewStudentPointsRow model studentPoints =
         , td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-900" ]
             [ text (String.fromInt studentPoints.totalRedeemed) ]
         , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium" ]
-            [ button
-                [ onClick (ShowAwardPointsModal studentPoints.studentId)
-                , class "px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+            [ div [ class "flex space-x-2" ]
+                [ button
+                    [ onClick (ShowAwardPointsModal studentPoints.studentId)
+                    , class "px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    ]
+                    [ text "Award Points" ]
+                , -- Temporarily remove disabled condition to test
+                  button
+                    [ onClick (ShowRedeemPointsModal studentPoints.studentId)
+                    , class
+                        (if studentPoints.currentPoints <= 0 then
+                            "px-3 py-1 bg-gray-100 text-gray-500 rounded cursor-not-allowed"
+
+                         else
+                            "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        )
+                    , title ("Points available: " ++ String.fromInt studentPoints.currentPoints)
+                    ]
+                    [ text ("Redeem (" ++ String.fromInt studentPoints.currentPoints ++ ")") ]
                 ]
-                [ text "Award Points" ]
             ]
         ]
 
@@ -733,6 +857,85 @@ viewAwardPointsModal model =
                             , class "px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                             ]
                             [ text "Award Points" ]
+                        ]
+                    ]
+                ]
+            ]
+
+    else
+        text ""
+
+
+viewRedeemPointsModal : Model -> Html Msg
+viewRedeemPointsModal model =
+    if model.showRedeemPointsModal then
+        let
+            selectedStudent =
+                model.students
+                    |> List.filter (\s -> s.id == model.redeemPointsStudentId)
+                    |> List.head
+
+            studentName =
+                selectedStudent
+                    |> Maybe.map .name
+                    |> Maybe.withDefault model.redeemPointsStudentId
+
+            currentPoints =
+                model.studentPoints
+                    |> List.filter (\sp -> sp.studentId == model.redeemPointsStudentId)
+                    |> List.head
+                    |> Maybe.map .currentPoints
+                    |> Maybe.withDefault 0
+        in
+        div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+            [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                [ div [ class "px-6 py-4 bg-red-50 border-b border-gray-200" ]
+                    [ h3 [ class "text-lg font-medium text-red-700" ]
+                        [ text ("Redeem Points from " ++ formatDisplayName studentName) ]
+                    ]
+                , div [ class "p-6" ]
+                    [ div [ class "mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md" ]
+                        [ p [ class "text-sm text-blue-800" ]
+                            [ text ("Current available points: " ++ String.fromInt currentPoints) ]
+                        ]
+                    , div [ class "space-y-4" ]
+                        [ div []
+                            [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Points to Redeem" ]
+                            , input
+                                [ type_ "number"
+                                , value model.redeemPointsAmount
+                                , onInput UpdateRedeemPointsAmount
+                                , placeholder "10"
+                                , Html.Attributes.min "1"
+                                , Html.Attributes.max (String.fromInt currentPoints)
+                                , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                ]
+                                []
+                            , p [ class "text-xs text-gray-500 mt-1" ] [ text ("Maximum: " ++ String.fromInt currentPoints ++ " points") ]
+                            ]
+                        , div []
+                            [ label [ class "block text-sm font-medium text-gray-700 mb-1" ] [ text "Reason for Redemption" ]
+                            , textarea
+                                [ value model.redeemPointsReason
+                                , onInput UpdateRedeemPointsReason
+                                , placeholder "Reason for redeeming points (e.g., 'Manual adjustment', 'Reward purchased')..."
+                                , rows 3
+                                , class "w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                ]
+                                []
+                            ]
+                        ]
+                    , div [ class "mt-6 flex justify-end space-x-3" ]
+                        [ button
+                            [ onClick HideRedeemPointsModal
+                            , class "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            ]
+                            [ text "Cancel" ]
+                        , button
+                            [ onClick SubmitRedeemPoints
+                            , class "px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                            ]
+                            [ text "Redeem Points" ]
                         ]
                     ]
                 ]

@@ -162,6 +162,20 @@ port pointsAwarded : (Decode.Value -> msg) -> Sub msg
 
 
 
+-- Manually redeem points from a student
+
+
+port redeemPoints : { studentId : String, points : Int, reason : String } -> Cmd msg
+
+
+
+-- Receive result of redeeming points
+
+
+port pointsRedeemed : (Decode.Value -> msg) -> Sub msg
+
+
+
 -- Request point redemptions
 
 

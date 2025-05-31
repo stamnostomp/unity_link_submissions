@@ -143,6 +143,12 @@ type alias Model =
     , awardPointsAmount : String
     , awardPointsReason : String
 
+    -- Manual Redemption Modal States
+    , showRedeemPointsModal : Bool
+    , redeemPointsStudentId : String
+    , redeemPointsAmount : String
+    , redeemPointsReason : String
+
     -- Auto-award settings
     , autoAwardPoints : Bool
 
@@ -280,6 +286,13 @@ type
     | UpdateAwardPointsReason String
     | SubmitAwardPoints
     | PointsAwarded (Result Decode.Error { success : Bool, message : String })
+      -- Manual Redemption
+    | ShowRedeemPointsModal String
+    | HideRedeemPointsModal
+    | UpdateRedeemPointsAmount String
+    | UpdateRedeemPointsReason String
+    | SubmitRedeemPoints
+    | PointsRedeemed (Result Decode.Error { success : Bool, message : String })
       -- Redemption Processing
     | ProcessRedemption PointRedemption RedemptionStatus
     | RedemptionProcessed (Result Decode.Error { success : Bool, message : String })

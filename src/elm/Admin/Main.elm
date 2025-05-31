@@ -105,6 +105,12 @@ init _ =
       , awardPointsAmount = ""
       , awardPointsReason = ""
 
+      -- Manual Redemption Modal States
+      , showRedeemPointsModal = False
+      , redeemPointsStudentId = ""
+      , redeemPointsAmount = ""
+      , redeemPointsReason = ""
+
       -- Auto-award settings
       , autoAwardPoints = True
 
@@ -425,6 +431,7 @@ subscriptions _ =
         -- Point Management Subscriptions
         , Ports.receiveStudentPoints (decodeStudentPointsResponse >> ReceiveStudentPoints)
         , Ports.pointsAwarded (decodePointsAwardedResponse >> PointsAwarded)
+        , Ports.pointsRedeemed (decodePointsRedeemedResponse >> PointsRedeemed)
         , Ports.receivePointRedemptions (decodePointRedemptionsResponse >> ReceivePointRedemptions)
         , Ports.redemptionProcessed (decodeRedemptionProcessedResponse >> RedemptionProcessed)
         , Ports.receivePointRewards (decodePointRewardsResponse >> ReceivePointRewards)
@@ -448,6 +455,16 @@ isSuperUser model =
 
 
 -- JSON DECODERS
+
+
+decodePointsRedeemedResponse : Decode.Value -> Result Decode.Error { success : Bool, message : String }
+decodePointsRedeemedResponse value =
+    Decode.decodeValue
+        (Decode.map2 (\success message -> { success = success, message = message })
+            (Decode.field "success" Decode.bool)
+            (Decode.field "message" Decode.string)
+        )
+        value
 
 
 decodeAuthState : Decode.Value -> Result Decode.Error { user : Maybe User, isSignedIn : Bool }
