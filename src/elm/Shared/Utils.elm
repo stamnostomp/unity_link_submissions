@@ -1,5 +1,6 @@
 module Shared.Utils exposing (..)
 
+import Admin.Types exposing (Msg(..), PointTransaction, TransactionType(..))
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Shared.Types exposing (..)
@@ -65,6 +66,44 @@ formatDate dateString =
 
     else
         dateString
+
+
+pointTransactionDecoder : Decoder PointTransaction
+pointTransactionDecoder =
+    Decode.map8
+        (\id studentId studentName transactionType points reason category adminEmail ->
+            PointTransaction id studentId studentName transactionType points reason category adminEmail ""
+        )
+        (Decode.field "id" Decode.string)
+        (Decode.field "studentId" Decode.string)
+        (Decode.field "studentName" Decode.string)
+        (Decode.field "TransactionType" transactionTypeDecoder)
+        (Decode.field "points" Decode.int)
+        (Decode.field "reason" Decode.string)
+        (Decode.field "category" Decode.string)
+        (Decode.field "adminEmail" Decode.string)
+        |> Decode.andThen
+            (\transaction ->
+                Decode.field "date" Decode.string
+                    |> Decode.map (\date -> { transaction | date = date })
+            )
+
+
+transactionTypeDecoder : Decoder TransactionType
+transactionTypeDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "Award" ->
+                        Decode.succeed Award
+
+                    "award" ->
+                        Decode.succeed Award
+
+                    "Redemption" ->
+                        Decode.succeed Redemption
+            )
 
 
 capitalizeWords : String -> String

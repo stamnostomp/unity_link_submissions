@@ -468,6 +468,11 @@ isSuperUser model =
 -- JSON DECODERS
 
 
+decodePointTransactionsResponse : Decode.Value -> Result Decode.Eror (List PointTransaction)
+decodePointTransactionsResponse value =
+    Decode.decodeValue (Decode.list pointTransactionDecoder) value
+
+
 decodePointsRedeemedResponse : Decode.Value -> Result Decode.Error { success : Bool, message : String }
 decodePointsRedeemedResponse value =
     Decode.decodeValue
