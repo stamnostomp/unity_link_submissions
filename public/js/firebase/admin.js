@@ -74,6 +74,197 @@ function getCurrentUser() {
   return auth.currentUser || { email: 'unknown@example.com' };
 }
 
+// DEBUG FUNCTIONS (Updated for v9 SDK)
+function debugAdminSetup(user) {
+  console.log('=== ADMIN DEBUG INFO ===');
+  console.log('Current User:', user);
+  console.log('User UID:', user.uid);
+  console.log('User Email:', user.email);
+  console.log('Auth Provider:', user.providerData);
+
+  // Check if user exists in admins path using v9 SDK
+  const adminRef = ref(database, `admins/${user.uid}`);
+  get(adminRef)
+    .then(snapshot => {
+      console.log('Admin record exists:', snapshot.exists());
+      if (snapshot.exists()) {
+        console.log('Admin data:', snapshot.val());
+      } else {
+        console.log('❌ User not found in /admins path!');
+        console.log('Creating admin record...');
+
+        // Create admin record
+        const adminData = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email,
+          role: 'superuser', // or 'admin'
+          createdAt: new Date().toISOString(),
+          createdBy: 'system'
+        };
+
+        return set(adminRef, adminData);
+      }
+    })
+    .then(() => {
+      console.log('✅ Admin setup verified/fixed');
+    })
+    .catch(error => {
+      console.error('❌ Error checking/creating admin record:', error);
+    });
+
+  // Test admin permissions
+  get(adminRef)
+    .then(snapshot => {
+      console.log('Permission test - can read admin data:', snapshot.exists());
+    })
+    .catch(error => {
+      console.error('Permission test failed:', error);
+    });
+}
+
+function detailedPermissionDebug(user) {
+  console.log('=== DETAILED PERMISSION DEBUG ===');
+  console.log('User UID:', user.uid);
+  console.log('User Email:', user.email);
+
+  // Test 1: Check admin record structure
+  const adminRef = ref(database, `admins/${user.uid}`);
+  get(adminRef)
+    .then(snapshot => {
+      console.log('✅ Admin record exists:', snapshot.exists());
+      console.log('Admin data structure:', snapshot.val());
+
+      // Test 2: Test reading studentPoints
+      console.log('--- Testing studentPoints read access ---');
+      const studentPointsRef = ref(database, 'studentPoints');
+      return get(studentPointsRef);
+    })
+    .then(snapshot => {
+      console.log('✅ Can read studentPoints:', snapshot.exists());
+      console.log('StudentPoints data sample:', Object.keys(snapshot.val() || {}));
+
+      // Test 3: Test writing to studentPoints
+      console.log('--- Testing studentPoints write access ---');
+      const testStudentId = 'test-student-123';
+      const testData = {
+        studentId: testStudentId,
+        currentPoints: 100,
+        totalEarned: 100,
+        totalRedeemed: 0,
+        lastUpdated: new Date().toISOString()
+      };
+
+      const testStudentRef = ref(database, `studentPoints/${testStudentId}`);
+      return set(testStudentRef, testData);
+    })
+    .then(() => {
+      console.log('✅ Can write to studentPoints');
+
+      // Test 4: Test writing to pointTransactions
+      console.log('--- Testing pointTransactions write access ---');
+      const testTransactionId = 'test-transaction-123';
+      const testTransaction = {
+        id: testTransactionId,
+        studentId: 'test-student-123',
+        studentName: 'Test Student',
+        transactionType: 'Redemption',
+        points: 10,
+        reason: 'Test redemption',
+        category: 'manual',
+        adminEmail: user.email,
+        date: new Date().toISOString()
+      };
+
+      const testTransactionRef = ref(database, `pointTransactions/${testTransactionId}`);
+      return set(testTransactionRef, testTransaction);
+    })
+    .then(() => {
+      console.log('✅ Can write to pointTransactions');
+
+      // Clean up test data
+      console.log('--- Cleaning up test data ---');
+      const cleanupPromises = [
+        remove(ref(database, 'studentPoints/test-student-123')),
+        remove(ref(database, 'pointTransactions/test-transaction-123'))
+      ];
+      return Promise.all(cleanupPromises);
+    })
+    .then(() => {
+      console.log('✅ Test cleanup completed');
+      console.log('🎉 ALL PERMISSION TESTS PASSED!');
+    })
+    .catch(error => {
+      console.error('❌ Permission test failed at step:', error);
+      console.error('Error details:', error.message);
+      console.error('Error code:', error.code);
+
+      // Let's also check what specific path is failing
+      if (error.message.includes('PERMISSION_DENIED')) {
+        console.log('🔍 This is a Firebase rules permission issue');
+        console.log('Check your Firebase rules in the console');
+      }
+    });
+}
+
+function testPointRedemption(user, studentId, points) {
+  console.log('=== TESTING POINT REDEMPTION OPERATION ===');
+  console.log('Student ID:', studentId);
+  console.log('Points to redeem:', points);
+  console.log('Admin user:', user.email);
+
+  // Simulate the exact same operation that your Elm app is doing
+  const studentPointsRef = ref(database, `studentPoints/${studentId}`);
+
+  get(studentPointsRef)
+    .then(snapshot => {
+      const currentData = snapshot.val();
+      console.log('Current student points:', currentData);
+
+      if (currentData) {
+        const updatedPoints = {
+          ...currentData,
+          currentPoints: Math.max(0, currentData.currentPoints - points),
+          totalRedeemed: currentData.totalRedeemed + points,
+          lastUpdated: new Date().toISOString()
+        };
+
+        // Create transaction record
+        const transactionId = 'redeem-' + studentId + '-' + Date.now();
+        const transaction = {
+          id: transactionId,
+          studentId: studentId,
+          studentName: currentData.studentName || 'Unknown',
+          transactionType: 'Redemption',
+          points: points,
+          reason: 'Test redemption',
+          category: 'manual',
+          adminEmail: user.email,
+          date: new Date().toISOString()
+        };
+
+        // Perform both updates
+        const updates = {};
+        updates[`studentPoints/${studentId}`] = updatedPoints;
+        updates[`pointTransactions/${transactionId}`] = transaction;
+
+        console.log('Attempting to update:', updates);
+
+        // Perform the update using the root reference
+        const rootRef = ref(database);
+        return update(rootRef, updates);
+      } else {
+        throw new Error('Student points record not found');
+      }
+    })
+    .then(() => {
+      console.log('✅ Point redemption test successful!');
+    })
+    .catch(error => {
+      console.error('❌ Point redemption test failed:', error);
+    });
+}
+
 /**
  * Initialize the Firebase integration with the Elm app
  * @param {Object} elmApp - The Elm application instance
@@ -157,6 +348,11 @@ export function initializeFirebase(elmApp) {
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // ADD DEBUG FUNCTIONS CALL HERE - AFTER SUCCESSFUL AUTHENTICATION
+      console.log("🔥 Authentication successful, running debug...");
+      debugAdminSetup(user);
+      detailedPermissionDebug(user);
+
       try {
         // Get the admin data to include the role
         const adminRef = ref(database, `admins/${user.uid}`);
@@ -567,6 +763,7 @@ function awardPoints(data, elmApp) {
  * @param {Object} elmApp - The Elm application instance
  */
 function redeemPoints(data, elmApp) {
+  console.log('🔥 redeemPoints called with:', data);
   const pointsRef = ref(database, `studentPoints/${data.studentId}`);
 
   get(pointsRef).then((snapshot) => {
@@ -581,33 +778,45 @@ function redeemPoints(data, elmApp) {
       throw new Error("Insufficient points for redemption");
     }
 
-    const updatedData = {
+    const updatedPointsData = {
       ...currentData,
       currentPoints: currentPoints - data.points,
       totalRedeemed: (currentData.totalRedeemed || 0) + data.points,
       lastUpdated: new Date().toISOString()
     };
 
-    return set(pointsRef, updatedData);
-  }).then(() => {
-    // Log the point redemption
-    const historyRef = ref(database, 'pointHistory');
-    const newHistoryRef = push(historyRef);
-    return set(newHistoryRef, {
+    // Create transaction record
+    const transactionId = 'redeem-' + data.studentId + '-' + Date.now();
+    const transactionData = {
+      id: transactionId,
       studentId: data.studentId,
+      studentName: currentData.studentName || 'Unknown',
+      transactionType: 'Redemption',
       points: data.points,
       reason: data.reason,
-      redeemedBy: getCurrentUser().email,
-      redeemedAt: new Date().toISOString(),
-      type: 'redeemed'
-    });
+      category: 'manual',
+      adminEmail: getCurrentUser().email,
+      date: new Date().toISOString()
+    };
+
+    // 🔥 KEY FIX: Use batch update instead of individual set() calls
+    const updates = {};
+    updates[`studentPoints/${data.studentId}`] = updatedPointsData;
+    updates[`pointTransactions/${transactionId}`] = transactionData;
+
+    console.log('🔥 Attempting batch update:', updates);
+
+    // Use root reference update (same as successful test)
+    const rootRef = ref(database);
+    return update(rootRef, updates);
   }).then(() => {
+    console.log('🔥 Batch update completed successfully');
     elmApp.ports.pointsRedeemed.send({
       success: true,
       message: `Successfully redeemed ${data.points} points`
     });
   }).catch((error) => {
-    console.error("Error redeeming points:", error);
+    console.error("🔥 Error redeeming points:", error);
     elmApp.ports.pointsRedeemed.send({
       success: false,
       message: "Error redeeming points: " + error.message
