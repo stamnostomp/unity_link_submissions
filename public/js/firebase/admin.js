@@ -106,38 +106,54 @@ export function initializeFirebase(elmApp) {
     });
   }
 
-    if (elmApp.ports.deletePointReward) {
+  // Point Management Port Subscriptions
+  if (elmApp.ports.deletePointReward) {
     elmApp.ports.deletePointReward.subscribe(function(rewardId) {
-        if (auth.currentUser) {
+      if (auth.currentUser) {
         deletePointReward(rewardId, elmApp);
-        } else {
+      } else {
         console.warn("Cannot delete reward: User not authenticated");
         elmApp.ports.pointRewardResult.send("Error: Not authenticated");
-        }
+      }
     });
-    }
-    if (elmApp.ports.savePointTransaction) {
-        elmApp.ports.savePointTransaction.subscribe(function(transactionData) {
-        if (auth.currentUser) {
-            savePointTransaction(transactionData, elmApp);
-        } else {
-            console.warn("Cannot save transaction: User not authenticated");
-            elmApp.ports.pointTransactionSaved.send("Error: Not authenticated");
-        }
-        });
-    }
+  }
 
-    if (elmApp.ports.requestPointTransactions) {
-        elmApp.ports.requestPointTransactions.subscribe(function() {
-        if (auth.currentUser) {
-            requestPointTransactions(elmApp);
-        } else {
-            console.warn("Cannot fetch transactions: User not authenticated");
-            elmApp.ports.receivePointTransactions.send([]);
-        }
-        });
-    }
+  if (elmApp.ports.savePointTransaction) {
+    elmApp.ports.savePointTransaction.subscribe(function(transactionData) {
+      if (auth.currentUser) {
+        savePointTransaction(transactionData, elmApp);
+      } else {
+        console.warn("Cannot save transaction: User not authenticated");
+        elmApp.ports.pointTransactionSaved.send("Error: Not authenticated");
+      }
+    });
+  }
 
+  if (elmApp.ports.requestPointTransactions) {
+    elmApp.ports.requestPointTransactions.subscribe(function() {
+      if (auth.currentUser) {
+        requestPointTransactions(elmApp);
+      } else {
+        console.warn("Cannot fetch transactions: User not authenticated");
+        elmApp.ports.receivePointTransactions.send([]);
+      }
+    });
+  }
+
+  // ADD MISSING POINT MANAGEMENT PORTS
+  if (elmApp.ports.redeemPoints) {
+    elmApp.ports.redeemPoints.subscribe(function(data) {
+      if (auth.currentUser) {
+        redeemPoints(data, elmApp);
+      } else {
+        console.warn("Cannot redeem points: User not authenticated");
+        elmApp.ports.pointsRedeemed.send({
+          success: false,
+          message: "Not authenticated. Please sign in first."
+        });
+      }
+    });
+  }
 
   onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -274,6 +290,18 @@ export function initializeFirebase(elmApp) {
       elmApp.ports.studentDeleted.send("Error: Not authenticated");
     }
   });
+
+  // Student update functionality (ADDED)
+  if (elmApp.ports.updateStudent) {
+    elmApp.ports.updateStudent.subscribe(function(studentData) {
+      if (auth.currentUser) {
+        updateStudentRecord(studentData, elmApp);
+      } else {
+        console.warn("Cannot update student: User not authenticated");
+        elmApp.ports.studentUpdated.send("Error: Not authenticated");
+      }
+    });
+  }
 
   // Belt management functionality
   elmApp.ports.requestBelts.subscribe(function() {
@@ -447,46 +475,6 @@ export function initializeFirebase(elmApp) {
     });
   }
 
-/**
- * Delete a point reward
- * @param {string} rewardId - The ID of the reward to delete
- * @param {Object} elmApp - The Elm application instance
- */
-function deletePointReward(rewardId, elmApp) {
-  const rewardRef = ref(database, `pointRewards/${rewardId}`);
-
-  // First check if the reward exists
-  get(rewardRef).then((snapshot) => {
-    if (!snapshot.exists()) {
-      throw new Error("Reward not found");
-    }
-
-    // Optional: Check if reward is being used in any redemptions
-    const redemptionsRef = ref(database, 'pointRedemptions');
-    return get(redemptionsRef);
-  }).then((redemptionsSnapshot) => {
-    // Check if this reward is referenced in any redemptions
-    if (redemptionsSnapshot.exists()) {
-      const redemptions = redemptionsSnapshot.val();
-      const isRewardInUse = Object.values(redemptions).some(
-        redemption => redemption.rewardId === rewardId
-      );
-
-      if (isRewardInUse) {
-        throw new Error("Cannot delete reward: It has been used in point redemptions");
-      }
-    }
-
-    // Safe to delete the reward
-    return remove(rewardRef);
-  }).then(() => {
-    elmApp.ports.pointRewardResult.send("Reward deleted successfully");
-  }).catch((error) => {
-    console.error("Error deleting reward:", error);
-    elmApp.ports.pointRewardResult.send("Error: " + error.message);
-  });
-}
-
   // If logged in, check if we need to migrate role fields
   if (auth.currentUser) {
     migrateAdminRoles(elmApp);
@@ -569,6 +557,60 @@ function awardPoints(data, elmApp) {
     elmApp.ports.pointsAwarded.send({
       success: false,
       message: "Error awarding points: " + error.message
+    });
+  });
+}
+
+/**
+ * Redeem points from a student (ADDED FUNCTION)
+ * @param {Object} data - The redemption data {studentId, points, reason}
+ * @param {Object} elmApp - The Elm application instance
+ */
+function redeemPoints(data, elmApp) {
+  const pointsRef = ref(database, `studentPoints/${data.studentId}`);
+
+  get(pointsRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+      throw new Error("Student points record not found");
+    }
+
+    const currentData = snapshot.val();
+    const currentPoints = currentData.currentPoints || 0;
+
+    if (currentPoints < data.points) {
+      throw new Error("Insufficient points for redemption");
+    }
+
+    const updatedData = {
+      ...currentData,
+      currentPoints: currentPoints - data.points,
+      totalRedeemed: (currentData.totalRedeemed || 0) + data.points,
+      lastUpdated: new Date().toISOString()
+    };
+
+    return set(pointsRef, updatedData);
+  }).then(() => {
+    // Log the point redemption
+    const historyRef = ref(database, 'pointHistory');
+    const newHistoryRef = push(historyRef);
+    return set(newHistoryRef, {
+      studentId: data.studentId,
+      points: data.points,
+      reason: data.reason,
+      redeemedBy: getCurrentUser().email,
+      redeemedAt: new Date().toISOString(),
+      type: 'redeemed'
+    });
+  }).then(() => {
+    elmApp.ports.pointsRedeemed.send({
+      success: true,
+      message: `Successfully redeemed ${data.points} points`
+    });
+  }).catch((error) => {
+    console.error("Error redeeming points:", error);
+    elmApp.ports.pointsRedeemed.send({
+      success: false,
+      message: "Error redeeming points: " + error.message
     });
   });
 }
@@ -713,6 +755,92 @@ function savePointReward(rewardData, elmApp) {
     console.error("Error saving reward:", error);
     elmApp.ports.pointRewardResult.send("Error: " + error.message);
   });
+}
+
+/**
+ * Delete a point reward
+ * @param {string} rewardId - The ID of the reward to delete
+ * @param {Object} elmApp - The Elm application instance
+ */
+function deletePointReward(rewardId, elmApp) {
+  const rewardRef = ref(database, `pointRewards/${rewardId}`);
+
+  // First check if the reward exists
+  get(rewardRef).then((snapshot) => {
+    if (!snapshot.exists()) {
+      throw new Error("Reward not found");
+    }
+
+    // Optional: Check if reward is being used in any redemptions
+    const redemptionsRef = ref(database, 'pointRedemptions');
+    return get(redemptionsRef);
+  }).then((redemptionsSnapshot) => {
+    // Check if this reward is referenced in any redemptions
+    if (redemptionsSnapshot.exists()) {
+      const redemptions = redemptionsSnapshot.val();
+      const isRewardInUse = Object.values(redemptions).some(
+        redemption => redemption.rewardId === rewardId
+      );
+
+      if (isRewardInUse) {
+        throw new Error("Cannot delete reward: It has been used in point redemptions");
+      }
+    }
+
+    // Safe to delete the reward
+    return remove(rewardRef);
+  }).then(() => {
+    elmApp.ports.pointRewardResult.send("Reward deleted successfully");
+  }).catch((error) => {
+    console.error("Error deleting reward:", error);
+    elmApp.ports.pointRewardResult.send("Error: " + error.message);
+  });
+}
+
+/**
+ * Save a point transaction
+ * @param {Object} transactionData - The transaction data to save
+ * @param {Object} elmApp - The Elm application instance
+ */
+function savePointTransaction(transactionData, elmApp) {
+  const transactionsRef = ref(database, 'pointTransactions');
+  const newTransactionRef = push(transactionsRef);
+
+  set(newTransactionRef, transactionData)
+    .then(() => {
+      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
+    })
+    .catch((error) => {
+      console.error("Error saving transaction:", error);
+      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
+    });
+}
+
+/**
+ * Request all point transactions
+ * @param {Object} elmApp - The Elm application instance
+ */
+function requestPointTransactions(elmApp) {
+  const transactionsRef = ref(database, 'pointTransactions');
+
+  get(transactionsRef)
+    .then((snapshot) => {
+      const transactions = [];
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        Object.keys(data).forEach(id => {
+          transactions.push({
+            id: id,
+            ...data[id]
+          });
+        });
+      }
+      elmApp.ports.receivePointTransactions.send(transactions);
+    })
+    .catch((error) => {
+      console.error("Error fetching transactions:", error);
+      elmApp.ports.receivePointTransactions.send([]);
+    });
 }
 
 // ALL OTHER EXISTING FUNCTIONS REMAIN THE SAME...
@@ -1030,6 +1158,40 @@ function fetchAllStudents(elmApp) {
     });
 }
 
+/**
+ * Update a student record (ADDED FUNCTION)
+ * @param {Object} studentData - The student data to update
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function updateStudentRecord(studentData, elmApp) {
+  try {
+    const studentRef = ref(database, `students/${studentData.id}`);
+
+    // Check if student exists
+    const snapshot = await get(studentRef);
+    if (!snapshot.exists()) {
+      throw new Error("Student record not found");
+    }
+
+    // Update the student record
+    await update(studentRef, {
+      name: studentData.name,
+      lastActive: new Date().toISOString().split('T')[0]
+    });
+
+    elmApp.ports.studentUpdated.send({
+      id: studentData.id,
+      name: studentData.name,
+      created: studentData.created || new Date().toISOString().split('T')[0],
+      lastActive: new Date().toISOString().split('T')[0],
+      points: null
+    });
+  } catch (error) {
+    console.error("Error updating student:", error);
+    elmApp.ports.studentUpdated.send("Error: " + error.message);
+  }
+}
+
 function fetchBelts(elmApp) {
   const beltsRef = ref(database, 'belts');
 
@@ -1301,48 +1463,3 @@ async function createNewStudentRecord(studentData, elmApp) {
     });
   }
 }
-/**
- * Save a point transaction
- * @param {Object} transactionData - The transaction data to save
- * @param {Object} elmApp - The Elm application instance
- */
-function savePointTransaction(transactionData, elmApp) {
-  const transactionsRef = ref(database, 'pointTransactions');
-  const newTransactionRef = push(transactionsRef);
-
-  set(newTransactionRef, transactionData)
-    .then(() => {
-      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
-    })
-    .catch((error) => {
-      console.error("Error saving transaction:", error);
-      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
-    });
-}
-
-/**
- * Request all point transactions
- * @param {Object} elmApp - The Elm application instance
- */
-function requestPointTransactions(elmApp) {
-  const transactionsRef = ref(database, 'pointTransactions');
-
-  get(transactionsRef)
-    .then((snapshot) => {
-      const transactions = [];
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        Object.keys(data).forEach(id => {
-          transactions.push({
-            id: id,
-            ...data[id]
-          });
-        });
-      }
-      elmApp.ports.receivePointTransactions.send(transactions);
-    })
-    .catch((error) => {
-      console.error("Error fetching transactions:", error);
-      elmApp.ports.receivePointTransactions.send([]);
-    });
-  }

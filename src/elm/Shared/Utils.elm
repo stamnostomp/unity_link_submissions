@@ -103,6 +103,9 @@ transactionTypeDecoder =
 
                     "Redemption" ->
                         Decode.succeed Redemption
+
+                    _ ->
+                        Decode.fail ("Unkown transaction type: " ++ str)
             )
 
 

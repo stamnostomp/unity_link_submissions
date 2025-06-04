@@ -302,6 +302,24 @@ update msg model =
                 Err error ->
                     ( { model | passwordResetMessage = Just ("Error: " ++ Decode.errorToString error), loading = False }, Cmd.none )
 
+        RequestPointTransactions ->
+            ( { model | loading = True }, Ports.requestPointTransactions () )
+
+        ReceivePointTransactions result ->
+            case result of
+                Ok transactions ->
+                    ( { model | pointTransactions = transactions, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+
+        PointTransactionSaved result ->
+            if String.startsWith "Error:" result then
+                ( { model | error = Just result }, Cmd.none )
+
+            else
+                ( { model | success = Just result }, Cmd.none )
+
         -- Delegate to Page Modules
         _ ->
             case model.page of
@@ -439,7 +457,7 @@ subscriptions _ =
         , Ports.adminUserDeleted (decodeAdminActionResult >> AdminUserDeleted)
         , Ports.adminUserUpdated (decodeAdminActionResult >> AdminUserUpdated)
 
-        -- Point Management Subscriptions
+        -- Point Management Subscriptions (THESE WERE MISSING)
         , Ports.receiveStudentPoints (decodeStudentPointsResponse >> ReceiveStudentPoints)
         , Ports.pointsAwarded (decodePointsAwardedResponse >> PointsAwarded)
         , Ports.pointsRedeemed (decodePointsRedeemedResponse >> PointsRedeemed)
@@ -447,6 +465,8 @@ subscriptions _ =
         , Ports.redemptionProcessed (decodeRedemptionProcessedResponse >> RedemptionProcessed)
         , Ports.receivePointRewards (decodePointRewardsResponse >> ReceivePointRewards)
         , Ports.pointRewardResult RewardResult
+        , Ports.receivePointTransactions (decodePointTransactionsResponse >> ReceivePointTransactions)
+        , Ports.pointTransactionSaved PointTransactionSaved -- THIS WAS THE MISSING ONE
         ]
 
 
@@ -468,7 +488,7 @@ isSuperUser model =
 -- JSON DECODERS
 
 
-decodePointTransactionsResponse : Decode.Value -> Result Decode.Eror (List PointTransaction)
+decodePointTransactionsResponse : Decode.Value -> Result Decode.Error (List PointTransaction)
 decodePointTransactionsResponse value =
     Decode.decodeValue (Decode.list pointTransactionDecoder) value
 
