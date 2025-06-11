@@ -76,7 +76,7 @@ type alias PointRedemption =
     , pointsRedeemed : Int
     , rewardName : String
     , rewardDescription : String
-    , redeemedBy : String -- Admin who processed the redemption
+    , redeemedBy : String -- Admin who processed the redemption OR student who redeemed
     , redemptionDate : String
     , status : RedemptionStatus
     }
@@ -98,4 +98,40 @@ type alias PointReward =
     , isActive : Bool
     , stock : Maybe Int -- Nothing means unlimited
     , order : Int
+    }
+
+
+
+-- NEW: Transaction types for tracking all point movements
+
+
+type alias PointTransaction =
+    { id : String
+    , studentId : String
+    , studentName : String
+    , transactionType : TransactionType
+    , points : Int
+    , reason : String
+    , category : String -- "submission", "manual", "redemption", "refund", etc.
+    , adminEmail : String -- Who performed the action (or "student-self-redemption")
+    , date : String
+    }
+
+
+type TransactionType
+    = Award
+    | Redemption
+
+
+
+-- NEW: Student redemption request type
+
+
+type alias StudentRedemptionRequest =
+    { rewardId : String
+    , rewardName : String
+    , rewardDescription : String
+    , pointCost : Int
+    , studentId : String
+    , studentName : String
     }

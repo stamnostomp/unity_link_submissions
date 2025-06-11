@@ -147,12 +147,13 @@ init _ =
 
 
 -- UPDATE
+-- UPDATE section for Admin/Main.elm (partial - just the key changes)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        -- Authentication Messages
+        -- Authentication Messages (keep existing)
         UpdateLoginEmail email ->
             ( { model | loginEmail = email }, Cmd.none )
 
@@ -202,7 +203,7 @@ update msg model =
                 Err error ->
                     ( { model | appState = NotAuthenticated, authError = Just (Decode.errorToString error), loading = False }, Cmd.none )
 
-        -- Navigation Messages
+        -- Navigation Messages (keep existing)
         ShowSubmissionsPage ->
             ( { model | page = SubmissionsPage, error = Nothing, success = Nothing }, Cmd.none )
 
@@ -225,6 +226,7 @@ update msg model =
                 [ -- CRITICAL: Load students first so Point Management can initialize properly
                   Ports.requestAllStudents ()
                 , Ports.requestStudentPoints ()
+                , Ports.requestPointTransactions () -- This will trigger ReceivePointTransactions
                 , Ports.requestPointRedemptions ()
                 , Ports.requestPointRewards ()
                 ]
@@ -268,7 +270,7 @@ update msg model =
             , Cmd.none
             )
 
-        -- Password Reset Messages
+        -- Password Reset Messages (keep existing)
         ShowPasswordReset ->
             ( { model | showPasswordReset = True, passwordResetEmail = model.loginEmail }, Cmd.none )
 
@@ -285,15 +287,6 @@ update msg model =
             else
                 ( { model | passwordResetMessage = Nothing, loading = True }, Ports.requestPasswordReset model.passwordResetEmail )
 
-        -- Handle student loading for any page that needs it
-        ReceiveAllStudents result ->
-            case result of
-                Ok students ->
-                    ( { model | students = students, loading = False }, Cmd.none )
-
-                Err error ->
-                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
-
         PasswordResetResult result ->
             case result of
                 Ok resetResult ->
@@ -302,6 +295,7 @@ update msg model =
                 Err error ->
                     ( { model | passwordResetMessage = Just ("Error: " ++ Decode.errorToString error), loading = False }, Cmd.none )
 
+        -- CRITICAL FIX: Handle point management messages in Main.elm before delegation
         RequestPointTransactions ->
             ( { model | loading = True }, Ports.requestPointTransactions () )
 
@@ -311,7 +305,8 @@ update msg model =
                     ( { model | pointTransactions = transactions, loading = False }, Cmd.none )
 
                 Err error ->
-                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+                    -- If Firebase point transactions aren't implemented yet, start with empty list
+                    ( { model | pointTransactions = [], loading = False }, Cmd.none )
 
         PointTransactionSaved result ->
             if String.startsWith "Error:" result then
@@ -319,6 +314,103 @@ update msg model =
 
             else
                 ( { model | success = Just result }, Cmd.none )
+
+        -- Handle student loading for any page that needs it
+        ReceiveAllStudents result ->
+            case result of
+                Ok students ->
+                    let
+                        -- Update the model with students and delegate to page-specific handling if needed
+                        updatedModel =
+                            { model | students = students, loading = False }
+                    in
+                    case model.page of
+                        PointManagementPage ->
+                            -- Delegate to PointManagement for additional processing
+                            PointManagement.update msg updatedModel
+
+                        _ ->
+                            ( updatedModel, Cmd.none )
+
+                Err error ->
+                    ( { model | error = Just (Decode.errorToString error), loading = False }, Cmd.none )
+
+        -- CRITICAL FIX: Handle other point management messages that need to stay in Main.elm
+        ReceiveStudentPoints result ->
+            case result of
+                Ok studentPoints ->
+                    let
+                        updatedModel =
+                            { model | studentPoints = studentPoints, loading = False }
+                    in
+                    case model.page of
+                        PointManagementPage ->
+                            -- Delegate to PointManagement for additional processing
+                            PointManagement.update msg updatedModel
+
+                        _ ->
+                            ( updatedModel, Cmd.none )
+
+                Err error ->
+                    let
+                        updatedModel =
+                            { model | loading = False }
+                    in
+                    case model.page of
+                        PointManagementPage ->
+                            -- Delegate to PointManagement for error handling
+                            PointManagement.update msg updatedModel
+
+                        _ ->
+                            ( updatedModel, Cmd.none )
+
+        PointsAwarded result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
+
+        PointsRedeemed result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ReceivePointRedemptions result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
+
+        ReceivePointRewards result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
+
+        RedemptionProcessed result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
+
+        RewardResult result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
 
         -- Delegate to Page Modules
         _ ->

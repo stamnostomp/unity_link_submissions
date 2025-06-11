@@ -1,4 +1,4 @@
-// student-firebase.js
+// student-firebase.js - Integrated with Points System
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, get, set, update, query, orderByChild, equalTo, push } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -74,6 +74,23 @@ function formatDisplayName(name) {
 }
 
 /**
+ * Helper function to get current date
+ * @return {string} Current date in YYYY-MM-DD format
+ */
+function getCurrentDate() {
+    return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Helper function to generate unique IDs
+ * @param {string} prefix - Prefix for the ID
+ * @return {string} Generated unique ID
+ */
+function generateId(prefix) {
+    return prefix + '-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
+/**
  * Initialize the Firebase integration with the Elm app
  * @param {Object} elmApp - The Elm application instance
  */
@@ -83,6 +100,7 @@ export function initializeFirebase(elmApp) {
     console.error("Initial authentication failed:", error);
   });
 
+  // EXISTING FUNCTIONALITY
   // Listen for belt requests
   elmApp.ports.requestBelts.subscribe(function() {
     fetchBeltsWithAuth(elmApp);
@@ -96,6 +114,27 @@ export function initializeFirebase(elmApp) {
   // Listen for submission save requests
   elmApp.ports.saveSubmission.subscribe(function(submissionData) {
     saveSubmissionWithAuth(submissionData, elmApp);
+  });
+
+  // POINTS SYSTEM FUNCTIONALITY
+  // Listen for student points requests
+  elmApp.ports.requestStudentPoints.subscribe(function(studentId) {
+    requestStudentPointsWithAuth(studentId, elmApp);
+  });
+
+  // Listen for point rewards requests
+  elmApp.ports.requestPointRewards.subscribe(function() {
+    requestPointRewardsWithAuth(elmApp);
+  });
+
+  // Listen for point transactions requests
+  elmApp.ports.requestPointTransactions.subscribe(function(studentId) {
+    requestPointTransactionsWithAuth(studentId, elmApp);
+  });
+
+  // Listen for reward redemption requests
+  elmApp.ports.redeemPointReward.subscribe(function(redemptionData) {
+    redeemPointRewardWithAuth(redemptionData, elmApp);
   });
 }
 
@@ -144,7 +183,7 @@ async function saveSubmissionWithAuth(submissionData, elmApp) {
       gameName: submissionData.gameName,
       githubLink: submissionData.githubLink,
       notes: submissionData.notes,
-      submissionDate: new Date().toISOString().split('T')[0],
+      submissionDate: getCurrentDate(),
       submittedBy: user.uid // Track anonymous user for debugging
     };
 
@@ -215,6 +254,9 @@ async function findStudentByName(studentName, elmApp) {
         foundStudent.submissions = studentSubmissions;
       }
 
+      // POINTS SYSTEM: Auto-load student points when student is found
+      await loadStudentPoints(foundStudent.id, elmApp);
+
       // Send the student data back to Elm
       elmApp.ports.studentFound.send(foundStudent);
       return;
@@ -270,6 +312,9 @@ async function findStudentByName(studentName, elmApp) {
           foundStudent.submissions = studentSubmissions;
         }
 
+        // POINTS SYSTEM: Auto-load student points when student is found
+        await loadStudentPoints(foundStudent.id, elmApp);
+
         // Send the student data back to Elm
         elmApp.ports.studentFound.send(foundStudent);
       } else {
@@ -294,7 +339,7 @@ async function findStudentByName(studentName, elmApp) {
 async function saveStudentRecord(studentData, elmApp) {
   try {
     const studentId = studentData.id;
-    const currentDate = new Date().toISOString().split('T')[0];
+    const currentDate = getCurrentDate();
 
     // Update lastActive date
     const studentToSave = {
@@ -396,3 +441,386 @@ async function fetchBelts(elmApp) {
     elmApp.ports.receiveBelts.send([]);
   }
 }
+
+// =============================================================================
+// POINTS SYSTEM FUNCTIONALITY
+// =============================================================================
+
+/**
+ * Load student points automatically (called when student is found)
+ * @param {string} studentId - The student ID
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function loadStudentPoints(studentId, elmApp) {
+  try {
+    const pointsRef = ref(database, `studentPoints/${studentId}`);
+    const snapshot = await get(pointsRef);
+
+    if (snapshot.exists()) {
+      const studentPoints = snapshot.val();
+      elmApp.ports.receiveStudentPoints.send(studentPoints);
+    } else {
+      // Create initial points record if it doesn't exist
+      const initialPoints = {
+        studentId: studentId,
+        currentPoints: 0,
+        totalEarned: 0,
+        totalRedeemed: 0,
+        lastUpdated: getCurrentDate()
+      };
+
+      await set(pointsRef, initialPoints);
+      elmApp.ports.receiveStudentPoints.send(initialPoints);
+    }
+  } catch (error) {
+    console.warn('Could not load student points:', error);
+    // Send default points if there's an error
+    elmApp.ports.receiveStudentPoints.send({
+      studentId: studentId,
+      currentPoints: 0,
+      totalEarned: 0,
+      totalRedeemed: 0,
+      lastUpdated: getCurrentDate()
+    });
+  }
+}
+
+/**
+ * Request student points with authentication
+ * @param {string} studentId - The student ID
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function requestStudentPointsWithAuth(studentId, elmApp) {
+  try {
+    await initializeStudentAuth();
+    await requestStudentPoints(studentId, elmApp);
+  } catch (error) {
+    console.error("Authentication failed for student points:", error);
+    elmApp.ports.receiveStudentPoints.send({
+      studentId: studentId,
+      currentPoints: 0,
+      totalEarned: 0,
+      totalRedeemed: 0,
+      lastUpdated: getCurrentDate()
+    });
+  }
+}
+
+/**
+ * Request student points
+ * @param {string} studentId - The student ID
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function requestStudentPoints(studentId, elmApp) {
+  try {
+    const pointsRef = ref(database, `studentPoints/${studentId}`);
+    const snapshot = await get(pointsRef);
+
+    if (snapshot.exists()) {
+      const studentPoints = snapshot.val();
+      elmApp.ports.receiveStudentPoints.send(studentPoints);
+    } else {
+      // Create initial points record if it doesn't exist
+      const initialPoints = {
+        studentId: studentId,
+        currentPoints: 0,
+        totalEarned: 0,
+        totalRedeemed: 0,
+        lastUpdated: getCurrentDate()
+      };
+
+      await set(pointsRef, initialPoints);
+      elmApp.ports.receiveStudentPoints.send(initialPoints);
+    }
+  } catch (error) {
+    console.error('Error loading student points:', error);
+    elmApp.ports.receiveStudentPoints.send({
+      studentId: studentId,
+      currentPoints: 0,
+      totalEarned: 0,
+      totalRedeemed: 0,
+      lastUpdated: getCurrentDate()
+    });
+  }
+}
+
+/**
+ * Request point rewards with authentication
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function requestPointRewardsWithAuth(elmApp) {
+  try {
+    await initializeStudentAuth();
+    await requestPointRewards(elmApp);
+  } catch (error) {
+    console.error("Authentication failed for point rewards:", error);
+    elmApp.ports.receivePointRewards.send([]);
+  }
+}
+
+/**
+ * Request point rewards
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function requestPointRewards(elmApp) {
+  try {
+    const rewardsRef = ref(database, 'pointRewards');
+    const snapshot = await get(rewardsRef);
+
+    if (snapshot.exists()) {
+      const rewardsData = snapshot.val();
+      const rewards = Object.keys(rewardsData)
+        .map(id => ({
+          id,
+          ...rewardsData[id]
+        }))
+        .filter(reward => reward.isActive) // Only show active rewards
+        .sort((a, b) => a.order - b.order); // Sort by order
+
+      elmApp.ports.receivePointRewards.send(rewards);
+    } else {
+      elmApp.ports.receivePointRewards.send([]);
+    }
+  } catch (error) {
+    console.error('Error loading point rewards:', error);
+    elmApp.ports.receivePointRewards.send([]);
+  }
+}
+
+/**
+ * Request point transactions with authentication
+ * @param {string} studentId - The student ID
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function requestPointTransactionsWithAuth(studentId, elmApp) {
+  try {
+    await initializeStudentAuth();
+    await requestPointTransactions(studentId, elmApp);
+  } catch (error) {
+    console.error("Authentication failed for point transactions:", error);
+    elmApp.ports.receivePointTransactions.send([]);
+  }
+}
+
+/**
+ * Request point transactions for a student
+ * @param {string} studentId - The student ID
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function requestPointTransactions(studentId, elmApp) {
+  try {
+    const transactionsRef = ref(database, 'pointTransactions');
+    const snapshot = await get(transactionsRef);
+
+    if (snapshot.exists()) {
+      const transactionsData = snapshot.val();
+      const transactions = Object.keys(transactionsData)
+        .map(id => ({
+          id,
+          ...transactionsData[id]
+        }))
+        .filter(transaction => transaction.studentId === studentId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+
+      elmApp.ports.receivePointTransactions.send(transactions);
+    } else {
+      elmApp.ports.receivePointTransactions.send([]);
+    }
+  } catch (error) {
+    console.error('Error loading point transactions:', error);
+    elmApp.ports.receivePointTransactions.send([]);
+  }
+}
+
+/**
+ * Redeem point reward with authentication
+ * @param {Object} redemptionData - The redemption data
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function redeemPointRewardWithAuth(redemptionData, elmApp) {
+  try {
+    await initializeStudentAuth();
+    await redeemPointReward(redemptionData, elmApp);
+  } catch (error) {
+    console.error("Authentication failed for reward redemption:", error);
+    elmApp.ports.pointRedemptionResult.send("Error: Authentication failed");
+  }
+}
+
+/**
+ * Redeem point reward
+ * @param {Object} redemptionData - The redemption data
+ * @param {Object} elmApp - The Elm application instance
+ */
+async function redeemPointReward(redemptionData, elmApp) {
+  try {
+    const { rewardId, rewardName, rewardDescription, pointCost, studentId, studentName } = redemptionData;
+
+    // Check current points
+    const pointsRef = ref(database, `studentPoints/${studentId}`);
+    const pointsSnapshot = await get(pointsRef);
+
+    if (!pointsSnapshot.exists()) {
+      elmApp.ports.pointRedemptionResult.send("Error: Student points record not found");
+      return;
+    }
+
+    const currentPoints = pointsSnapshot.val();
+
+    if (currentPoints.currentPoints < pointCost) {
+      elmApp.ports.pointRedemptionResult.send("Error: Insufficient points for this redemption");
+      return;
+    }
+
+    // Check stock availability
+    const rewardRef = ref(database, `pointRewards/${rewardId}`);
+    const rewardSnapshot = await get(rewardRef);
+
+    if (!rewardSnapshot.exists()) {
+      elmApp.ports.pointRedemptionResult.send("Error: Reward not found");
+      return;
+    }
+
+    const reward = rewardSnapshot.val();
+
+    if (!reward.isActive) {
+      elmApp.ports.pointRedemptionResult.send("Error: This reward is no longer available");
+      return;
+    }
+
+    if (reward.stock !== null && reward.stock <= 0) {
+      elmApp.ports.pointRedemptionResult.send("Error: This reward is out of stock");
+      return;
+    }
+
+    // Prepare updates
+    const updates = {};
+
+    // Generate redemption ID
+    const redemptionId = generateId('redemption');
+
+    // Update student points
+    const newCurrentPoints = currentPoints.currentPoints - pointCost;
+    const newTotalRedeemed = currentPoints.totalRedeemed + pointCost;
+
+    updates[`studentPoints/${studentId}`] = {
+      ...currentPoints,
+      currentPoints: newCurrentPoints,
+      totalRedeemed: newTotalRedeemed,
+      lastUpdated: getCurrentDate()
+    };
+
+    // Create redemption record
+    updates[`pointRedemptions/${redemptionId}`] = {
+      id: redemptionId,
+      studentId: studentId,
+      studentName: studentName,
+      pointsRedeemed: pointCost,
+      rewardName: rewardName,
+      rewardDescription: rewardDescription,
+      redeemedBy: studentName, // Student redeemed it themselves
+      redemptionDate: getCurrentDate(),
+      status: 'pending'
+    };
+
+    // Create transaction record
+    const transactionId = generateId('transaction');
+    updates[`pointTransactions/${transactionId}`] = {
+      id: transactionId,
+      studentId: studentId,
+      studentName: studentName,
+      transactionType: 'Redemption',
+      points: pointCost,
+      reason: `Redeemed: ${rewardName}`,
+      category: 'redemption',
+      adminEmail: 'student-self-redemption',
+      date: getCurrentDate()
+    };
+
+    // Update stock if applicable
+    if (reward.stock !== null) {
+      updates[`pointRewards/${rewardId}/stock`] = reward.stock - 1;
+    }
+
+    // Apply all updates atomically
+    await update(ref(database), updates);
+
+    elmApp.ports.pointRedemptionResult.send(`Successfully redeemed ${rewardName}! Your redemption is pending approval.`);
+
+  } catch (error) {
+    console.error('Error processing redemption:', error);
+    elmApp.ports.pointRedemptionResult.send("Error: Failed to process redemption");
+  }
+}
+
+// =============================================================================
+// REAL-TIME LISTENERS (Optional Enhancement)
+// =============================================================================
+
+let currentStudentId = null;
+let pointsListener = null;
+let rewardsListener = null;
+
+/**
+ * Set up real-time listeners for points system updates
+ * @param {string} studentId - The student ID to listen for
+ * @param {Object} elmApp - The Elm application instance
+ */
+export function setupPointsListeners(studentId, elmApp) {
+  // Clean up existing listeners
+  if (pointsListener) {
+    pointsListener();
+  }
+  if (rewardsListener) {
+    rewardsListener();
+  }
+
+  currentStudentId = studentId;
+
+  // Listen for student points changes
+  const pointsRef = ref(database, `studentPoints/${studentId}`);
+  pointsListener = pointsRef.on('value', (snapshot) => {
+    if (snapshot.exists()) {
+      elmApp.ports.receiveStudentPoints.send(snapshot.val());
+    }
+  });
+
+  // Listen for rewards changes
+  const rewardsRef = ref(database, 'pointRewards');
+  rewardsListener = rewardsRef.on('value', (snapshot) => {
+    if (snapshot.exists()) {
+      const rewardsData = snapshot.val();
+      const rewards = Object.keys(rewardsData)
+        .map(id => ({
+          id,
+          ...rewardsData[id]
+        }))
+        .filter(reward => reward.isActive)
+        .sort((a, b) => a.order - b.order);
+
+      elmApp.ports.receivePointRewards.send(rewards);
+    }
+  });
+}
+
+/**
+ * Clean up real-time listeners
+ */
+export function cleanupPointsListeners() {
+  if (pointsListener) {
+    pointsListener();
+    pointsListener = null;
+  }
+  if (rewardsListener) {
+    rewardsListener();
+    rewardsListener = null;
+  }
+  currentStudentId = null;
+}
+
+// Cleanup function for page unload
+window.addEventListener('beforeunload', () => {
+  cleanupPointsListeners();
+});
+
+console.log('Student Firebase integration with points system loaded successfully');

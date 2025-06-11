@@ -1,6 +1,5 @@
 module Shared.Utils exposing (..)
 
-import Admin.Types exposing (Msg(..), PointTransaction, TransactionType(..))
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Shared.Types exposing (..)
@@ -77,7 +76,7 @@ pointTransactionDecoder =
         (Decode.field "id" Decode.string)
         (Decode.field "studentId" Decode.string)
         (Decode.field "studentName" Decode.string)
-        (Decode.field "TransactionType" transactionTypeDecoder)
+        (Decode.field "transactionType" transactionTypeDecoder)
         (Decode.field "points" Decode.int)
         (Decode.field "reason" Decode.string)
         (Decode.field "category" Decode.string)
@@ -105,7 +104,7 @@ transactionTypeDecoder =
                         Decode.succeed Redemption
 
                     _ ->
-                        Decode.fail ("Unkown transaction type: " ++ str)
+                        Decode.fail ("Unknown transaction type: " ++ str)
             )
 
 

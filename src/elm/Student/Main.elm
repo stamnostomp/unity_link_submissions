@@ -33,6 +33,34 @@ port receiveBelts : (Decode.Value -> msg) -> Sub msg
 
 
 
+-- Point System Ports
+
+
+port requestStudentPoints : String -> Cmd msg
+
+
+port receiveStudentPoints : (Decode.Value -> msg) -> Sub msg
+
+
+port requestPointRewards : () -> Cmd msg
+
+
+port receivePointRewards : (Decode.Value -> msg) -> Sub msg
+
+
+port redeemPointReward : Encode.Value -> Cmd msg
+
+
+port pointRedemptionResult : (String -> msg) -> Sub msg
+
+
+port requestPointTransactions : String -> Cmd msg
+
+
+port receivePointTransactions : (Decode.Value -> msg) -> Sub msg
+
+
+
 -- MAIN
 
 
@@ -88,11 +116,72 @@ type alias Belt =
     }
 
 
+type alias StudentPoints =
+    { studentId : String
+    , currentPoints : Int
+    , totalEarned : Int
+    , totalRedeemed : Int
+    , lastUpdated : String
+    }
+
+
+type alias PointReward =
+    { id : String
+    , name : String
+    , description : String
+    , pointCost : Int
+    , category : String
+    , isActive : Bool
+    , stock : Maybe Int
+    , order : Int
+    }
+
+
+type alias PointTransaction =
+    { id : String
+    , studentId : String
+    , studentName : String
+    , transactionType : TransactionType
+    , points : Int
+    , reason : String
+    , category : String
+    , adminEmail : String
+    , date : String
+    }
+
+
+type TransactionType
+    = Award
+    | Redemption
+
+
+type alias PointRedemption =
+    { id : String
+    , studentId : String
+    , studentName : String
+    , pointsRedeemed : Int
+    , rewardName : String
+    , rewardDescription : String
+    , redeemedBy : String
+    , redemptionDate : String
+    , status : RedemptionStatus
+    }
+
+
+type RedemptionStatus
+    = Pending
+    | Approved
+    | Fulfilled
+    | Cancelled
+
+
 type Page
     = NamePage
     | StudentProfilePage Student
     | SubmissionFormPage Student
     | SubmissionCompletePage Student Submission
+    | PointsPage Student
+    | RedemptionHistoryPage Student
     | LoadingPage String
 
 
@@ -106,6 +195,14 @@ type alias Model =
     , errorMessage : Maybe String
     , successMessage : Maybe String
     , belts : List Belt
+
+    -- Points System Data
+    , studentPoints : Maybe StudentPoints
+    , pointRewards : List PointReward
+    , pointTransactions : List PointTransaction
+    , selectedReward : Maybe PointReward
+    , showRedemptionConfirm : Bool
+    , loading : Bool
     }
 
 
@@ -120,6 +217,12 @@ init _ =
       , errorMessage = Nothing
       , successMessage = Nothing
       , belts = []
+      , studentPoints = Nothing
+      , pointRewards = []
+      , pointTransactions = []
+      , selectedReward = Nothing
+      , showRedemptionConfirm = False
+      , loading = False
       }
     , requestBelts ()
     )
@@ -171,6 +274,32 @@ formatDisplayName name =
     capitalizedFirst ++ " " ++ capitalizedLast
 
 
+transactionTypeToString : TransactionType -> String
+transactionTypeToString transactionType =
+    case transactionType of
+        Award ->
+            "Points Earned"
+
+        Redemption ->
+            "Points Redeemed"
+
+
+redemptionStatusToString : RedemptionStatus -> String
+redemptionStatusToString status =
+    case status of
+        Pending ->
+            "Pending"
+
+        Approved ->
+            "Approved"
+
+        Fulfilled ->
+            "Fulfilled"
+
+        Cancelled ->
+            "Cancelled"
+
+
 
 -- BELT COLOR INDICATOR
 
@@ -219,6 +348,16 @@ type Msg
     | BackToSearch
     | Reset
     | BeltsReceived (Result Decode.Error (List Belt))
+      -- Points System Messages
+    | ShowPointsPage Student
+    | ShowRedemptionHistory Student
+    | StudentPointsReceived (Result Decode.Error StudentPoints)
+    | PointRewardsReceived (Result Decode.Error (List PointReward))
+    | PointTransactionsReceived (Result Decode.Error (List PointTransaction))
+    | SelectReward PointReward
+    | CancelRedemption
+    | ConfirmRedemption
+    | RedemptionResult String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -306,7 +445,7 @@ update msg model =
                 let
                     -- For a real app, you'd want to generate a better ID and use actual date
                     currentDate =
-                        "2025-03-04"
+                        "2025-06-04"
 
                     newSubmission =
                         { id = student.id ++ "-" ++ model.beltLevel ++ "-" ++ String.fromInt (List.length student.submissions + 1)
@@ -341,6 +480,12 @@ update msg model =
                 SubmissionFormPage student ->
                     ( { model | page = StudentProfilePage student }, Cmd.none )
 
+                PointsPage student ->
+                    ( { model | page = StudentProfilePage student }, Cmd.none )
+
+                RedemptionHistoryPage student ->
+                    ( { model | page = StudentProfilePage student }, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -363,6 +508,164 @@ update msg model =
                 Err error ->
                     ( { model | errorMessage = Just ("Error loading belts: " ++ Decode.errorToString error) }, Cmd.none )
 
+        -- Points System Messages
+        ShowPointsPage student ->
+            ( { model | page = LoadingPage "Loading your points...", loading = True }
+            , Cmd.batch
+                [ requestStudentPoints student.id
+                , requestPointRewards ()
+                ]
+            )
+
+        ShowRedemptionHistory student ->
+            ( { model | page = LoadingPage "Loading your redemption history...", loading = True }
+            , requestPointTransactions student.id
+            )
+
+        StudentPointsReceived result ->
+            case result of
+                Ok studentPoints ->
+                    case model.page of
+                        LoadingPage _ ->
+                            -- Need to get the student from somewhere
+                            case getStudentFromModel model of
+                                Just student ->
+                                    ( { model
+                                        | studentPoints = Just studentPoints
+                                        , page = PointsPage student
+                                        , loading = False
+                                      }
+                                    , Cmd.none
+                                    )
+
+                                Nothing ->
+                                    ( { model | errorMessage = Just "Error loading student data", page = NamePage }, Cmd.none )
+
+                        _ ->
+                            ( { model | studentPoints = Just studentPoints, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | errorMessage = Just ("Error loading points: " ++ Decode.errorToString error), page = NamePage }, Cmd.none )
+
+        PointRewardsReceived result ->
+            case result of
+                Ok rewards ->
+                    let
+                        activeRewards =
+                            List.filter .isActive rewards
+                                |> List.sortBy .order
+                    in
+                    ( { model | pointRewards = activeRewards, loading = False }, Cmd.none )
+
+                Err error ->
+                    ( { model | errorMessage = Just ("Error loading rewards: " ++ Decode.errorToString error) }, Cmd.none )
+
+        PointTransactionsReceived result ->
+            case result of
+                Ok transactions ->
+                    case getStudentFromModel model of
+                        Just student ->
+                            let
+                                sortedTransactions =
+                                    List.sortBy .date transactions |> List.reverse
+                            in
+                            ( { model
+                                | pointTransactions = sortedTransactions
+                                , page = RedemptionHistoryPage student
+                                , loading = False
+                              }
+                            , Cmd.none
+                            )
+
+                        Nothing ->
+                            ( { model | errorMessage = Just "Error loading student data", page = NamePage }, Cmd.none )
+
+                Err error ->
+                    ( { model | errorMessage = Just ("Error loading transaction history: " ++ Decode.errorToString error), page = NamePage }, Cmd.none )
+
+        SelectReward reward ->
+            case model.studentPoints of
+                Just points ->
+                    if points.currentPoints >= reward.pointCost then
+                        ( { model | selectedReward = Just reward, showRedemptionConfirm = True }, Cmd.none )
+
+                    else
+                        ( { model | errorMessage = Just ("You need " ++ String.fromInt reward.pointCost ++ " points to redeem this reward. You currently have " ++ String.fromInt points.currentPoints ++ " points.") }, Cmd.none )
+
+                Nothing ->
+                    ( { model | errorMessage = Just "Error loading your points balance" }, Cmd.none )
+
+        CancelRedemption ->
+            ( { model | selectedReward = Nothing, showRedemptionConfirm = False }, Cmd.none )
+
+        ConfirmRedemption ->
+            case ( model.selectedReward, model.studentPoints, getStudentFromModel model ) of
+                ( Just reward, Just points, Just student ) ->
+                    let
+                        redemptionData =
+                            { rewardId = reward.id
+                            , rewardName = reward.name
+                            , rewardDescription = reward.description
+                            , pointCost = reward.pointCost
+                            , studentId = student.id
+                            , studentName = student.name
+                            }
+                    in
+                    ( { model
+                        | loading = True
+                        , selectedReward = Nothing
+                        , showRedemptionConfirm = False
+                      }
+                    , redeemPointReward (encodeRedemption redemptionData)
+                    )
+
+                _ ->
+                    ( { model | errorMessage = Just "Error processing redemption" }, Cmd.none )
+
+        RedemptionResult result ->
+            if String.startsWith "Error:" result then
+                ( { model | errorMessage = Just result, loading = False }, Cmd.none )
+
+            else
+                case getStudentFromModel model of
+                    Just student ->
+                        ( { model
+                            | successMessage = Just result
+                            , loading = False
+                          }
+                        , requestStudentPoints student.id
+                          -- Refresh points balance
+                        )
+
+                    Nothing ->
+                        ( { model | errorMessage = Just "Error refreshing data", loading = False }, Cmd.none )
+
+
+
+-- Helper function to get student from current page
+
+
+getStudentFromModel : Model -> Maybe Student
+getStudentFromModel model =
+    case model.page of
+        StudentProfilePage student ->
+            Just student
+
+        SubmissionFormPage student ->
+            Just student
+
+        PointsPage student ->
+            Just student
+
+        RedemptionHistoryPage student ->
+            Just student
+
+        SubmissionCompletePage student _ ->
+            Just student
+
+        _ ->
+            Nothing
+
 
 
 -- SUBSCRIPTIONS
@@ -374,6 +677,10 @@ subscriptions _ =
         [ studentFound (decodeStudentResponse >> StudentFoundResult)
         , submissionResult SubmissionSaved
         , receiveBelts (decodeBeltsResponse >> BeltsReceived)
+        , receiveStudentPoints (decodeStudentPointsResponse >> StudentPointsReceived)
+        , receivePointRewards (decodePointRewardsResponse >> PointRewardsReceived)
+        , receivePointTransactions (decodePointTransactionsResponse >> PointTransactionsReceived)
+        , pointRedemptionResult RedemptionResult
         ]
 
 
@@ -401,6 +708,18 @@ encodeSubmission submission =
         , ( "githubLink", Encode.string submission.githubLink )
         , ( "notes", Encode.string submission.notes )
         , ( "submissionDate", Encode.string submission.submissionDate )
+        ]
+
+
+encodeRedemption : { rewardId : String, rewardName : String, rewardDescription : String, pointCost : Int, studentId : String, studentName : String } -> Encode.Value
+encodeRedemption redemption =
+    Encode.object
+        [ ( "rewardId", Encode.string redemption.rewardId )
+        , ( "rewardName", Encode.string redemption.rewardName )
+        , ( "rewardDescription", Encode.string redemption.rewardDescription )
+        , ( "pointCost", Encode.int redemption.pointCost )
+        , ( "studentId", Encode.string redemption.studentId )
+        , ( "studentName", Encode.string redemption.studentName )
         ]
 
 
@@ -457,6 +776,92 @@ decodeBeltsResponse value =
 
 
 
+-- Points System Decoders
+
+
+studentPointsDecoder : Decoder StudentPoints
+studentPointsDecoder =
+    Decode.map5 StudentPoints
+        (Decode.field "studentId" Decode.string)
+        (Decode.field "currentPoints" Decode.int)
+        (Decode.field "totalEarned" Decode.int)
+        (Decode.field "totalRedeemed" Decode.int)
+        (Decode.field "lastUpdated" Decode.string)
+
+
+decodeStudentPointsResponse : Decode.Value -> Result Decode.Error StudentPoints
+decodeStudentPointsResponse value =
+    Decode.decodeValue studentPointsDecoder value
+
+
+pointRewardDecoder : Decoder PointReward
+pointRewardDecoder =
+    Decode.map8 PointReward
+        (Decode.field "id" Decode.string)
+        (Decode.field "name" Decode.string)
+        (Decode.field "description" Decode.string)
+        (Decode.field "pointCost" Decode.int)
+        (Decode.field "category" Decode.string)
+        (Decode.field "isActive" Decode.bool)
+        (Decode.maybe (Decode.field "stock" Decode.int))
+        (Decode.field "order" Decode.int)
+
+
+decodePointRewardsResponse : Decode.Value -> Result Decode.Error (List PointReward)
+decodePointRewardsResponse value =
+    Decode.decodeValue (Decode.list pointRewardDecoder) value
+
+
+transactionTypeDecoder : Decoder TransactionType
+transactionTypeDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                case str of
+                    "Award" ->
+                        Decode.succeed Award
+
+                    "award" ->
+                        Decode.succeed Award
+
+                    "Redemption" ->
+                        Decode.succeed Redemption
+
+                    "redemption" ->
+                        Decode.succeed Redemption
+
+                    _ ->
+                        Decode.fail ("Unknown transaction type: " ++ str)
+            )
+
+
+pointTransactionDecoder : Decoder PointTransaction
+pointTransactionDecoder =
+    Decode.map8
+        (\id studentId studentName transactionType points reason category adminEmail ->
+            PointTransaction id studentId studentName transactionType points reason category adminEmail ""
+        )
+        (Decode.field "id" Decode.string)
+        (Decode.field "studentId" Decode.string)
+        (Decode.field "studentName" Decode.string)
+        (Decode.field "transactionType" transactionTypeDecoder)
+        (Decode.field "points" Decode.int)
+        (Decode.field "reason" Decode.string)
+        (Decode.field "category" Decode.string)
+        (Decode.field "adminEmail" Decode.string)
+        |> Decode.andThen
+            (\transaction ->
+                Decode.field "date" Decode.string
+                    |> Decode.map (\date -> { transaction | date = date })
+            )
+
+
+decodePointTransactionsResponse : Decode.Value -> Result Decode.Error (List PointTransaction)
+decodePointTransactionsResponse value =
+    Decode.decodeValue (Decode.list pointTransactionDecoder) value
+
+
+
 -- VIEW
 
 
@@ -491,6 +896,12 @@ viewPage model =
 
         SubmissionCompletePage student submission ->
             viewSubmissionCompletePage model student submission
+
+        PointsPage student ->
+            viewPointsPage model student
+
+        RedemptionHistoryPage student ->
+            viewRedemptionHistoryPage model student
 
         LoadingPage message ->
             viewLoading message
@@ -544,6 +955,44 @@ viewStudentProfilePage model student =
                     [ text "Not you? Switch accounts" ]
                 ]
             ]
+
+        -- Points Balance Display
+        , case model.studentPoints of
+            Just points ->
+                div [ class "bg-gradient-to-r from-green-400 to-blue-500 rounded-lg p-6 text-white" ]
+                    [ div [ class "flex items-center justify-between" ]
+                        [ div []
+                            [ h3 [ class "text-lg font-medium" ] [ text "Your Points Balance" ]
+                            , p [ class "text-3xl font-bold" ] [ text (String.fromInt points.currentPoints) ]
+                            , p [ class "text-sm opacity-90" ] [ text ("Total earned: " ++ String.fromInt points.totalEarned ++ " | Total redeemed: " ++ String.fromInt points.totalRedeemed) ]
+                            ]
+                        , div [ class "text-right" ]
+                            [ button
+                                [ onClick (ShowPointsPage student)
+                                , class "bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
+                                ]
+                                [ text "Redeem Points" ]
+                            , br [] []
+                            , button
+                                [ onClick (ShowRedemptionHistory student)
+                                , class "mt-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
+                                ]
+                                [ text "View History" ]
+                            ]
+                        ]
+                    ]
+
+            Nothing ->
+                div [ class "bg-gray-100 rounded-lg p-6 text-center" ]
+                    [ p [ class "text-gray-600 mb-4" ] [ text "Loading your points balance..." ]
+                    , button
+                        [ onClick (ShowPointsPage student)
+                        , class "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                        ]
+                        [ text "View Points & Rewards" ]
+                    ]
+
+        -- Game Submissions Section
         , div [ class "space-y-4" ]
             [ div [ class "flex justify-between items-center" ]
                 [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Your Game Submissions" ]
@@ -576,74 +1025,284 @@ viewStudentProfilePage model student =
         ]
 
 
-viewSubmissionRow : Model -> Submission -> Html Msg
-viewSubmissionRow model submission =
-    let
-        beltName =
-            let
-                matchingBelts =
-                    List.filter (\b -> b.id == submission.beltLevel) model.belts
-            in
-            case matchingBelts of
-                [] ->
-                    submission.beltLevel
-
-                belt :: _ ->
-                    belt.name
-
-        beltColor =
-            let
-                matchingBelts =
-                    List.filter (\b -> b.id == submission.beltLevel) model.belts
-            in
-            case matchingBelts of
-                [] ->
-                    "#808080"
-
-                -- Default gray if not found
-                belt :: _ ->
-                    belt.color
-    in
-    tr []
-        [ td [ class "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6" ]
-            [ text submission.gameName ]
-        , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
-            [ div [ class "flex items-center" ]
-                [ div [ class "w-3 h-3 mr-2 rounded-full", style "background-color" beltColor ] []
-                , text beltName
+viewPointsPage : Model -> Student -> Html Msg
+viewPointsPage model student =
+    div [ class "space-y-6" ]
+        [ div [ class "flex justify-between items-center" ]
+            [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Redeem Your Points" ]
+            , button
+                [ onClick BackToProfile
+                , class "text-gray-500 hover:text-gray-700 flex items-center"
+                ]
+                [ span [ class "mr-1" ] [ text "←" ]
+                , text "Back to Profile"
                 ]
             ]
-        , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
-            [ text submission.submissionDate ]
-        , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
-            [ viewGradeStatus submission.grade ]
+
+        -- Points Balance
+        , case model.studentPoints of
+            Just points ->
+                div [ class "bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white" ]
+                    [ h3 [ class "text-lg font-medium mb-2" ] [ text "Available Points" ]
+                    , p [ class "text-4xl font-bold" ] [ text (String.fromInt points.currentPoints) ]
+                    ]
+
+            Nothing ->
+                div [ class "bg-gray-100 rounded-lg p-6 text-center" ]
+                    [ p [ class "text-gray-600" ] [ text "Loading your points balance..." ] ]
+
+        -- Available Rewards
+        , div []
+            [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Available Rewards" ]
+            , if List.isEmpty model.pointRewards then
+                div [ class "bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center" ]
+                    [ div [ class "text-yellow-600 mb-4" ]
+                        [ svg [ class "w-12 h-12 mx-auto", fill "currentColor", viewBox "0 0 20 20" ]
+                            [ path [ attribute "fill-rule" "evenodd", attribute "d" "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z", attribute "clip-rule" "evenodd" ] []
+                            ]
+                        ]
+                    , h4 [ class "text-lg font-medium text-yellow-800 mb-2" ] [ text "No Rewards Available" ]
+                    , p [ class "text-yellow-700" ] [ text "Your teacher hasn't set up any rewards yet. Check back later or ask your teacher about the points system!" ]
+                    ]
+
+              else
+                div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+                    (List.map (viewRewardCard model) model.pointRewards)
+            ]
+
+        -- Redemption Confirmation Modal
+        , viewRedemptionConfirmModal model
         ]
 
 
-viewGradeStatus : Maybe Grade -> Html Msg
-viewGradeStatus maybeGrade =
-    case maybeGrade of
-        Just grade ->
-            let
-                ( bgColor, textColor ) =
-                    if grade.score >= 90 then
-                        ( "bg-green-100", "text-green-800" )
+viewRewardCard : Model -> PointReward -> Html Msg
+viewRewardCard model reward =
+    let
+        canAfford =
+            case model.studentPoints of
+                Just points ->
+                    points.currentPoints >= reward.pointCost
 
-                    else if grade.score >= 70 then
-                        ( "bg-blue-100", "text-blue-800" )
+                Nothing ->
+                    False
 
-                    else if grade.score >= 60 then
-                        ( "bg-yellow-100", "text-yellow-800" )
+        isOutOfStock =
+            case reward.stock of
+                Just stock ->
+                    stock <= 0
+
+                Nothing ->
+                    False
+
+        cardClass =
+            if canAfford && not isOutOfStock then
+                "bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-blue-500"
+
+            else
+                "bg-gray-100 rounded-lg shadow-md p-6 cursor-not-allowed opacity-60"
+    in
+    div
+        [ class cardClass
+        , if canAfford && not isOutOfStock then
+            onClick (SelectReward reward)
+
+          else
+            class ""
+        ]
+        [ div [ class "flex justify-between items-start mb-4" ]
+            [ div []
+                [ h4 [ class "text-lg font-semibold text-gray-900" ] [ text reward.name ]
+                , p [ class "text-sm text-gray-600" ] [ text reward.category ]
+                ]
+            , div [ class "text-right" ]
+                [ span [ class "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800" ]
+                    [ text (String.fromInt reward.pointCost ++ " pts") ]
+                ]
+            ]
+        , p [ class "text-gray-700 mb-4" ] [ text reward.description ]
+        , div [ class "flex justify-between items-center" ]
+            [ case reward.stock of
+                Just stock ->
+                    if stock > 0 then
+                        span [ class "text-sm text-green-600" ] [ text ("In stock: " ++ String.fromInt stock) ]
 
                     else
-                        ( "bg-red-100", "text-red-800" )
-            in
-            span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
-                [ text (String.fromInt grade.score ++ "/100") ]
+                        span [ class "text-sm text-red-600" ] [ text "Out of stock" ]
 
-        Nothing ->
-            span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
-                [ text "Pending" ]
+                Nothing ->
+                    span [ class "text-sm text-green-600" ] [ text "Always available" ]
+            , if not canAfford then
+                span [ class "text-sm text-red-600" ] [ text "Not enough points" ]
+
+              else if isOutOfStock then
+                span [ class "text-sm text-red-600" ] [ text "Unavailable" ]
+
+              else
+                span [ class "text-sm text-green-600 font-medium" ] [ text "Click to redeem!" ]
+            ]
+        ]
+
+
+viewRedemptionConfirmModal : Model -> Html Msg
+viewRedemptionConfirmModal model =
+    if model.showRedemptionConfirm then
+        case ( model.selectedReward, model.studentPoints ) of
+            ( Just reward, Just points ) ->
+                div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
+                    [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-md w-full m-4" ]
+                        [ div [ class "px-6 py-4 bg-blue-50 border-b border-gray-200" ]
+                            [ h3 [ class "text-lg font-medium text-blue-800" ] [ text "Confirm Redemption" ]
+                            ]
+                        , div [ class "p-6" ]
+                            [ div [ class "mb-4" ]
+                                [ h4 [ class "font-medium text-gray-900 mb-2" ] [ text reward.name ]
+                                , p [ class "text-gray-600 mb-4" ] [ text reward.description ]
+                                , div [ class "bg-gray-50 p-4 rounded-md" ]
+                                    [ div [ class "flex justify-between items-center mb-2" ]
+                                        [ span [ class "text-gray-700" ] [ text "Cost:" ]
+                                        , span [ class "font-medium text-red-600" ] [ text ("-" ++ String.fromInt reward.pointCost ++ " points") ]
+                                        ]
+                                    , div [ class "flex justify-between items-center mb-2" ]
+                                        [ span [ class "text-gray-700" ] [ text "Current balance:" ]
+                                        , span [ class "font-medium" ] [ text (String.fromInt points.currentPoints ++ " points") ]
+                                        ]
+                                    , div [ class "border-t pt-2 mt-2" ]
+                                        [ div [ class "flex justify-between items-center" ]
+                                            [ span [ class "font-medium text-gray-900" ] [ text "New balance:" ]
+                                            , span [ class "font-bold text-green-600" ] [ text (String.fromInt (points.currentPoints - reward.pointCost) ++ " points") ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            , div [ class "flex justify-end space-x-3" ]
+                                [ button
+                                    [ onClick CancelRedemption
+                                    , class "px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    ]
+                                    [ text "Cancel" ]
+                                , button
+                                    [ onClick ConfirmRedemption
+                                    , class "px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                                    ]
+                                    [ text "Confirm Redemption" ]
+                                ]
+                            ]
+                        ]
+                    ]
+
+            _ ->
+                text ""
+
+    else
+        text ""
+
+
+viewRedemptionHistoryPage : Model -> Student -> Html Msg
+viewRedemptionHistoryPage model student =
+    div [ class "space-y-6" ]
+        [ div [ class "flex justify-between items-center" ]
+            [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Points History" ]
+            , button
+                [ onClick BackToProfile
+                , class "text-gray-500 hover:text-gray-700 flex items-center"
+                ]
+                [ span [ class "mr-1" ] [ text "←" ]
+                , text "Back to Profile"
+                ]
+            ]
+
+        -- Points Summary
+        , case model.studentPoints of
+            Just points ->
+                div [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
+                    [ div [ class "bg-green-100 rounded-lg p-6 text-center" ]
+                        [ p [ class "text-green-800 font-medium" ] [ text "Total Earned" ]
+                        , p [ class "text-3xl font-bold text-green-600" ] [ text (String.fromInt points.totalEarned) ]
+                        ]
+                    , div [ class "bg-red-100 rounded-lg p-6 text-center" ]
+                        [ p [ class "text-red-800 font-medium" ] [ text "Total Redeemed" ]
+                        , p [ class "text-3xl font-bold text-red-600" ] [ text (String.fromInt points.totalRedeemed) ]
+                        ]
+                    , div [ class "bg-blue-100 rounded-lg p-6 text-center" ]
+                        [ p [ class "text-blue-800 font-medium" ] [ text "Current Balance" ]
+                        , p [ class "text-3xl font-bold text-blue-600" ] [ text (String.fromInt points.currentPoints) ]
+                        ]
+                    ]
+
+            Nothing ->
+                text ""
+
+        -- Transaction History
+        , div []
+            [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Transaction History" ]
+            , if List.isEmpty model.pointTransactions then
+                div [ class "bg-gray-50 rounded-lg p-8 text-center" ]
+                    [ p [ class "text-gray-500" ] [ text "No point transactions yet. Complete assignments and submit games to earn points!" ]
+                    ]
+
+              else
+                div [ class "bg-white shadow overflow-hidden sm:rounded-lg" ]
+                    [ div [ class "overflow-x-auto" ]
+                        [ table [ class "min-w-full divide-y divide-gray-200" ]
+                            [ thead [ class "bg-gray-50" ]
+                                [ tr []
+                                    [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Date" ]
+                                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Type" ]
+                                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Points" ]
+                                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Description" ]
+                                    ]
+                                ]
+                            , tbody [ class "bg-white divide-y divide-gray-200" ]
+                                (List.map viewTransactionRow model.pointTransactions)
+                            ]
+                        ]
+                    ]
+            ]
+        ]
+
+
+viewTransactionRow : PointTransaction -> Html Msg
+viewTransactionRow transaction =
+    tr [ class "hover:bg-gray-50" ]
+        [ td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
+            [ text transaction.date ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ span
+                [ class
+                    (case transaction.transactionType of
+                        Award ->
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+
+                        Redemption ->
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
+                    )
+                ]
+                [ text (transactionTypeToString transaction.transactionType) ]
+            ]
+        , td [ class "px-6 py-4 whitespace-nowrap" ]
+            [ span
+                [ class
+                    (case transaction.transactionType of
+                        Award ->
+                            "text-green-600 font-medium"
+
+                        Redemption ->
+                            "text-red-600 font-medium"
+                    )
+                ]
+                [ text
+                    (case transaction.transactionType of
+                        Award ->
+                            "+" ++ String.fromInt transaction.points
+
+                        Redemption ->
+                            "-" ++ String.fromInt transaction.points
+                    )
+                ]
+            ]
+        , td [ class "px-6 py-4 text-sm text-gray-900" ]
+            [ text transaction.reason ]
+        ]
 
 
 viewSubmissionFormPage : Model -> Student -> Html Msg
@@ -742,6 +1401,76 @@ viewSubmissionFormPage model student =
                 [ text "Submit Game" ]
             ]
         ]
+
+
+viewSubmissionRow : Model -> Submission -> Html Msg
+viewSubmissionRow model submission =
+    let
+        beltName =
+            let
+                matchingBelts =
+                    List.filter (\b -> b.id == submission.beltLevel) model.belts
+            in
+            case matchingBelts of
+                [] ->
+                    submission.beltLevel
+
+                belt :: _ ->
+                    belt.name
+
+        beltColor =
+            let
+                matchingBelts =
+                    List.filter (\b -> b.id == submission.beltLevel) model.belts
+            in
+            case matchingBelts of
+                [] ->
+                    "#808080"
+
+                -- Default gray if not found
+                belt :: _ ->
+                    belt.color
+    in
+    tr []
+        [ td [ class "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6" ]
+            [ text submission.gameName ]
+        , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
+            [ div [ class "flex items-center" ]
+                [ div [ class "w-3 h-3 mr-2 rounded-full", style "background-color" beltColor ] []
+                , text beltName
+                ]
+            ]
+        , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
+            [ text submission.submissionDate ]
+        , td [ class "whitespace-nowrap px-3 py-4 text-sm text-gray-500" ]
+            [ viewGradeStatus submission.grade ]
+        ]
+
+
+viewGradeStatus : Maybe Grade -> Html Msg
+viewGradeStatus maybeGrade =
+    case maybeGrade of
+        Just grade ->
+            let
+                ( bgColor, textColor ) =
+                    if grade.score >= 90 then
+                        ( "bg-green-100", "text-green-800" )
+
+                    else if grade.score >= 70 then
+                        ( "bg-blue-100", "text-blue-800" )
+
+                    else if grade.score >= 60 then
+                        ( "bg-yellow-100", "text-yellow-800" )
+
+                    else
+                        ( "bg-red-100", "text-red-800" )
+            in
+            span [ class ("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium " ++ bgColor ++ " " ++ textColor) ]
+                [ text (String.fromInt grade.score ++ "/100") ]
+
+        Nothing ->
+            span [ class "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800" ]
+                [ text "Pending" ]
 
 
 viewSubmissionCompletePage : Model -> Student -> Submission -> Html Msg
