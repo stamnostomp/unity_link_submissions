@@ -294,7 +294,10 @@ update msg model =
                 Ok maybeStudent ->
                     case maybeStudent of
                         Just student ->
-                            ( { model | page = StudentProfilePage student, errorMessage = Nothing }, Cmd.none )
+                            ( { model | page = StudentProfilePage student, errorMessage = Nothing }
+                            , requestStudentPoints student.id
+                              -- ADD THIS LINE
+                            )
 
                         Nothing ->
                             ( { model
@@ -432,8 +435,13 @@ update msg model =
                         LoadingPage _ ->
                             case getStudentFromModel model of
                                 Just student ->
+                                    let
+                                        -- Add the studentId to the points data
+                                        pointsWithId =
+                                            { studentPoints | studentId = student.id }
+                                    in
                                     ( { model
-                                        | studentPoints = Just studentPoints
+                                        | studentPoints = Just pointsWithId
                                         , page = PointsPage student
                                         , loading = False
                                       }
@@ -444,7 +452,16 @@ update msg model =
                                     ( { model | errorMessage = Just "Error loading student data", page = NamePage }, Cmd.none )
 
                         _ ->
-                            ( { model | studentPoints = Just studentPoints, loading = False }, Cmd.none )
+                            case getStudentFromModel model of
+                                Just student ->
+                                    let
+                                        pointsWithId =
+                                            { studentPoints | studentId = student.id }
+                                    in
+                                    ( { model | studentPoints = Just pointsWithId, loading = False }, Cmd.none )
+
+                                Nothing ->
+                                    ( { model | loading = False }, Cmd.none )
 
                 Err error ->
                     ( { model | errorMessage = Just ("Error loading points: " ++ Decode.errorToString error), page = NamePage }, Cmd.none )
@@ -766,8 +783,15 @@ decodeBeltsResponse value =
 
 studentPointsDecoder : Decoder StudentPoints
 studentPointsDecoder =
-    Decode.map5 StudentPoints
-        (Decode.field "studentId" Decode.string)
+    Decode.map4
+        (\currentPoints totalEarned totalRedeemed lastUpdated ->
+            { studentId = "" -- Will be filled in later
+            , currentPoints = currentPoints
+            , totalEarned = totalEarned
+            , totalRedeemed = totalRedeemed
+            , lastUpdated = lastUpdated
+            }
+        )
         (Decode.field "currentPoints" Decode.int)
         (Decode.field "totalEarned" Decode.int)
         (Decode.field "totalRedeemed" Decode.int)
