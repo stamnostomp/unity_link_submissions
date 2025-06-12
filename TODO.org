@@ -8,7 +8,7 @@
 ** TODO verify that awordals works
 
 * STUDENT
-** TODO fix text saclining
+** DONE fix text saclining
 ** TODO make sure that redeem points and history box lines up
 ** TODO fix point redemption
 ** TODO clean up redemption page

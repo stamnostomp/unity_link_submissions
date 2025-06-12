@@ -463,3 +463,47 @@ encodeProcessRedemption redemptionId status processedBy =
         , ( "status", Encode.string status )
         , ( "processedBy", Encode.string processedBy )
         ]
+
+
+formatLargeNumber : Int -> String
+formatLargeNumber number =
+    let
+        absNumber =
+            abs number
+
+        sign =
+            if number < 0 then
+                "-"
+
+            else
+                ""
+
+        formatWithSuffix : Int -> Int -> String -> String
+        formatWithSuffix divisor decimalDivisor suffix =
+            let
+                mainPart =
+                    absNumber // divisor
+
+                decimalPart =
+                    (absNumber // decimalDivisor) - (mainPart * (divisor // decimalDivisor))
+            in
+            if decimalPart == 0 then
+                sign ++ String.fromInt mainPart ++ suffix
+
+            else
+                sign ++ String.fromInt mainPart ++ "." ++ String.fromInt decimalPart ++ suffix
+    in
+    if absNumber < 1000 then
+        sign ++ String.fromInt absNumber
+
+    else if absNumber < 1000000 then
+        formatWithSuffix 1000 100 "K"
+
+    else if absNumber < 1000000000 then
+        formatWithSuffix 1000000 100000 "M"
+
+    else if absNumber < 1000000000000 then
+        formatWithSuffix 1000000000 100000000 "B"
+
+    else
+        formatWithSuffix 1000000000000 100000000000 "T"

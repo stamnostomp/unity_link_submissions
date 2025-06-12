@@ -8,6 +8,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
+import Shared.Utils exposing (formatLargeNumber)
 import Svg exposing (path, svg)
 import Svg.Attributes exposing (fill, viewBox)
 import Task
@@ -991,8 +992,8 @@ viewStudentProfilePage model student =
                     [ div [ class "flex items-center justify-between" ]
                         [ div []
                             [ h3 [ class "text-lg font-medium" ] [ text "Your Points Balance" ]
-                            , p [ class "text-3xl font-bold" ] [ text (String.fromInt points.currentPoints) ]
-                            , p [ class "text-sm opacity-90" ] [ text ("Total earned: " ++ String.fromInt points.totalEarned ++ " | Total redeemed: " ++ String.fromInt points.totalRedeemed) ]
+                            , p [ class "text-3xl font-bold" ] [ text (formatLargeNumber points.currentPoints) ]
+                            , p [ class "text-sm opacity-90" ] [ text ("Total earned: " ++ formatLargeNumber points.totalEarned ++ " | Total redeemed: " ++ formatLargeNumber points.totalRedeemed) ]
                             ]
                         , div [ class "text-right" ]
                             [ button
@@ -1297,7 +1298,7 @@ viewPointsPage model student =
             Just points ->
                 div [ class "bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white" ]
                     [ h3 [ class "text-lg font-medium mb-2" ] [ text "Available Points" ]
-                    , p [ class "text-4xl font-bold" ] [ text (String.fromInt points.currentPoints) ]
+                    , p [ class "text-4xl font-bold" ] [ text (formatLargeNumber points.currentPoints) ]
                     ]
 
             Nothing ->
@@ -1417,12 +1418,12 @@ viewRedemptionConfirmModal model =
                                         ]
                                     , div [ class "flex justify-between items-center mb-2" ]
                                         [ span [ class "text-gray-700" ] [ text "Current balance:" ]
-                                        , span [ class "font-medium" ] [ text (String.fromInt points.currentPoints ++ " points") ]
+                                        , span [ class "font-medium" ] [ text (formatLargeNumber points.currentPoints ++ " points") ]
                                         ]
                                     , div [ class "border-t pt-2 mt-2" ]
                                         [ div [ class "flex justify-between items-center" ]
                                             [ span [ class "font-medium text-gray-900" ] [ text "New balance:" ]
-                                            , span [ class "font-bold text-green-600" ] [ text (String.fromInt (points.currentPoints - reward.pointCost) ++ " points") ]
+                                            , span [ class "font-bold text-green-600" ] [ text (formatLargeNumber (points.currentPoints - reward.pointCost) ++ " points") ]
                                             ]
                                         ]
                                     ]
@@ -1470,15 +1471,15 @@ viewRedemptionHistoryPage model student =
                 div [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
                     [ div [ class "bg-green-100 rounded-lg p-6 text-center" ]
                         [ p [ class "text-green-800 font-medium" ] [ text "Total Earned" ]
-                        , p [ class "text-3xl font-bold text-green-600" ] [ text (String.fromInt points.totalEarned) ]
+                        , p [ class "text-3xl font-bold text-green-600" ] [ text (formatLargeNumber points.totalEarned) ]
                         ]
                     , div [ class "bg-red-100 rounded-lg p-6 text-center" ]
                         [ p [ class "text-red-800 font-medium" ] [ text "Total Redeemed" ]
-                        , p [ class "text-3xl font-bold text-red-600" ] [ text (String.fromInt points.totalRedeemed) ]
+                        , p [ class "text-3xl font-bold text-red-600" ] [ text (formatLargeNumber points.totalRedeemed) ]
                         ]
                     , div [ class "bg-blue-100 rounded-lg p-6 text-center" ]
                         [ p [ class "text-blue-800 font-medium" ] [ text "Current Balance" ]
-                        , p [ class "text-3xl font-bold text-blue-600" ] [ text (String.fromInt points.currentPoints) ]
+                        , p [ class "text-3xl font-bold text-blue-600" ] [ text (formatLargeNumber points.currentPoints) ]
                         ]
                     ]
 
@@ -1546,10 +1547,10 @@ viewTransactionRow transaction =
                 [ text
                     (case transaction.transactionType of
                         Award ->
-                            "+" ++ String.fromInt transaction.points
+                            "+" ++ formatLargeNumber transaction.points
 
                         Redemption ->
-                            "-" ++ String.fromInt transaction.points
+                            "-" ++ formatLargeNumber transaction.points
                     )
                 ]
             ]
