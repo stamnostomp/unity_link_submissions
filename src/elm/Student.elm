@@ -995,16 +995,16 @@ viewStudentProfilePage model student =
                             , p [ class "text-3xl font-bold" ] [ text (formatLargeNumber points.currentPoints) ]
                             , p [ class "text-sm opacity-90" ] [ text ("Total earned: " ++ formatLargeNumber points.totalEarned ++ " | Total redeemed: " ++ formatLargeNumber points.totalRedeemed) ]
                             ]
-                        , div [ class "text-right" ]
+                        , div [ class "text-right space-y-2" ]
                             [ button
                                 [ onClick (ShowPointsPage student)
-                                , class "bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
+                                , class "w-full bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
                                 ]
                                 [ text "Redeem Points" ]
                             , br [] []
                             , button
                                 [ onClick (ShowRedemptionHistory student)
-                                , class "mt-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
+                                , class "w-full mt-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
                                 ]
                                 [ text "View History" ]
                             ]
@@ -1296,7 +1296,7 @@ viewPointsPage model student =
         -- Points Balance
         , case model.studentPoints of
             Just points ->
-                div [ class "bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white" ]
+                div [ class "bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg p-6 text-white text-center" ]
                     [ h3 [ class "text-lg font-medium mb-2" ] [ text "Available Points" ]
                     , p [ class "text-4xl font-bold" ] [ text (formatLargeNumber points.currentPoints) ]
                     ]

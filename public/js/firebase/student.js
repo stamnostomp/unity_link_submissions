@@ -1,4 +1,4 @@
-// student-firebase.js - Integrated with Points System
+// student-firebase.js - Integrated with Points System (FIXED VERSION)
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getDatabase, ref, get, set, update, query, orderByChild, equalTo, push } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
@@ -648,13 +648,15 @@ async function redeemPointRewardWithAuth(redemptionData, elmApp) {
 }
 
 /**
- * Redeem point reward
+ * Redeem point reward - FIXED VERSION TO HANDLE STOCK PROPERLY
  * @param {Object} redemptionData - The redemption data
  * @param {Object} elmApp - The Elm application instance
  */
 async function redeemPointReward(redemptionData, elmApp) {
   try {
     const { rewardId, rewardName, rewardDescription, pointCost, studentId, studentName } = redemptionData;
+
+    console.log('Processing redemption:', { rewardId, rewardName, pointCost, studentId });
 
     // Check current points
     const pointsRef = ref(database, `studentPoints/${studentId}`);
@@ -682,13 +684,19 @@ async function redeemPointReward(redemptionData, elmApp) {
     }
 
     const reward = rewardSnapshot.val();
+    console.log('Reward data:', reward);
+    console.log('Stock value:', reward.stock, 'Type:', typeof reward.stock);
 
     if (!reward.isActive) {
       elmApp.ports.pointRedemptionResult.send("Error: This reward is no longer available");
       return;
     }
 
-    if (reward.stock !== null && reward.stock <= 0) {
+    // CRITICAL FIX: Proper stock validation
+    // Check if reward has limited stock (not null and not undefined)
+    const hasLimitedStock = reward.stock !== null && reward.stock !== undefined && typeof reward.stock === 'number';
+
+    if (hasLimitedStock && reward.stock <= 0) {
       elmApp.ports.pointRedemptionResult.send("Error: This reward is out of stock");
       return;
     }
@@ -737,19 +745,39 @@ async function redeemPointReward(redemptionData, elmApp) {
       date: getCurrentDate()
     };
 
-    // Update stock if applicable
-    if (reward.stock !== null) {
-      updates[`pointRewards/${rewardId}/stock`] = reward.stock - 1;
+    // CRITICAL FIX: Only update stock if it's limited stock
+    if (hasLimitedStock) {
+      const newStock = reward.stock - 1;
+      console.log('Updating stock from', reward.stock, 'to', newStock);
+
+      // Validate that the new stock value is not NaN
+      if (isNaN(newStock)) {
+        console.error('Stock calculation resulted in NaN:', { originalStock: reward.stock, newStock });
+        elmApp.ports.pointRedemptionResult.send("Error: Invalid stock calculation");
+        return;
+      }
+
+      updates[`pointRewards/${rewardId}/stock`] = newStock;
+    } else {
+      console.log('Reward has unlimited stock, not updating stock value');
     }
+
+    console.log('Final updates to apply:', updates);
 
     // Apply all updates atomically
     await update(ref(database), updates);
 
+    console.log('Redemption successful');
     elmApp.ports.pointRedemptionResult.send(`Successfully redeemed ${rewardName}! Your redemption is pending approval.`);
 
   } catch (error) {
     console.error('Error processing redemption:', error);
-    elmApp.ports.pointRedemptionResult.send("Error: Failed to process redemption");
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    elmApp.ports.pointRedemptionResult.send(`Error: Failed to process redemption - ${error.message}`);
   }
 }
 
