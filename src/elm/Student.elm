@@ -207,6 +207,9 @@ type alias Model =
     , selectedReward : Maybe PointReward
     , showRedemptionConfirm : Bool
     , loading : Bool
+
+    -- ADDED: Store current student separately to preserve across page transitions
+    , currentStudent : Maybe Student
     }
 
 
@@ -227,6 +230,7 @@ init _ =
       , selectedReward = Nothing
       , showRedemptionConfirm = False
       , loading = False
+      , currentStudent = Nothing
       }
     , requestBelts ()
     )
@@ -294,14 +298,18 @@ update msg model =
                 Ok maybeStudent ->
                     case maybeStudent of
                         Just student ->
-                            ( { model | page = StudentProfilePage student, errorMessage = Nothing }
+                            ( { model
+                                | page = StudentProfilePage student
+                                , currentStudent = Just student
+                                , errorMessage = Nothing
+                              }
                             , requestStudentPoints student.id
-                              -- ADD THIS LINE
                             )
 
                         Nothing ->
                             ( { model
                                 | page = NamePage
+                                , currentStudent = Nothing
                                 , errorMessage = Just "No record found. Please check your name or ask your teacher to create a record for you."
                               }
                             , Cmd.none
@@ -310,6 +318,7 @@ update msg model =
                 Err error ->
                     ( { model
                         | page = NamePage
+                        , currentStudent = Nothing
                         , errorMessage = Just ("Error loading record: " ++ Decode.errorToString error)
                       }
                     , Cmd.none
@@ -397,7 +406,12 @@ update msg model =
                     ( model, Cmd.none )
 
         BackToSearch ->
-            ( { model | page = NamePage }, Cmd.none )
+            ( { model
+                | page = NamePage
+                , currentStudent = Nothing
+              }
+            , Cmd.none
+            )
 
         Reset ->
             init ()
@@ -433,10 +447,9 @@ update msg model =
                 Ok studentPoints ->
                     case model.page of
                         LoadingPage _ ->
-                            case getStudentFromModel model of
+                            case model.currentStudent of
                                 Just student ->
                                     let
-                                        -- Add the studentId to the points data
                                         pointsWithId =
                                             { studentPoints | studentId = student.id }
                                     in
@@ -452,7 +465,7 @@ update msg model =
                                     ( { model | errorMessage = Just "Error loading student data", page = NamePage }, Cmd.none )
 
                         _ ->
-                            case getStudentFromModel model of
+                            case model.currentStudent of
                                 Just student ->
                                     let
                                         pointsWithId =
@@ -482,7 +495,7 @@ update msg model =
         PointTransactionsReceived result ->
             case result of
                 Ok transactions ->
-                    case getStudentFromModel model of
+                    case model.currentStudent of
                         Just student ->
                             let
                                 sortedTransactions =
@@ -518,7 +531,7 @@ update msg model =
             ( { model | selectedReward = Nothing, showRedemptionConfirm = False }, Cmd.none )
 
         ConfirmRedemption ->
-            case ( model.selectedReward, model.studentPoints, getStudentFromModel model ) of
+            case ( model.selectedReward, model.studentPoints, model.currentStudent ) of
                 ( Just reward, Just points, Just student ) ->
                     let
                         redemptionData =
@@ -546,7 +559,7 @@ update msg model =
                 ( { model | errorMessage = Just result, loading = False }, Cmd.none )
 
             else
-                case getStudentFromModel model of
+                case model.currentStudent of
                     Just student ->
                         ( { model
                             | successMessage = Just result
@@ -648,24 +661,30 @@ redemptionStatusToString status =
 
 getStudentFromModel : Model -> Maybe Student
 getStudentFromModel model =
-    case model.page of
-        StudentProfilePage student ->
+    case model.currentStudent of
+        Just student ->
             Just student
 
-        SubmissionFormPage student ->
-            Just student
+        Nothing ->
+            -- Fallback to extracting from page if currentStudent is None
+            case model.page of
+                StudentProfilePage student ->
+                    Just student
 
-        PointsPage student ->
-            Just student
+                SubmissionFormPage student ->
+                    Just student
 
-        RedemptionHistoryPage student ->
-            Just student
+                PointsPage student ->
+                    Just student
 
-        SubmissionCompletePage student _ ->
-            Just student
+                RedemptionHistoryPage student ->
+                    Just student
 
-        _ ->
-            Nothing
+                SubmissionCompletePage student _ ->
+                    Just student
+
+                _ ->
+                    Nothing
 
 
 
