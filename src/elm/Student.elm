@@ -208,9 +208,9 @@ type alias Model =
     , selectedReward : Maybe PointReward
     , showRedemptionConfirm : Bool
     , loading : Bool
-
-    -- ADDED: Store current student separately to preserve across page transitions
     , currentStudent : Maybe Student
+    , currentPage : Int
+    , transactionsPerPage : Int
     }
 
 
@@ -232,6 +232,8 @@ init _ =
       , showRedemptionConfirm = False
       , loading = False
       , currentStudent = Nothing
+      , currentPage = 1
+      , transactionsPerPage = 10
       }
     , requestBelts ()
     )
@@ -266,6 +268,9 @@ type Msg
     | CancelRedemption
     | ConfirmRedemption
     | RedemptionResult String
+    | NextPage
+    | PreviousPage
+    | GoToPage Int
 
 
 
@@ -439,7 +444,11 @@ update msg model =
             )
 
         ShowRedemptionHistory student ->
-            ( { model | page = LoadingPage "Loading your redemption history...", loading = True }
+            ( { model
+                | page = LoadingPage "Loading your redemption history..."
+                , loading = True
+                , currentPage = 1 -- Add this line to the existing case
+              }
             , requestPointTransactions student.id
             )
 
@@ -572,6 +581,33 @@ update msg model =
                     Nothing ->
                         ( { model | errorMessage = Just "Error refreshing data", loading = False }, Cmd.none )
 
+        NextPage ->
+            let
+                totalPages =
+                    calculateTotalPages model.pointTransactions model.transactionsPerPage
+
+                newPage =
+                    Basics.min (model.currentPage + 1) totalPages
+            in
+            ( { model | currentPage = newPage }, Cmd.none )
+
+        PreviousPage ->
+            let
+                newPage =
+                    Basics.max (model.currentPage - 1) 1
+            in
+            ( { model | currentPage = newPage }, Cmd.none )
+
+        GoToPage pageNumber ->
+            let
+                totalPages =
+                    calculateTotalPages model.pointTransactions model.transactionsPerPage
+
+                validPage =
+                    Basics.max 1 (Basics.min pageNumber totalPages)
+            in
+            ( { model | currentPage = validPage }, Cmd.none )
+
 
 
 -- SUBSCRIPTIONS
@@ -592,6 +628,55 @@ subscriptions _ =
 
 
 -- HELPER FUNCTIONS
+
+
+viewPageNumbers : Int -> Int -> List (Html Msg)
+viewPageNumbers currentPage totalPages =
+    let
+        -- Show up to 5 page numbers around the current page
+        maxVisible =
+            5
+
+        halfVisible =
+            maxVisible // 2
+
+        startPage =
+            Basics.max 1 (currentPage - halfVisible)
+
+        endPage =
+            Basics.min totalPages (startPage + maxVisible - 1)
+
+        adjustedStartPage =
+            Basics.max 1 (endPage - maxVisible + 1)
+
+        pageNumbers =
+            List.range adjustedStartPage endPage
+    in
+    List.map (viewPageButton currentPage) pageNumbers
+
+
+
+-- NEW: Individual page button
+
+
+viewPageButton : Int -> Int -> Html Msg
+viewPageButton currentPage pageNumber =
+    let
+        isCurrentPage =
+            currentPage == pageNumber
+
+        buttonClass =
+            if isCurrentPage then
+                "relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+
+            else
+                "relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+    in
+    button
+        [ onClick (GoToPage pageNumber)
+        , class buttonClass
+        ]
+        [ text (String.fromInt pageNumber) ]
 
 
 isValidNameFormat : String -> Bool
@@ -890,7 +975,39 @@ decodePointTransactionsResponse value =
     Decode.decodeValue (Decode.list pointTransactionDecoder) value
 
 
+calculateTotalPages : List a -> Int -> Int
+calculateTotalPages items itemsPerPage =
+    if itemsPerPage <= 0 then
+        1
 
+    else
+        let
+            totalItems =
+                List.length items
+        in
+        if totalItems == 0 then
+            1
+
+        else
+            ceiling (toFloat totalItems / toFloat itemsPerPage)
+
+
+getPageItems : List a -> Int -> Int -> List a
+getPageItems items currentPage itemsPerPage =
+    let
+        startIndex =
+            (currentPage - 1) * itemsPerPage
+
+        endIndex =
+            startIndex + itemsPerPage
+    in
+    items
+        |> List.drop startIndex
+        |> List.take itemsPerPage
+
+
+
+-- i love elm !!!
 -- VIEW
 
 
@@ -934,6 +1051,185 @@ viewPage model =
 
         LoadingPage message ->
             viewLoading message
+
+
+viewRedemptionHistoryPage : Model -> Student -> Html Msg
+viewRedemptionHistoryPage model student =
+    let
+        totalPages =
+            calculateTotalPages model.pointTransactions model.transactionsPerPage
+
+        currentPageTransactions =
+            getPageItems model.pointTransactions model.currentPage model.transactionsPerPage
+
+        totalTransactions =
+            List.length model.pointTransactions
+
+        startIndex =
+            (model.currentPage - 1) * model.transactionsPerPage + 1
+
+        endIndex =
+            Basics.min (startIndex + model.transactionsPerPage - 1) totalTransactions
+    in
+    div [ class "space-y-6" ]
+        [ div [ class "flex justify-between items-center" ]
+            [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Points History" ]
+            , button
+                [ onClick BackToProfile
+                , class "text-gray-500 hover:text-gray-700 flex items-center"
+                ]
+                [ span [ class "mr-1" ] [ text "←" ]
+                , text "Back to Profile"
+                ]
+            ]
+
+        -- Points Summary (unchanged)
+        , case model.studentPoints of
+            Just points ->
+                div [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
+                    [ div [ class "bg-green-100 rounded-lg p-6 text-center" ]
+                        [ p [ class "text-green-800 font-medium" ] [ text "Total Earned" ]
+                        , p [ class "text-3xl font-bold text-green-600" ] [ text (formatLargeNumber points.totalEarned) ]
+                        ]
+                    , div [ class "bg-red-100 rounded-lg p-6 text-center" ]
+                        [ p [ class "text-red-800 font-medium" ] [ text "Total Redeemed" ]
+                        , p [ class "text-3xl font-bold text-red-600" ] [ text (formatLargeNumber points.totalRedeemed) ]
+                        ]
+                    , div [ class "bg-blue-100 rounded-lg p-6 text-center" ]
+                        [ p [ class "text-blue-800 font-medium" ] [ text "Current Balance" ]
+                        , p [ class "text-3xl font-bold text-blue-600" ] [ text (formatLargeNumber points.currentPoints) ]
+                        ]
+                    ]
+
+            Nothing ->
+                text ""
+
+        -- Transaction History with Pagination
+        , div []
+            [ div [ class "flex justify-between items-center mb-4" ]
+                [ h3 [ class "text-lg font-medium text-gray-900" ] [ text "Transaction History" ]
+                , if totalTransactions > 0 then
+                    p [ class "text-sm text-gray-500" ]
+                        [ text ("Showing " ++ String.fromInt startIndex ++ "-" ++ String.fromInt endIndex ++ " of " ++ String.fromInt totalTransactions ++ " transactions") ]
+
+                  else
+                    text ""
+                ]
+            , if List.isEmpty model.pointTransactions then
+                div [ class "bg-gray-50 rounded-lg p-8 text-center" ]
+                    [ p [ class "text-gray-500" ] [ text "No point transactions yet. Complete assignments and submit games to earn points!" ]
+                    ]
+
+              else
+                div [ class "space-y-4" ]
+                    [ -- Transaction Table
+                      div [ class "bg-white shadow overflow-hidden sm:rounded-lg" ]
+                        [ div [ class "overflow-x-auto" ]
+                            [ table [ class "min-w-full divide-y divide-gray-200" ]
+                                [ thead [ class "bg-gray-50" ]
+                                    [ tr []
+                                        [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Date" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Type" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Points" ]
+                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Description" ]
+                                        ]
+                                    ]
+                                , tbody [ class "bg-white divide-y divide-gray-200" ]
+                                    (List.map viewTransactionRow currentPageTransactions)
+                                ]
+                            ]
+                        ]
+
+                    -- NEW: Pagination Controls
+                    , viewPaginationControls model totalPages totalTransactions
+                    ]
+            ]
+        ]
+
+
+viewPaginationControls : Model -> Int -> Int -> Html Msg
+viewPaginationControls model totalPages totalTransactions =
+    if totalPages <= 1 then
+        text ""
+        -- Don't show pagination if there's only one page
+
+    else
+        div [ class "flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-lg" ]
+            [ -- Mobile pagination (simple prev/next)
+              div [ class "flex flex-1 justify-between sm:hidden" ]
+                [ button
+                    [ onClick PreviousPage
+                    , disabled (model.currentPage <= 1)
+                    , class
+                        (if model.currentPage <= 1 then
+                            "relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-white border border-gray-300 rounded-md cursor-not-allowed"
+
+                         else
+                            "relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        )
+                    ]
+                    [ text "Previous" ]
+                , button
+                    [ onClick NextPage
+                    , disabled (model.currentPage >= totalPages)
+                    , class
+                        (if model.currentPage >= totalPages then
+                            "ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-400 bg-white border border-gray-300 rounded-md cursor-not-allowed"
+
+                         else
+                            "ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        )
+                    ]
+                    [ text "Next" ]
+                ]
+
+            -- Desktop pagination (with page numbers)
+            , div [ class "hidden sm:flex sm:flex-1 sm:items-center sm:justify-between" ]
+                [ div []
+                    [ p [ class "text-sm text-gray-700" ]
+                        [ text ("Page " ++ String.fromInt model.currentPage ++ " of " ++ String.fromInt totalPages)
+                        ]
+                    ]
+                , div []
+                    [ nav [ class "isolate inline-flex -space-x-px rounded-md shadow-sm" ]
+                        ([ -- Previous button
+                           button
+                            [ onClick PreviousPage
+                            , disabled (model.currentPage <= 1)
+                            , class
+                                (if model.currentPage <= 1 then
+                                    "relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 cursor-not-allowed"
+
+                                 else
+                                    "relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                )
+                            ]
+                            [ span [ class "sr-only" ] [ text "Previous" ]
+                            , text "‹"
+                            ]
+                         ]
+                            -- Page numbers
+                            ++ viewPageNumbers model.currentPage totalPages
+                            -- Next button
+                            ++ [ button
+                                    [ onClick NextPage
+                                    , disabled (model.currentPage >= totalPages)
+                                    , class
+                                        (if model.currentPage >= totalPages then
+                                            "relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 cursor-not-allowed"
+
+                                         else
+                                            "relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                                        )
+                                    ]
+                                    [ span [ class "sr-only" ] [ text "Next" ]
+                                    , text "›"
+                                    ]
+                               ]
+                        )
+                    ]
+                ]
+            ]
 
 
 viewNamePage : Model -> Html Msg
@@ -1501,70 +1797,6 @@ viewRedemptionConfirmModal model =
 
     else
         text ""
-
-
-viewRedemptionHistoryPage : Model -> Student -> Html Msg
-viewRedemptionHistoryPage model student =
-    div [ class "space-y-6" ]
-        [ div [ class "flex justify-between items-center" ]
-            [ h2 [ class "text-xl font-medium text-gray-700" ] [ text "Points History" ]
-            , button
-                [ onClick BackToProfile
-                , class "text-gray-500 hover:text-gray-700 flex items-center"
-                ]
-                [ span [ class "mr-1" ] [ text "←" ]
-                , text "Back to Profile"
-                ]
-            ]
-
-        -- Points Summary
-        , case model.studentPoints of
-            Just points ->
-                div [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
-                    [ div [ class "bg-green-100 rounded-lg p-6 text-center" ]
-                        [ p [ class "text-green-800 font-medium" ] [ text "Total Earned" ]
-                        , p [ class "text-3xl font-bold text-green-600" ] [ text (formatLargeNumber points.totalEarned) ]
-                        ]
-                    , div [ class "bg-red-100 rounded-lg p-6 text-center" ]
-                        [ p [ class "text-red-800 font-medium" ] [ text "Total Redeemed" ]
-                        , p [ class "text-3xl font-bold text-red-600" ] [ text (formatLargeNumber points.totalRedeemed) ]
-                        ]
-                    , div [ class "bg-blue-100 rounded-lg p-6 text-center" ]
-                        [ p [ class "text-blue-800 font-medium" ] [ text "Current Balance" ]
-                        , p [ class "text-3xl font-bold text-blue-600" ] [ text (formatLargeNumber points.currentPoints) ]
-                        ]
-                    ]
-
-            Nothing ->
-                text ""
-
-        -- Transaction History
-        , div []
-            [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Transaction History" ]
-            , if List.isEmpty model.pointTransactions then
-                div [ class "bg-gray-50 rounded-lg p-8 text-center" ]
-                    [ p [ class "text-gray-500" ] [ text "No point transactions yet. Complete assignments and submit games to earn points!" ]
-                    ]
-
-              else
-                div [ class "bg-white shadow overflow-hidden sm:rounded-lg" ]
-                    [ div [ class "overflow-x-auto" ]
-                        [ table [ class "min-w-full divide-y divide-gray-200" ]
-                            [ thead [ class "bg-gray-50" ]
-                                [ tr []
-                                    [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Date" ]
-                                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Type" ]
-                                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Points" ]
-                                    , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Description" ]
-                                    ]
-                                ]
-                            , tbody [ class "bg-white divide-y divide-gray-200" ]
-                                (List.map viewTransactionRow model.pointTransactions)
-                            ]
-                        ]
-                    ]
-            ]
-        ]
 
 
 viewTransactionRow : PointTransaction -> Html Msg
