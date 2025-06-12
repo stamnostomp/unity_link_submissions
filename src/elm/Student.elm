@@ -1307,20 +1307,20 @@ viewPointsPage model student =
 
         -- Available Rewards
         , div []
-            [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ] [ text "Available Rewards" ]
+            [ h3 [ class "text-lg font-medium text-gray-900 mb-6" ] [ text "Available Rewards" ]
             , if List.isEmpty model.pointRewards then
-                div [ class "bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center" ]
+                div [ class "bg-yellow-50 border-2 border-yellow-200 rounded-xl p-8 text-center" ]
                     [ div [ class "text-yellow-600 mb-4" ]
-                        [ svg [ class "w-12 h-12 mx-auto", fill "currentColor", viewBox "0 0 20 20" ]
+                        [ svg [ class "w-16 h-16 mx-auto", fill "currentColor", viewBox "0 0 20 20" ]
                             [ path [ Html.Attributes.attribute "fill-rule" "evenodd", Html.Attributes.attribute "d" "M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z", Html.Attributes.attribute "clip-rule" "evenodd" ] []
                             ]
                         ]
-                    , h4 [ class "text-lg font-medium text-yellow-800 mb-2" ] [ text "No Rewards Available" ]
-                    , p [ class "text-yellow-700" ] [ text "Your teacher hasn't set up any rewards yet. Check back later or ask your teacher about the points system!" ]
+                    , h4 [ class "text-xl font-bold text-yellow-800 mb-3" ] [ text "No Rewards Available" ]
+                    , p [ class "text-yellow-700 max-w-md mx-auto" ] [ text "Your teacher hasn't set up any rewards yet. Check back later or ask your teacher about the points system!" ]
                     ]
 
               else
-                div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+                div [ class "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" ]
                     (List.map (viewRewardCard model) model.pointRewards)
             ]
 
@@ -1348,51 +1348,103 @@ viewRewardCard model reward =
                 Nothing ->
                     False
 
+        isAvailable =
+            canAfford && not isOutOfStock
+
         cardClass =
-            if canAfford && not isOutOfStock then
-                "bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transform hover:scale-105 transition-all duration-200 border-2 border-transparent hover:border-blue-500"
+            if isAvailable then
+                "bg-white border-2 border-gray-200 rounded-xl shadow-lg p-6 cursor-pointer hover:shadow-xl hover:border-blue-400 transform hover:scale-102 transition-all duration-300"
 
             else
-                "bg-gray-100 rounded-lg shadow-md p-6 cursor-not-allowed opacity-60"
+                "bg-gray-50 border-2 border-gray-200 rounded-xl shadow-md p-6 cursor-not-allowed opacity-70"
+
+        pointsBadgeClass =
+            if isAvailable then
+                "inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-blue-500 text-white shadow-sm"
+
+            else
+                "inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-gray-400 text-white"
+
+        actionButtonClass =
+            if isAvailable then
+                "w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-md"
+
+            else if not canAfford then
+                "w-full mt-4 px-4 py-3 bg-red-100 text-red-600 font-semibold rounded-lg cursor-not-allowed"
+
+            else
+                "w-full mt-4 px-4 py-3 bg-gray-100 text-gray-600 font-semibold rounded-lg cursor-not-allowed"
+
+        actionText =
+            if not canAfford then
+                "Not enough points"
+
+            else if isOutOfStock then
+                "Out of stock"
+
+            else
+                "Redeem Now"
     in
     div
         [ class cardClass
-        , if canAfford && not isOutOfStock then
+        , if isAvailable then
             onClick (SelectReward reward)
 
           else
             class ""
         ]
-        [ div [ class "flex justify-between items-start mb-4" ]
-            [ div []
-                [ h4 [ class "text-lg font-semibold text-gray-900" ] [ text reward.name ]
-                , p [ class "text-sm text-gray-600" ] [ text reward.category ]
-                ]
-            , div [ class "text-right" ]
-                [ span [ class "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800" ]
-                    [ text (String.fromInt reward.pointCost ++ " pts") ]
-                ]
+        [ -- Points badge at the top (full width)
+          div [ class "flex justify-center mb-4" ]
+            [ span [ class pointsBadgeClass ]
+                [ text (String.fromInt reward.pointCost ++ " pts") ]
             ]
-        , p [ class "text-gray-700 mb-4" ] [ text reward.description ]
-        , div [ class "flex justify-between items-center" ]
+
+        -- Title section (now has full width)
+        , div [ class "text-center mb-3" ]
+            [ h4 [ class "text-lg font-bold text-gray-900 mb-2 leading-tight" ] [ text reward.name ]
+            , span [ class "inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded" ]
+                [ text reward.category ]
+            ]
+
+        -- Description
+        , div [ class "mb-4" ]
+            [ p [ class "text-gray-700 text-sm leading-relaxed min-h-[3rem]" ] [ text reward.description ]
+            ]
+
+        -- Stock status
+        , div [ class "mb-3" ]
             [ case reward.stock of
                 Just stock ->
                     if stock > 0 then
-                        span [ class "text-sm text-green-600" ] [ text ("In stock: " ++ String.fromInt stock) ]
+                        div [ class "flex items-center text-sm" ]
+                            [ span [ class "w-2 h-2 bg-green-500 rounded-full mr-2" ] []
+                            , span [ class "text-green-600 font-medium" ] [ text ("In stock: " ++ String.fromInt stock) ]
+                            ]
 
                     else
-                        span [ class "text-sm text-red-600" ] [ text "Out of stock" ]
+                        div [ class "flex items-center text-sm" ]
+                            [ span [ class "w-2 h-2 bg-red-500 rounded-full mr-2" ] []
+                            , span [ class "text-red-600 font-medium" ] [ text "Out of stock" ]
+                            ]
 
                 Nothing ->
-                    span [ class "text-sm text-green-600" ] [ text "Always available" ]
-            , if not canAfford then
-                span [ class "text-sm text-red-600" ] [ text "Not enough points" ]
+                    div [ class "flex items-center text-sm" ]
+                        [ span [ class "w-2 h-2 bg-green-500 rounded-full mr-2" ] []
+                        , span [ class "text-green-600 font-medium" ] [ text "Always available" ]
+                        ]
+            ]
 
-              else if isOutOfStock then
-                span [ class "text-sm text-red-600" ] [ text "Unavailable" ]
+        -- Action button
+        , div [ class "border-t border-gray-100 pt-4" ]
+            [ button
+                [ class actionButtonClass
+                , if isAvailable then
+                    onClick (SelectReward reward)
 
-              else
-                span [ class "text-sm text-green-600 font-medium" ] [ text "Click to redeem!" ]
+                  else
+                    disabled True
+                ]
+                [ text actionText ]
             ]
         ]
 
