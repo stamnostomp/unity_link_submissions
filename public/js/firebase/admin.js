@@ -677,13 +677,14 @@ export function initializeFirebase(elmApp) {
   }
 }
 
-// POINT MANAGEMENT FUNCTIONS
+// POINT MANAGEMENT FUNCTIONS - UPDATED VERSIONS
 
 /**
  * Request student points data
  * @param {Object} elmApp - The Elm application instance
  */
 function requestStudentPoints(elmApp) {
+  console.log('🔥 requestStudentPoints called');
   const pointsRef = ref(database, 'studentPoints');
 
   get(pointsRef).then((snapshot) => {
@@ -697,6 +698,7 @@ function requestStudentPoints(elmApp) {
         });
       });
     }
+    console.log('🔥 Student points loaded:', pointsData.length);
     elmApp.ports.receiveStudentPoints.send(pointsData);
   }).catch((error) => {
     console.error("Error fetching student points:", error);
@@ -705,15 +707,17 @@ function requestStudentPoints(elmApp) {
 }
 
 /**
- * Award points to a student
+ * Award points to a student - UPDATED to create proper transaction records
  * @param {Object} data - The points data {studentId, points, reason}
  * @param {Object} elmApp - The Elm application instance
  */
 function awardPoints(data, elmApp) {
+  console.log('🔥 awardPoints called with:', data);
   const pointsRef = ref(database, `studentPoints/${data.studentId}`);
 
   get(pointsRef).then((snapshot) => {
     let currentData = {
+      studentId: data.studentId,
       currentPoints: 0,
       totalEarned: 0,
       totalRedeemed: 0
@@ -723,33 +727,45 @@ function awardPoints(data, elmApp) {
       currentData = snapshot.val();
     }
 
-    const updatedData = {
+    const updatedPointsData = {
       ...currentData,
       currentPoints: currentData.currentPoints + data.points,
       totalEarned: currentData.totalEarned + data.points,
       lastUpdated: new Date().toISOString()
     };
 
-    return set(pointsRef, updatedData);
-  }).then(() => {
-    // Log the point award
-    const historyRef = ref(database, 'pointHistory');
-    const newHistoryRef = push(historyRef);
-    return set(newHistoryRef, {
+    // Create transaction record
+    const transactionId = 'award-' + data.studentId + '-' + Date.now();
+    const transactionData = {
+      id: transactionId,
       studentId: data.studentId,
+      studentName: getStudentNameFromId(data.studentId) || 'Unknown',
+      transactionType: 'Award',
       points: data.points,
       reason: data.reason,
-      awardedBy: getCurrentUser().email,
-      awardedAt: new Date().toISOString(),
-      type: 'awarded'
-    });
+      category: 'manual',
+      adminEmail: getCurrentUser().email,
+      date: new Date().toISOString()
+    };
+
+    // 🔥 KEY FIX: Use batch update instead of individual set() calls
+    const updates = {};
+    updates[`studentPoints/${data.studentId}`] = updatedPointsData;
+    updates[`pointTransactions/${transactionId}`] = transactionData;
+
+    console.log('🔥 Attempting batch update for award:', updates);
+
+    // Use root reference update
+    const rootRef = ref(database);
+    return update(rootRef, updates);
   }).then(() => {
+    console.log('🔥 Award batch update completed successfully');
     elmApp.ports.pointsAwarded.send({
       success: true,
       message: `Successfully awarded ${data.points} points`
     });
   }).catch((error) => {
-    console.error("Error awarding points:", error);
+    console.error("🔥 Error awarding points:", error);
     elmApp.ports.pointsAwarded.send({
       success: false,
       message: "Error awarding points: " + error.message
@@ -758,7 +774,7 @@ function awardPoints(data, elmApp) {
 }
 
 /**
- * Redeem points from a student (ADDED FUNCTION)
+ * Redeem points from a student - FIXED VERSION
  * @param {Object} data - The redemption data {studentId, points, reason}
  * @param {Object} elmApp - The Elm application instance
  */
@@ -790,7 +806,7 @@ function redeemPoints(data, elmApp) {
     const transactionData = {
       id: transactionId,
       studentId: data.studentId,
-      studentName: currentData.studentName || 'Unknown',
+      studentName: getStudentNameFromId(data.studentId) || 'Unknown',
       transactionType: 'Redemption',
       points: data.points,
       reason: data.reason,
@@ -804,13 +820,13 @@ function redeemPoints(data, elmApp) {
     updates[`studentPoints/${data.studentId}`] = updatedPointsData;
     updates[`pointTransactions/${transactionId}`] = transactionData;
 
-    console.log('🔥 Attempting batch update:', updates);
+    console.log('🔥 Attempting batch update for redemption:', updates);
 
     // Use root reference update (same as successful test)
     const rootRef = ref(database);
     return update(rootRef, updates);
   }).then(() => {
-    console.log('🔥 Batch update completed successfully');
+    console.log('🔥 Redemption batch update completed successfully');
     elmApp.ports.pointsRedeemed.send({
       success: true,
       message: `Successfully redeemed ${data.points} points`
@@ -822,6 +838,72 @@ function redeemPoints(data, elmApp) {
       message: "Error redeeming points: " + error.message
     });
   });
+}
+
+/**
+ * Save a point transaction - FIXED VERSION
+ * @param {Object} transactionData - The transaction data to save
+ * @param {Object} elmApp - The Elm application instance
+ */
+function savePointTransaction(transactionData, elmApp) {
+  console.log('🔥 savePointTransaction called with:', transactionData);
+
+  // Use the ID provided by Elm, don't generate a new one
+  const transactionRef = ref(database, `pointTransactions/${transactionData.id}`);
+
+  set(transactionRef, transactionData)
+    .then(() => {
+      console.log('🔥 Transaction saved successfully:', transactionData.id);
+      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
+    })
+    .catch((error) => {
+      console.error("🔥 Error saving transaction:", error);
+      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
+    });
+}
+
+/**
+ * Request all point transactions - ENHANCED VERSION
+ * @param {Object} elmApp - The Elm application instance
+ */
+function requestPointTransactions(elmApp) {
+  console.log('🔥 requestPointTransactions called');
+  const transactionsRef = ref(database, 'pointTransactions');
+
+  get(transactionsRef)
+    .then((snapshot) => {
+      const transactions = [];
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        Object.keys(data).forEach(id => {
+          transactions.push({
+            id: id,
+            ...data[id]
+          });
+        });
+      }
+
+      console.log('🔥 Point transactions loaded:', transactions.length);
+      // Sort by date descending (newest first)
+      transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      elmApp.ports.receivePointTransactions.send(transactions);
+    })
+    .catch((error) => {
+      console.error("🔥 Error fetching transactions:", error);
+      elmApp.ports.receivePointTransactions.send([]);
+    });
+}
+
+/**
+ * Helper function to get student name from ID (used for transaction records)
+ * @param {string} studentId - The student ID
+ * @return {string} Student name or null
+ */
+function getStudentNameFromId(studentId) {
+  // For now, return the student ID formatted as a name
+  // You might want to cache student names or look them up
+  return studentId.replace(/[_-]/g, '.');
 }
 
 /**
@@ -1004,52 +1086,6 @@ function deletePointReward(rewardId, elmApp) {
     console.error("Error deleting reward:", error);
     elmApp.ports.pointRewardResult.send("Error: " + error.message);
   });
-}
-
-/**
- * Save a point transaction
- * @param {Object} transactionData - The transaction data to save
- * @param {Object} elmApp - The Elm application instance
- */
-function savePointTransaction(transactionData, elmApp) {
-  const transactionsRef = ref(database, 'pointTransactions');
-  const newTransactionRef = push(transactionsRef);
-
-  set(newTransactionRef, transactionData)
-    .then(() => {
-      elmApp.ports.pointTransactionSaved.send("Transaction saved successfully");
-    })
-    .catch((error) => {
-      console.error("Error saving transaction:", error);
-      elmApp.ports.pointTransactionSaved.send("Error: " + error.message);
-    });
-}
-
-/**
- * Request all point transactions
- * @param {Object} elmApp - The Elm application instance
- */
-function requestPointTransactions(elmApp) {
-  const transactionsRef = ref(database, 'pointTransactions');
-
-  get(transactionsRef)
-    .then((snapshot) => {
-      const transactions = [];
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        Object.keys(data).forEach(id => {
-          transactions.push({
-            id: id,
-            ...data[id]
-          });
-        });
-      }
-      elmApp.ports.receivePointTransactions.send(transactions);
-    })
-    .catch((error) => {
-      console.error("Error fetching transactions:", error);
-      elmApp.ports.receivePointTransactions.send([]);
-    });
 }
 
 // ALL OTHER EXISTING FUNCTIONS REMAIN THE SAME...

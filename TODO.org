@@ -12,6 +12,10 @@
 ** DONE make sure that redeem points and history box lines up
 ** DONE fix point redemption
 ** DONE clean up redemption page
+** DONE center available points
+** DONE add pages to the history
+** TODO make all history pages a fixed size
+** TODO click on a submission to view the notes
 * System
 ** TODO clean up login speeds
 ** TODO fix bug when logging in that loads forever
