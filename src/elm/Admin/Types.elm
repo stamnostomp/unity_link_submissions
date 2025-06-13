@@ -328,3 +328,4 @@ type
     | RequestPointTransactions
     | ReceivePointTransactions (Result Decode.Error (List PointTransaction))
     | PointTransactionSaved String
+    | PointTransactionDeleted String

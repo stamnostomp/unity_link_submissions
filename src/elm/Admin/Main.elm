@@ -412,6 +412,14 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
+        PointTransactionDeleted result ->
+            case model.page of
+                PointManagementPage ->
+                    PointManagement.update msg model
+
+                _ ->
+                    ( model, Cmd.none )
+
         -- Delegate to Page Modules
         _ ->
             case model.page of
@@ -559,6 +567,7 @@ subscriptions _ =
         , Ports.pointRewardResult RewardResult
         , Ports.receivePointTransactions (decodePointTransactionsResponse >> ReceivePointTransactions)
         , Ports.pointTransactionSaved PointTransactionSaved -- THIS WAS THE MISSING ONE
+        , Ports.pointTransactionDeleted PointTransactionDeleted
         ]
 
 

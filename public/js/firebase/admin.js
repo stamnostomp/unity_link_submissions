@@ -297,6 +297,16 @@ export function initializeFirebase(elmApp) {
     });
   }
 
+  if (elmApp.ports.deletePointTransaction) {
+    elmApp.ports.deletePointTransaction.subscribe(function(transactionId) {
+      if (auth.currentUser) {
+        deletePointTransaction(transactionId, elmApp);
+      } else {
+        console.warn("Cannot delete transaction: User not authenticated");
+        elmApp.ports.pointTransactionDeleted.send("Error: Not authenticated");
+      }
+    });
+  }
   // Point Management Port Subscriptions
   if (elmApp.ports.deletePointReward) {
     elmApp.ports.deletePointReward.subscribe(function(rewardId) {
@@ -1707,4 +1717,100 @@ async function createNewStudentRecord(studentData, elmApp) {
       error: error.message || "Error creating student record"
     });
   }
+
+
 }
+  /**
+  * Delete a point transaction and recalculate student points
+  * @param {string} transactionId - The ID of the transaction to delete
+  * @param {Object} elmApp - The Elm application instance
+  */
+  async function deletePointTransaction(transactionId, elmApp) {
+    console.log('🔥 deletePointTransaction called with:', transactionId);
+
+    try {
+      // Reference to the specific transaction
+      const transactionRef = ref(database, `pointTransactions/${transactionId}`);
+
+      // Get the transaction data before deleting (for student points recalculation)
+      const transactionSnapshot = await get(transactionRef);
+      const transaction = transactionSnapshot.val();
+
+      if (!transaction) {
+        throw new Error("Transaction not found");
+      }
+
+      console.log('🔥 Found transaction to delete:', transaction);
+
+      // Delete the transaction from Firebase
+      await remove(transactionRef);
+      console.log('🔥 Transaction deleted from Firebase');
+
+      // Recalculate student points after deletion
+      await recalculateStudentPointsAfterDeletion(transaction.studentId);
+      console.log('🔥 Student points recalculated');
+
+      // Send success message back to Elm
+      elmApp.ports.pointTransactionDeleted.send(`Success: Transaction ${transactionId} deleted`);
+
+    } catch (error) {
+      console.error('🔥 Error deleting point transaction:', error);
+      elmApp.ports.pointTransactionDeleted.send(`Error: ${error.message}`);
+    }
+  }
+
+  /**
+  * Recalculate student points after a transaction is deleted
+  * @param {string} studentId - The student ID to recalculate points for
+  */
+  async function recalculateStudentPointsAfterDeletion(studentId) {
+    try {
+      console.log('🔥 Recalculating points for student:', studentId);
+
+      // Get all remaining transactions for this student
+      const transactionsRef = ref(database, 'pointTransactions');
+      const transactionsSnapshot = await get(transactionsRef);
+
+      let totalEarned = 0;
+      let totalRedeemed = 0;
+
+      if (transactionsSnapshot.exists()) {
+        const allTransactions = transactionsSnapshot.val();
+
+        // Filter transactions for this specific student and calculate totals
+        Object.values(allTransactions).forEach(transaction => {
+          if (transaction.studentId === studentId) {
+            if (transaction.transactionType === 'Award' || transaction.transactionType === 'award') {
+              totalEarned += transaction.points;
+            } else if (transaction.transactionType === 'Redemption' || transaction.transactionType === 'redemption') {
+              totalRedeemed += transaction.points;
+            }
+          }
+        });
+      }
+
+      const currentPoints = Math.max(0, totalEarned - totalRedeemed);
+
+      console.log('🔥 Recalculated points:', {
+        studentId,
+        totalEarned,
+        totalRedeemed,
+        currentPoints
+      });
+
+      // Update student points record
+      const studentPointsRef = ref(database, `studentPoints/${studentId}`);
+      await update(studentPointsRef, {
+        currentPoints: currentPoints,
+        totalEarned: totalEarned,
+        totalRedeemed: totalRedeemed,
+        lastUpdated: new Date().toISOString()
+      });
+
+      console.log('🔥 Student points updated successfully');
+
+    } catch (error) {
+      console.error('🔥 Error recalculating student points:', error);
+      throw error;
+    }
+  }

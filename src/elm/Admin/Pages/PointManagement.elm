@@ -335,28 +335,18 @@ update msg model =
             ( { model | confirmDeleteTransaction = Just transaction }, Cmd.none )
 
         ConfirmDeleteTransaction transaction ->
-            let
-                -- Remove transaction from list
-                updatedTransactions =
-                    List.filter (\t -> t.id /= transaction.id) model.pointTransactions
-
-                -- Recalculate student points based on remaining transactions
-                updatedStudentPoints =
-                    recalculateStudentPoints transaction.studentId updatedTransactions model.studentPoints
-
-                -- Update selected student transactions for the modal
-                updatedSelectedTransactions =
-                    List.filter (\t -> t.id /= transaction.id) model.selectedStudentTransactions
-            in
-            ( { model
-                | pointTransactions = updatedTransactions
-                , studentPoints = updatedStudentPoints
-                , selectedStudentTransactions = updatedSelectedTransactions
-                , confirmDeleteTransaction = Nothing
-                , success = Just ("Deleted " ++ transactionTypeToString transaction.transactionType ++ " transaction successfully")
-              }
-            , Cmd.none
+            ( { model | loading = True, confirmDeleteTransaction = Nothing }
+            , Ports.deletePointTransaction transaction.id
             )
+
+        PointTransactionDeleted result ->
+            if String.startsWith "Error:" result then
+                ( { model | error = Just result, loading = False }, Cmd.none )
+
+            else
+                ( { model | success = Just "Transaction deleted successfully", loading = False }
+                , Cmd.batch [ Ports.requestPointTransactions (), Ports.requestStudentPoints () ]
+                )
 
         CancelDeleteTransaction ->
             ( { model | confirmDeleteTransaction = Nothing }, Cmd.none )
@@ -1487,16 +1477,16 @@ viewPointHistoryModal model =
                     |> List.map .points
                     |> List.sum
         in
-        div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" ]
-            [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-4xl w-full m-4 max-h-[90vh] flex flex-col" ]
-                [ div [ class "px-6 py-4 bg-purple-50 border-b border-gray-200 flex justify-between items-center" ]
+        div [ class "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4" ]
+            [ div [ class "bg-white rounded-lg overflow-hidden shadow-xl max-w-7xl w-full max-h-[95vh] flex flex-col" ]
+                [ div [ class "px-6 py-4 bg-purple-50 border-b border-gray-200 flex justify-between items-center flex-shrink-0" ]
                     [ div []
                         [ h3 [ class "text-lg font-medium text-purple-700" ]
                             [ text ("Point History: " ++ formatDisplayName studentName) ]
                         , p [ class "text-sm text-purple-600 mt-1" ]
                             [ text (String.fromInt totalTransactions ++ " transactions • +" ++ String.fromInt totalEarned ++ " earned • -" ++ String.fromInt totalRedeemed ++ " redeemed") ]
                         ]
-                    , button [ onClick HidePointHistoryModal, class "text-gray-400 hover:text-gray-500 text-xl" ] [ text "×" ]
+                    , button [ onClick HidePointHistoryModal, class "text-gray-400 hover:text-gray-500 text-xl font-bold" ] [ text "×" ]
                     ]
                 , div [ class "p-6 overflow-y-auto flex-grow" ]
                     [ if List.isEmpty model.selectedStudentTransactions then
@@ -1514,20 +1504,20 @@ viewPointHistoryModal model =
                             [ table [ class "min-w-full divide-y divide-gray-200" ]
                                 [ thead [ class "bg-gray-50" ]
                                     [ tr []
-                                        [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Date" ]
-                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Type" ]
-                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Points" ]
-                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Reason" ]
-                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Admin" ]
-                                        , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Actions" ]
+                                        [ th [ class "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Date" ]
+                                        , th [ class "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Type" ]
+                                        , th [ class "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24" ] [ text "Points" ]
+                                        , th [ class "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text "Reason" ]
+                                        , th [ class "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32" ] [ text "Admin" ]
+                                        , th [ class "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20" ] [ text "Actions" ]
                                         ]
                                     ]
                                 , tbody [ class "bg-white divide-y divide-gray-200" ]
-                                    (List.map viewTransactionRow model.selectedStudentTransactions)
+                                    (List.map viewTransactionRowWithDelete model.selectedStudentTransactions)
                                 ]
                             ]
                     ]
-                , div [ class "px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center" ]
+                , div [ class "px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center flex-shrink-0" ]
                     [ div [ class "text-sm text-gray-500" ]
                         [ text ("Total: " ++ String.fromInt totalTransactions ++ " transactions") ]
                     , button [ onClick HidePointHistoryModal, class "px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500" ] [ text "Close" ]
@@ -1539,12 +1529,12 @@ viewPointHistoryModal model =
         text ""
 
 
-viewTransactionRow : PointTransaction -> Html Msg
-viewTransactionRow transaction =
+viewTransactionRowWithDelete : PointTransaction -> Html Msg
+viewTransactionRowWithDelete transaction =
     tr [ class "hover:bg-gray-50" ]
-        [ td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
-            [ text transaction.date ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+        [ td [ class "px-4 py-4 whitespace-nowrap text-sm text-gray-500 w-32" ]
+            [ text (String.left 10 transaction.date) ]
+        , td [ class "px-4 py-4 whitespace-nowrap w-24" ]
             [ span
                 [ class
                     (case transaction.transactionType of
@@ -1557,15 +1547,15 @@ viewTransactionRow transaction =
                 ]
                 [ text (transactionTypeToString transaction.transactionType) ]
             ]
-        , td [ class "px-6 py-4 whitespace-nowrap" ]
+        , td [ class "px-4 py-4 whitespace-nowrap w-24" ]
             [ span
                 [ class
                     (case transaction.transactionType of
                         Award ->
-                            "text-green-600 font-medium"
+                            "text-green-600 font-bold text-base"
 
                         Redemption ->
-                            "text-red-600 font-medium"
+                            "text-red-600 font-bold text-base"
                     )
                 ]
                 [ text
@@ -1578,18 +1568,26 @@ viewTransactionRow transaction =
                     )
                 ]
             ]
-        , td [ class "px-6 py-4 text-sm text-gray-900 max-w-xs" ]
-            [ div [ class "truncate" ] [ text transaction.reason ] ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm text-gray-500" ]
-            [ text transaction.adminEmail ]
-        , td [ class "px-6 py-4 whitespace-nowrap text-sm font-medium" ]
+        , td [ class "px-4 py-4 text-sm text-gray-900" ]
+            [ div [ class "max-w-md" ]
+                [ p [ class "break-words" ] [ text transaction.reason ] ]
+            ]
+        , td [ class "px-4 py-4 whitespace-nowrap text-sm text-gray-500 w-32" ]
+            [ div [ class "truncate max-w-24" ] [ text transaction.adminEmail ] ]
+        , td [ class "px-4 py-4 whitespace-nowrap text-sm font-medium w-20" ]
             [ button
                 [ onClick (DeletePointTransaction transaction)
-                , class "px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                , class "inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                , title ("Delete " ++ transactionTypeToString transaction.transactionType ++ " transaction")
                 ]
                 [ text "Delete" ]
             ]
         ]
+
+
+viewTransactionRow : PointTransaction -> Html Msg
+viewTransactionRow transaction =
+    viewTransactionRowWithDelete transaction
 
 
 viewConfirmDeleteTransactionModal : Model -> Html Msg

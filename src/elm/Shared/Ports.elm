@@ -264,3 +264,13 @@ port requestPointTransactions : () -> Cmd msg
 
 
 port receivePointTransactions : (Decode.Value -> msg) -> Sub msg
+
+
+
+-- Add these two new ports:
+
+
+port deletePointTransaction : String -> Cmd msg
+
+
+port pointTransactionDeleted : (String -> msg) -> Sub msg
