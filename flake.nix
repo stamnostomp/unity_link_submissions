@@ -174,6 +174,46 @@
             '';
           };
 
+          # NEW: Development server for Admin interface
+          dev-admin = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "dev-admin" ''
+              echo "Starting development server for Admin interface..."
+              echo "Building CSS first..."
+              ${pkgs.nodePackages.tailwindcss}/bin/tailwindcss \
+                -i ./src/css/tailwind.css \
+                -o ./public/css/tailwind.css \
+                --minify
+
+              echo "Starting elm-live for Admin..."
+              echo "Open http://localhost:8000/admin/admin.html in your browser"
+              ${pkgs.elmPackages.elm-live}/bin/elm-live src/elm/Admin.elm \
+                --port=8000 \
+                --dir=public \
+                --start-page=admin/admin.html \
+                -- --output=public/admin/admin.js
+            '';
+          };
+
+          # NEW: Development server for Student interface
+          dev-student = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "dev-student" ''
+              echo "Starting development server for Student interface..."
+              echo "Building CSS first..."
+              ${pkgs.nodePackages.tailwindcss}/bin/tailwindcss \
+                -i ./src/css/tailwind.css \
+                -o ./public/css/tailwind.css \
+                --minify
+
+              echo "Starting elm-live for Student..."
+              echo "Open http://localhost:8000/student/student.html in your browser"
+              ${pkgs.elmPackages.elm-live}/bin/elm-live src/elm/Student.elm \
+                --port=8000 \
+                --dir=public \
+                --start-page=student/student.html \
+                -- --output=public/student/student.js
+            '';
+          };
+
           # Simple deploy without Nix build (alternative)
           deploy-simple = flake-utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "deploy-simple" ''
@@ -341,46 +381,61 @@
               echo "=============================="
               echo "Uses your existing firebase.json config"
               echo ""
-              echo "1: Build Elm applications"
-              echo "2: Build CSS"
-              echo "3: Build All (Elm + CSS)"
-              echo "4: Deploy to Firebase (with Nix CSS)"
-              echo "5: Deploy to Firebase (simple, no Nix)"
-              echo "6: Build All + Deploy (with Nix CSS)"
-              echo "7: Build All + Deploy (simple)"
-              echo "8: Show deployment structure"
-              echo "9: Exit"
+              echo "Development:"
+              echo "1: Start Admin dev server (elm-live)"
+              echo "2: Start Student dev server (elm-live)"
               echo ""
-              echo "Enter your choice (1-9):"
+              echo "Building:"
+              echo "3: Build Elm applications"
+              echo "4: Build CSS"
+              echo "5: Build All (Elm + CSS)"
+              echo ""
+              echo "Deployment:"
+              echo "6: Deploy to Firebase (with Nix CSS)"
+              echo "7: Deploy to Firebase (simple, no Nix)"
+              echo "8: Build All + Deploy (with Nix CSS)"
+              echo "9: Build All + Deploy (simple)"
+              echo ""
+              echo "Utilities:"
+              echo "10: Show deployment structure"
+              echo "11: Exit"
+              echo ""
+              echo "Enter your choice (1-11):"
               read choice
 
               case $choice in
                 1)
-                  ${self.apps.${system}.build-elm.program}
+                  ${self.apps.${system}.dev-admin.program}
                   ;;
                 2)
-                  ${self.apps.${system}.build-css.program}
+                  ${self.apps.${system}.dev-student.program}
                   ;;
                 3)
-                  ${self.apps.${system}.build-elm.program} && ${self.apps.${system}.build-css.program}
+                  ${self.apps.${system}.build-elm.program}
                   ;;
                 4)
-                  ${self.apps.${system}.deploy.program}
+                  ${self.apps.${system}.build-css.program}
                   ;;
                 5)
-                  ${self.apps.${system}.deploy-simple.program}
+                  ${self.apps.${system}.build-elm.program} && ${self.apps.${system}.build-css.program}
                   ;;
                 6)
+                  ${self.apps.${system}.deploy.program}
+                  ;;
+                7)
+                  ${self.apps.${system}.deploy-simple.program}
+                  ;;
+                8)
                   ${self.apps.${system}.build-elm.program} && ${self.apps.${system}.build-css.program} && ${
                     self.apps.${system}.deploy.program
                   }
                   ;;
-                7)
+                9)
                   ${self.apps.${system}.build-elm.program} && ${self.apps.${system}.build-css.program} && ${
                     self.apps.${system}.deploy-simple.program
                   }
                   ;;
-                8)
+                10)
                   echo "Current project structure:"
                   if [ -d "public" ]; then
                     echo "public/ directory:"
@@ -398,7 +453,7 @@
                     tree dist/ 2>/dev/null || ls -la dist/
                   fi
                   ;;
-                9)
+                11)
                   echo "Exiting..."
                   exit 0
                   ;;
@@ -416,6 +471,7 @@
             pkgs.elmPackages.elm
             pkgs.elmPackages.elm-format
             pkgs.elmPackages.elm-test
+            pkgs.elmPackages.elm-live # ← Added elm-live here!
             pkgs.nodejs
             pkgs.nodePackages.tailwindcss
             pkgs.firebase-tools
@@ -454,6 +510,17 @@
 
             deploy_simple() {
               ${self.apps.${system}.deploy-simple.program}
+            }
+
+            # NEW: Development server functions
+            dev_admin() {
+              echo "Starting Admin development server..."
+              ${self.apps.${system}.dev-admin.program}
+            }
+
+            dev_student() {
+              echo "Starting Student development server..."
+              ${self.apps.${system}.dev-student.program}
             }
 
             # Watch mode for development
@@ -498,10 +565,16 @@
             echo "  build_css       - Build CSS to public/"
             echo "  build_all       - Build everything"
             echo "  watch_css       - Watch CSS changes"
+            echo "  dev_admin       - Start Admin dev server with elm-live"
+            echo "  dev_student     - Start Student dev server with elm-live"
             echo "  deploy_firebase - Deploy to Firebase (includes build_all, uses Nix for CSS)"
             echo "  deploy_simple   - Deploy to Firebase (includes build_all, no Nix)"
             echo "  check_structure - Show current directory structure"
             echo "  nix run         - Interactive menu"
+            echo ""
+            echo "Development workflow:"
+            echo "  1. dev_admin      - Start admin dev server (hot reload)"
+            echo "  2. dev_student    - Start student dev server (hot reload)"
             echo ""
             echo "Build workflow:"
             echo "  1. build_all           - Compiles everything to public/"
@@ -518,6 +591,8 @@
             echo "  ├── dist/public/student/student.js (Ready for Firebase)"
             echo "  ├── dist/public/css/tailwind.css   (Compiled CSS)"
             echo "  └── dist/firebase.json              (Points to public/ directory)"
+            echo ""
+            echo "🚀 Quick start: run 'dev_admin' or 'dev_student' for live development!"
             echo ""
           '';
         };
