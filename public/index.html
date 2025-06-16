@@ -1,62 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unity Game Submissions</title>
-  <link rel="icon" href="assets/favicon.ico">
-  <link href="css/tailwind.css" rel="stylesheet">
-  <style>
-    body {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background-color: #f3f4f6;
-    }
-    .container {
-      max-width: 600px;
-      padding: 2rem;
-      background-color: white;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      text-align: center;
-    }
-    .btn {
-      display: inline-block;
-      margin: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.375rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s;
-    }
-    .btn-blue {
-      background-color: #3b82f6;
-      color: white;
-    }
-    .btn-blue:hover {
-      background-color: #2563eb;
-    }
-    .btn-purple {
-      background-color: #8b5cf6;
-      color: white;
-    }
-    .btn-purple:hover {
-      background-color: #7c3aed;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arcola-east-regina</title>
+    <link href="/css/tailwind.css" rel="stylesheet">
+    <link href="/branding/css/custom.css" rel="stylesheet">
+    <style>
+        .brand-gradient {
+            background: linear-gradient(135deg,  0%, cc 100%);
+        }
+    </style>
 </head>
-<body>
-  <div class="container">
-    <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem;">Unity Game Submissions</h1>
-    <p style="margin-bottom: 2rem;">Please select your role to continue:</p>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <header class="brand-gradient text-white p-6">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-3xl font-bold">arcola-east-regina</h1>
+                <p class="text-lg opacity-90">arcola-east-regina</p>
+            </div>
+        </header>
 
-    <div>
-      <a href="/student" class="btn btn-blue">Student Portal</a>
-      <a href="/admin" class="btn btn-purple">Admin Portal</a>
+        <main class="flex-grow flex items-center justify-center p-6">
+            <div class="max-w-2xl mx-auto text-center">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Welcome to Unity Game Submissions</h2>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <a href="/student" class="block bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-lg p-6 transition-colors">
+                            <div class="text-4xl mb-3">🎓</div>
+                            <h3 class="text-xl font-semibold text-blue-800">Student Portal</h3>
+                            <p class="text-blue-600 mt-2">Submit your Unity game projects</p>
+                        </a>
+
+                        <a href="/admin" class="block bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-lg p-6 transition-colors">
+                            <div class="text-4xl mb-3">👨‍💼</div>
+                            <h3 class="text-xl font-semibold text-purple-800">Admin Panel</h3>
+                            <p class="text-purple-600 mt-2">Review and grade submissions</p>
+                        </a>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <p class="text-sm text-gray-500">
+                            Need help? Contact <a href="mailto:stamno@pm.me" class="text-brand-primary hover:underline">stamno@pm.me</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-gray-800 text-white text-center p-4">
+            <p>&copy; 2025 arcola-east-regina. All rights reserved.</p>
+        </footer>
     </div>
-  </div>
 </body>
 </html>

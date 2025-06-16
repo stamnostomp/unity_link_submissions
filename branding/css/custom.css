@@ -1,0 +1,20 @@
+/* Custom CSS for arcola-east-regina */
+/* This file is included after Tailwind CSS for customizations */
+
+:root {
+  --brand-primary: ;
+  --brand-primary-light: 20;
+  --brand-primary-dark: cc;
+}
+
+/* Custom brand colors */
+.bg-brand-primary { background-color: var(--brand-primary); }
+.text-brand-primary { color: var(--brand-primary); }
+.border-brand-primary { border-color: var(--brand-primary); }
+
+/* Custom header styling for arcola-east-regina */
+.custom-header {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+}
+
+/* Organization-specific customizations go here */
