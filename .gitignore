@@ -8,6 +8,7 @@ elm-stuff/
 *.elmo
 *.elmi
 *.dat
+**/elm-stuff/
 
 # Node.js
 node_modules/
