@@ -1,0 +1,17 @@
+{
+  "branchName": "arcola-east-regina",
+  "organizationName": "arcola-east-regina",
+  "projectName": "arcola-east-regina",
+  "firebaseProjectId": "arcola-east-regina",
+  "adminEmail": "stamno@pm.me",
+  "brandColor": "",
+  "createdDate": "2025-06-16T21:02:11Z",
+  "version": "1.0.0",
+  "features": {
+    "customBranding": true,
+    "pointSystem": true,
+    "adminManagement": true,
+    "beltSystem": true
+  },
+  "customizations": []
+}

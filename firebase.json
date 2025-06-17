@@ -14,7 +14,10 @@
       "tailwind.config.js",
       "elm.json",
       "package.json",
-      "postcss.config.js"
+      "postcss.config.js",
+      "scripts/**",
+      "branding/**",
+      "docs/**"
     ],
     "rewrites": [
       {

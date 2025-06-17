@@ -5,14 +5,22 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gsta
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA_sP8BE2C6MLWATQNoLM_U-_VDigHTImg",
-  authDomain: "elm-unity-subs.firebaseapp.com",
-  databaseURL: "https://elm-unity-subs-default-rtdb.firebaseio.com",
-  projectId: "elm-unity-subs",
-  storageBucket: "elm-unity-subs.firebasestorage.app",
-  messagingSenderId: "94290689528",
-  appId: "1:94290689528:web:74047dce17d27e00172a0d",
-  measurementId: "G-90YCVPGV6M"
+  apiKey: "AIzaSyCSBvsGf_HAsc9LHc_hVEPj_fLzVpewocs",
+
+  authDomain: "arcola-east-regina.firebaseapp.com",
+
+  databaseURL: "https://arcola-east-regina-default-rtdb.firebaseio.com",
+
+  projectId: "arcola-east-regina",
+
+  storageBucket: "arcola-east-regina.firebasestorage.app",
+
+  messagingSenderId: "241321870575",
+
+  appId: "1:241321870575:web:23b749b3353f23da2a471a",
+
+  measurementId: "G-X0SPEZHYNF"
+
 };
 
 // Initialize Firebase
