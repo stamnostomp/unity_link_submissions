@@ -15,29 +15,21 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyA_sP8BE2C6MLWATQNoLM_U-_VDigHTImg",
 
-
-
-
   authDomain: "elm-unity-subs.firebaseapp.com",
-
 
   databaseURL: "https://elm-unity-subs-default-rtdb.firebaseio.com",
 
-
   projectId: "elm-unity-subs",
 
-
-  storageBucket: "elm-unity-subs.firebasestorage.app",Add commentMore actions
-
+  storageBucket: "elm-unity-subs.firebasestorage.app",
 
   messagingSenderId: "94290689528",
 
-
   appId: "1:94290689528:web:74047dce17d27e00172a0d",
 
-
   measurementId: "G-90YCVPGV6M"
-};
+
+ };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
