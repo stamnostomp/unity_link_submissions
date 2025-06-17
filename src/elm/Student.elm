@@ -1281,26 +1281,28 @@ viewStudentProfilePage model student =
                 ]
             ]
 
-        -- Points Balance Display
+        -- Points Balance Display (IMPROVED VERSION)
         , case model.studentPoints of
             Just points ->
                 div [ class "bg-gradient-to-r from-green-400 to-blue-500 rounded-lg p-6 text-white" ]
-                    [ div [ class "flex items-center justify-between" ]
-                        [ div []
-                            [ h3 [ class "text-lg font-medium" ] [ text "Your Points Balance" ]
-                            , p [ class "text-3xl font-bold" ] [ text (formatLargeNumber points.currentPoints) ]
-                            , p [ class "text-sm opacity-90" ] [ text ("Total earned: " ++ formatLargeNumber points.totalEarned ++ " | Total redeemed: " ++ formatLargeNumber points.totalRedeemed) ]
+                    [ div [ class "flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6" ]
+                        [ div [ class "flex-1 min-w-0" ]
+                            [ h3 [ class "text-lg font-medium mb-2" ] [ text "Your Points Balance" ]
+                            , p [ class "text-3xl font-bold mb-3" ] [ text (formatLargeNumber points.currentPoints) ]
+                            , div [ class "text-sm opacity-90 space-y-1" ]
+                                [ p [] [ text ("Total earned: " ++ formatLargeNumber points.totalEarned) ]
+                                , p [] [ text ("Total redeemed: " ++ formatLargeNumber points.totalRedeemed) ]
+                                ]
                             ]
-                        , div [ class "text-right space-y-2" ]
+                        , div [ class "flex flex-col sm:flex-row lg:flex-col gap-3 lg:text-right flex-shrink-0" ]
                             [ button
                                 [ onClick (ShowPointsPage student)
-                                , class "w-full bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
+                                , class "bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition whitespace-nowrap"
                                 ]
                                 [ text "Redeem Points" ]
-                            , br [] []
                             , button
                                 [ onClick (ShowRedemptionHistory student)
-                                , class "w-full mt-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition"
+                                , class "bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-md text-white font-medium transition whitespace-nowrap"
                                 ]
                                 [ text "View History" ]
                             ]
