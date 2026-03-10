@@ -396,6 +396,7 @@ update msg model =
         UpdateNewRewardStock stock ->
             ( { model | newRewardStock = stock }, Cmd.none )
 
+
         AddNewReward ->
             case String.toInt model.newRewardCost of
                 Just cost ->
@@ -782,6 +783,7 @@ view model =
         [ viewHeader
         , viewPointsOverview model
         , viewActiveRedemptions model
+        , viewApprovedRedemptions model
         , viewRewardManagement model
         , viewStudentPointsTable model
         , viewAwardPointsModal model
@@ -849,10 +851,10 @@ viewPointsOverview model =
             List.length (List.filter (\r -> r.status == Pending) model.pointRedemptions)
     in
     div [ class "grid grid-cols-1 md:grid-cols-4 gap-6" ]
-        [ viewStatCard "Total Points Earned" (String.fromInt totalPointsEarned) "🎯"
-        , viewStatCard "Points Redeemed" (String.fromInt totalPointsRedeemed) "🎁"
-        , viewStatCard "Current Points" (String.fromInt currentPointsInSystem) "💎"
-        , viewStatCard "Pending Redemptions" (String.fromInt pendingRedemptions) "⏳"
+        [ viewStatCard "Total Points Earned" (String.fromInt totalPointsEarned) ""
+        , viewStatCard "Points Redeemed" (String.fromInt totalPointsRedeemed) ""
+        , viewStatCard "Current Points" (String.fromInt currentPointsInSystem) ""
+        , viewStatCard "Pending Redemptions" (String.fromInt pendingRedemptions) ""
         ]
 
 
@@ -878,7 +880,38 @@ viewActiveRedemptions model =
     in
     div [ class "bg-white shadow rounded-lg p-6" ]
         [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ]
-            [ text ("Pending Redemptions (" ++ String.fromInt (List.length activeRedemptions) ++ ")") ]
+            [ text ("Pending Approvel (" ++ String.fromInt (List.length activeRedemptions) ++ ")") ]
+        , if List.isEmpty activeRedemptions then
+            div [ class "text-center py-8 text-gray-500" ]
+                [ text "No pending redemptions" ]
+
+          else
+            div [ class "overflow-x-auto" ]
+                [ table [ class "min-w-full divide-y divide-gray-200" ]
+                    [ thead [ class "bg-gray-50" ]
+                        [ tr []
+                            [ th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Student" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Reward" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Points" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Date" ]
+                            , th [ class "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase" ] [ text "Actions" ]
+                            ]
+                        ]
+                    , tbody [ class "bg-white divide-y divide-gray-200" ]
+                        (List.map viewRedemptionRow activeRedemptions)
+                    ]
+                ]
+        ]
+
+viewApprovedRedemptions : Model -> Html Msg
+viewApprovedRedemptions model =
+    let
+        activeRedemptions =
+            List.filter (\r -> r.status == Approved) model.pointRedemptions
+    in
+    div [ class "bg-white shadow rounded-lg p-6" ]
+        [ h3 [ class "text-lg font-medium text-gray-900 mb-4" ]
+            [ text ("Pending Fulfillment (" ++ String.fromInt (List.length activeRedemptions) ++ ")") ]
         , if List.isEmpty activeRedemptions then
             div [ class "text-center py-8 text-gray-500" ]
                 [ text "No pending redemptions" ]
